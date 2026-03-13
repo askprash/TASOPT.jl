@@ -1,0 +1,17 @@
+{
+  "name": "TASOPT.jl",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/julia:1": {
+      "version": "1.11"
+    }
+  },
+  "postCreateCommand": "julia --project=/workspaces/TASOPT.jl -e 'using Pkg; Pkg.instantiate()' 2>&1 | tee /tmp/pkg_instantiate.log",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "julialang.language-julia"
+      ]
+    }
+  }
+}
