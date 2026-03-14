@@ -800,14 +800,14 @@ function launch_dashboard(ac1::TASOPT.aircraft, ac2::TASOPT.aircraft)
     ax_ac1 = Axis(fig[2, 1];
         title         = ac1.name,
         titlecolor    = C1,
-        titlefontsize = 13,
+        titlesize     = 13,
         xlabel        = "x [m]", ylabel="y [m]",
         aspect        = DataAspect(),
         backgroundcolor = AX_BG)
     ax_ac2 = Axis(fig[2, 2];
         title         = ac2.name,
         titlecolor    = C2,
-        titlefontsize = 13,
+        titlesize     = 13,
         xlabel        = "x [m]", ylabel="y [m]",
         aspect        = DataAspect(),
         backgroundcolor = AX_BG)
