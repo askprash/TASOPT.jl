@@ -842,10 +842,9 @@ function launch_dashboard(ac1::TASOPT.aircraft, ac2::TASOPT.aircraft)
     DataInspector(fig;
         indicator_color    = YELLOW,
         indicator_linewidth = 2.5,
-        tooltip_max_width  = 320,
         fontsize           = 11,
-        background_color   = RGBAf(0.1,0.1,0.13,0.92),
-        text_color         = TXT_COL)
+        backgroundcolor    = RGBAf(0.1,0.1,0.13,0.92),
+        textcolor          = TXT_COL)
 
     # ── Click on outline components → switch tab ─────────────────────────────
     for (ax, comps) in [(ax_ac1, comps1), (ax_ac2, comps2)]
