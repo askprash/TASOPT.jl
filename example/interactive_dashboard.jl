@@ -228,14 +228,7 @@ function draw_aircraft!(ax, ac, col)
         strokecolor = col,
         strokewidth = 2.5,
         inspector_label = (_, _, _) ->
-            @sprintf("Wing\n" *
-                     "Span:     %.1f m     AR: %.2f\n" *
-                     "Sweep:    %.1f°     S:  %.0f m²\n" *
-                     "Root c:   %.2f m   Tip c: %.2f m\n" *
-                     "λ_in: %.3f  λ_out: %.3f\n" *
-                     "—— Cruise ——\n" *
-                     "CL: %.4f   CD_wing: %.5f\n" *
-                     "L/D: %.2f",
+            @sprintf("Wing\nSpan:     %.1f m     AR: %.2f\nSweep:    %.1f°     S:  %.0f m²\nRoot c:   %.2f m   Tip c: %.2f m\nλ_in: %.3f  λ_out: %.3f\n—— Cruise ——\nCL: %.4f   CD_wing: %.5f\nL/D: %.2f",
                 w.layout.span, w.layout.AR, w.layout.sweep, w.layout.S,
                 w.layout.root_chord, w.layout.root_chord * w.outboard.λ,
                 w.inboard.λ, w.outboard.λ,
@@ -264,12 +257,7 @@ function draw_aircraft!(ax, ac, col)
         strokecolor  = col,
         strokewidth  = 2.5,
         inspector_label = (_, _, _) ->
-            @sprintf("Fuselage\n" *
-                     "Length:   %.1f m\n" *
-                     "Radius:   %.3f m\n" *
-                     "Weight:   %.2f t\n" *
-                     "Pax shell: %.1f – %.1f m\n" *
-                     "nDecks: %d",
+            @sprintf("Fuselage\nLength:   %.1f m\nRadius:   %.3f m\nWeight:   %.2f t\nPax shell: %.1f - %.1f m\nnDecks: %d",
                 ac.fuselage.layout.x_end - ac.fuselage.layout.x_nose,
                 ac.fuselage.layout.radius,
                 ac.fuselage.weight / 9.81e3,
@@ -285,12 +273,7 @@ function draw_aircraft!(ax, ac, col)
         strokecolor  = col,
         strokewidth  = 2.0,
         inspector_label = (_, _, _) ->
-            @sprintf("H-Tail\n" *
-                     "Span: %.1f m   S: %.1f m²\n" *
-                     "Sweep: %.1f°   AR: %.2f\n" *
-                     "λ_tip: %.3f\n" *
-                     "Weight: %.3f t\n" *
-                     "CL_h (cruise): %.4f",
+            @sprintf("H-Tail\nSpan: %.1f m   S: %.1f m2\nSweep: %.1f deg   AR: %.2f\nlambda_tip: %.3f\nWeight: %.3f t\nCL_h (cruise): %.4f",
                 sqrt(ac.htail.layout.S * ac.htail.layout.AR),
                 ac.htail.layout.S,
                 ac.htail.layout.sweep, ac.htail.layout.AR,
@@ -306,14 +289,7 @@ function draw_aircraft!(ax, ac, col)
             strokecolor  = RGBf(0.9,0.2,0.1),
             strokewidth  = 1.5,
             inspector_label = (_, _, _) ->
-                @sprintf("Engine\n" *
-                         "Fan Dia:  %.3f m\n" *
-                         "N_eng:    %d\n" *
-                         "—— Cruise ——\n" *
-                         "BPR:  %.2f    OPR:  %.1f\n" *
-                         "Tt4:  %.0f K\n" *
-                         "TSFC: %.4f mg/N/s\n" *
-                         "FPR:  %.3f    LPC: %.3f   HPC: %.2f",
+                @sprintf("Engine\nFan Dia:  %.3f m\nN_eng:    %d\n-- Cruise --\nBPR:  %.2f    OPR:  %.1f\nTt4:  %.0f K\nTSFC: %.4f mg/N/s\nFPR:  %.3f    LPC: %.3f   HPC: %.2f",
                     pg[igdfan], Int(pg[igneng]),
                     pare[ieBPR,  ipcruise1], pare[ieOPR,  ipcruise1],
                     pare[ieTt4,  ipcruise1],
