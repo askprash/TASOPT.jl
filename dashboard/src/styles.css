@@ -184,10 +184,17 @@ select {
   border: 1px solid rgba(214, 225, 232, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-    radial-gradient(circle at center, rgba(215, 180, 106, 0.08), transparent 46%),
+    radial-gradient(circle at center, rgba(113, 176, 212, 0.10), transparent 46%),
     #09141c;
   overflow: hidden;
   position: relative;
+}
+
+.figure-frame.accent-b {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at center, rgba(223, 143, 106, 0.10), transparent 46%),
+    #09141c;
 }
 
 .figure-frame svg {
@@ -198,14 +205,14 @@ select {
 
 .figure-centerline {
   stroke: rgba(233, 239, 232, 0.14);
-  stroke-width: 0.9;
-  stroke-dasharray: 4 6;
+  stroke-width: 0.45;
+  stroke-dasharray: 2 2;
 }
 
 .figure-divider {
   stroke: rgba(233, 239, 232, 0.18);
-  stroke-width: 0.95;
-  stroke-dasharray: 4 6;
+  stroke-width: 0.25;
+  stroke-dasharray: 2 2;
 }
 
 .aircraft-component {
@@ -227,21 +234,36 @@ select {
 }
 
 .aircraft-component.kind-fuselage {
-  fill: rgba(241, 233, 220, 0.38);
-  stroke: rgba(241, 233, 220, 0.8);
+  fill: rgba(151, 201, 226, 0.22);
+  stroke: rgba(200, 228, 241, 0.92);
   stroke-width: 1.2;
+}
+
+.accent-b .aircraft-component.kind-fuselage {
+  fill: rgba(240, 176, 142, 0.22);
+  stroke: rgba(246, 210, 190, 0.92);
 }
 
 .aircraft-component.kind-htail {
-  fill: rgba(215, 180, 106, 0.16);
-  stroke: rgba(215, 180, 106, 0.92);
+  fill: rgba(79, 146, 188, 0.18);
+  stroke: rgba(151, 201, 226, 0.94);
   stroke-width: 1.2;
 }
 
+.accent-b .aircraft-component.kind-htail {
+  fill: rgba(199, 111, 71, 0.18);
+  stroke: rgba(240, 176, 142, 0.94);
+}
+
 .aircraft-component.kind-engine {
-  fill: rgba(233, 239, 232, 0.18);
-  stroke: rgba(233, 239, 232, 0.78);
+  fill: rgba(200, 228, 241, 0.16);
+  stroke: rgba(151, 201, 226, 0.88);
   stroke-width: 1.1;
+}
+
+.accent-b .aircraft-component.kind-engine {
+  fill: rgba(246, 210, 190, 0.16);
+  stroke: rgba(240, 176, 142, 0.88);
 }
 
 .aircraft-component:hover {
@@ -430,6 +452,48 @@ select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.overview-grid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 1.8fr);
+  align-items: start;
+}
+
+.split-grid {
+  grid-template-columns: minmax(0, 1.02fr) minmax(360px, 1.72fr);
+  align-items: start;
+}
+
+.overview-right-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+
+.split-right-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+
+.split-right-grid.one-col {
+  grid-template-columns: 1fr;
+}
+
+.overview-right-grid .panel {
+  min-width: 0;
+}
+
+.split-right-grid .panel {
+  min-width: 0;
+}
+
+.overview-right-grid .chart-frame {
+  height: 188px;
+}
+
 .three-col {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -461,6 +525,26 @@ select {
 
 .table-panel .panel-body {
   overflow-x: auto;
+}
+
+.overview-table-panel {
+  justify-self: stretch;
+  width: min(100%, 550px);
+}
+
+.compact-table-panel {
+  justify-self: stretch;
+  width: min(100%, 550px);
+}
+
+.overview-table-panel .panel-body {
+  max-height: 600px;
+  overflow: auto;
+}
+
+.compact-table-panel .panel-body {
+  max-height: 600px;
+  overflow: auto;
 }
 
 .panel-head {
@@ -564,6 +648,40 @@ select {
   font-family: var(--font-mono);
 }
 
+.overview-metric-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: 0.8rem;
+}
+
+.overview-metric-table th,
+.overview-metric-table td {
+  padding: 5px 6px;
+}
+
+.overview-metric-table th:first-child,
+.overview-metric-table td:first-child {
+  width: auto;
+}
+
+.overview-metric-table th:nth-child(2),
+.overview-metric-table td:nth-child(2),
+.overview-metric-table th:nth-child(3),
+.overview-metric-table td:nth-child(3) {
+  width: 5.8rem;
+}
+
+.overview-metric-table th:nth-child(4),
+.overview-metric-table td:nth-child(4) {
+  width: 10rem;
+}
+
+.overview-metric-table td.number {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .math-inline {
   display: inline-block;
   font-family: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
@@ -586,8 +704,26 @@ mjx-container {
   vertical-align: -0.08em;
 }
 
+mjx-container[display="true"] {
+  display: block;
+  margin-top: 0.35rem;
+  margin-bottom: 0.1rem;
+  vertical-align: baseline;
+}
+
 mjx-container[jax="SVG"] > svg {
   overflow: visible;
+}
+
+.MathJax,
+.MathJax_Display,
+.MathJax_CHTML {
+  color: var(--text) !important;
+}
+
+.MathJax_Display {
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.1rem !important;
 }
 
 .delta-text.good {
@@ -631,6 +767,7 @@ mjx-container[jax="SVG"] > svg {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  align-items: flex-start;
 }
 
 .compare-half-title.right {
@@ -763,6 +900,8 @@ mjx-container[jax="SVG"] > svg {
   .masthead,
   .toolbar,
   .hero-grid.compare,
+  .split-grid,
+  .split-right-grid,
   .two-col,
   .three-col {
     grid-template-columns: 1fr;

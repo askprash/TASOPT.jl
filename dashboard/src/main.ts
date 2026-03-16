@@ -8,11 +8,23 @@ declare global {
   }
 }
 
-const COLORS = ["#71b0d4", "#df8f6a"];
-const FILL_COLORS = ["rgba(95, 160, 199, 0.18)", "rgba(215, 123, 82, 0.18)"];
+const AIRCRAFT_PALETTES = [
+  ["#71b0d4", "#4f92bc", "#97c9e2", "#c8e4f1"],
+  ["#df8f6a", "#c76f47", "#f0b08e", "#f6d2be"],
+];
+const COLORS = AIRCRAFT_PALETTES.map((palette) => palette[0]);
+const FILL_COLORS = [hexToRgba(AIRCRAFT_PALETTES[0][0], 0.18), hexToRgba(AIRCRAFT_PALETTES[1][0], 0.18)];
 const MAP_FILL_COLORS = [
-  [[0, "rgba(68, 119, 153, 0.18)"], [1, "rgba(126, 208, 154, 0.82)"]],
-  [[0, "rgba(119, 78, 69, 0.18)"], [1, "rgba(215, 180, 106, 0.82)"]],
+  [
+    [0, hexToRgba(AIRCRAFT_PALETTES[0][1], 0.18)],
+    [0.5, hexToRgba(AIRCRAFT_PALETTES[0][0], 0.62)],
+    [1, hexToRgba(AIRCRAFT_PALETTES[0][3], 0.96)],
+  ],
+  [
+    [0, hexToRgba(AIRCRAFT_PALETTES[1][1], 0.18)],
+    [0.5, hexToRgba(AIRCRAFT_PALETTES[1][0], 0.62)],
+    [1, hexToRgba(AIRCRAFT_PALETTES[1][3], 0.96)],
+  ],
 ];
 const TABS = [
   ["overview", "Overview"],
@@ -28,6 +40,21 @@ const ENGINE_MAPS = [
   ["hpc", "HPC"],
 ];
 
+function aircraftColor(index, shade = 0) {
+  const palette = AIRCRAFT_PALETTES[index] || AIRCRAFT_PALETTES[0];
+  return palette[((shade % palette.length) + palette.length) % palette.length];
+}
+
+function hexToRgba(hex, alpha) {
+  const clean = String(hex).replace("#", "");
+  const expanded = clean.length === 3 ? clean.split("").map((char) => char + char).join("") : clean;
+  const value = parseInt(expanded, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 const state = {
   data: null,
   activeTab: "overview",
@@ -37,12 +64,10 @@ const state = {
 };
 
 const root = document.getElementById("app") as HTMLDivElement;
+let mathTypesetScheduled = false;
 
 document.addEventListener("DOMContentLoaded", bootstrap);
 document.addEventListener("mathjax-ready", () => {
-  typesetMath();
-});
-window.addEventListener("load", () => {
   typesetMath();
 });
 
@@ -93,7 +118,7 @@ function renderLoader(message?: string) {
     <div class="empty-state">
       <section class="empty-card">
         <h1>TASOPT Diagnostic Dashboard</h1>
-        <p>Load a dashboard JSON export generated from one or two sized TASOPT aircraft. The browser only renders the snapshot; Julia stays responsible for reading .jld2 and exporting the diagnostic payload.</p>
+        <p>Load a dashboard JSON export generated from one or two sized TASOPT aircraft. The browser only renders the snapshot; Julia stays responsible for reading .jld2 and exporting the diagnostic.</p>
         <div class="dropzone" id="dropzone">
           <strong>Drop a dashboard JSON file here</strong>
           <small>or use the picker below</small>
@@ -154,7 +179,7 @@ function renderDashboard() {
       <header class="masthead">
         <div>
           <h1>${escapeHtml(state.data.meta.title || "TASOPT Diagnostic Dashboard")}</h1>
-          <p>High-resolution SVG aircraft geometry with chart-focused mission, aero, weight, and engine diagnostics for a quick read on one design or a two-aircraft comparison.</p>
+          <p>Diagnostics for a quick read on one design or a two-aircraft comparison.</p>
         </div>
         <div class="masthead-actions">
           <span class="pill"><strong>${compare ? "COMPARE" : "SINGLE"}</strong> ${state.data.aircraft.map((item) => escapeHtml(item.name)).join(" vs ")}</span>
@@ -176,7 +201,6 @@ function renderDashboard() {
   wirePointSelect();
   renderTab();
   installSvgTooltips();
-  typesetMath();
 }
 
 function renderHeroSection() {
@@ -489,8 +513,11 @@ function renderTab() {
 }
 
 function renderOverviewTab() {
+  const piePanels = state.data.aircraft
+    .map((aircraft, index) => chartPanel(`overview-pie-${index}`, `${aircraft.name} MTOW breakdown`, "OEW, fuel, and payload as shares of MTOW."))
+    .join("");
   return `
-    <section class="tab-grid two-col">
+    <section class="tab-grid overview-grid">
       <article class="panel full-span">
         <div class="panel-head">
           <div class="eyebrow">Snapshot</div>
@@ -499,9 +526,24 @@ function renderOverviewTab() {
         </div>
         <div class="panel-body summary-cards">${renderSummaryCards()}</div>
       </article>
-      ${renderTablePanel("KPI table", "Full overview scalar readout for the loaded design set.", overviewSnapshotRows(), isCompareMode() ? "Comparison" : "Snapshot")}
-      ${chartPanel("overview-efficiency", "Range efficiency over mission", "Folded BRE view: L/D divided by TSFC across the mission points.")}
-      ${chartPanel("overview-drivers", "Cruise efficiency drivers", "Compact view of cruise L/D, 1 / TSFC, and inverse PFEI.")}
+      ${renderTablePanel(
+        "Overall performance metrics",
+        "Comparison of key metrics for the loaded design set.",
+        overviewSnapshotRows(),
+        isCompareMode() ? "Comparison" : "Snapshot",
+        false,
+        "overview-table-panel",
+        "overview-metric-table",
+      )}
+      <div class="overview-right-grid">
+        ${chartPanel("overview-efficiency", "Range efficiency over mission", "Folded BRE view: L/D divided by TSFC across the mission points.")}
+        ${chartPanel(
+          "overview-drivers",
+          "Cruise efficiency drivers",
+          "Normalized to aircraft 1. $$ W_\\mathrm{fuel} \\approx W_\\mathrm{empty} \\times \\frac{\\mathrm{TSFC}}{M} \\times \\frac{1}{L/D} \\times \\frac{R}{a} $$",
+        )}
+        ${piePanels}
+      </div>
     </section>
   `;
 }
@@ -509,14 +551,16 @@ function renderOverviewTab() {
 function renderMissionTab() {
   const axisLabel = missionAxisLabel().toLowerCase();
   return `
-    <section class="tab-grid three-col">
-      ${renderTablePanel("Mission snapshot", `Selected-point mission state plus the current ${axisLabel} reference.`, missionSnapshotRows())}
-      ${chartPanel("mission-alt", "Altitude and \\(\\gamma\\)", `Altitude against ${axisLabel}, with \\(\\gamma\\) overlaid on the secondary axis.`)}
-      ${chartPanel("mission-mach", "Mach profile", `Mission Mach number against ${axisLabel}.`)}
-      ${chartPanel("mission-lod", "\\(L/D\\)", `Computed \\(L/D\\) against ${axisLabel}.`)}
-      ${chartPanel("mission-roc", "Rate of climb", `Useful for spotting climb and descent behavior shifts over ${axisLabel}.`)}
-      ${chartPanel("mission-weight", "\\(W/W_{MTO}\\)", `Mission weight fraction positioned by ${axisLabel}.`)}
-      ${chartPanel("mission-cd", "\\(C_D \\times 10^4\\)", "Total \\(C_D\\) scaled by \\(10^4\\) for readability.")}
+    <section class="tab-grid split-grid">
+      ${renderTablePanel("Mission snapshot", `Selected-point mission state plus the current ${axisLabel} reference.`, missionSnapshotRows(), "Snapshot", false, "compact-table-panel")}
+      <div class="split-right-grid">
+        ${chartPanel("mission-alt", "Altitude and \\(\\gamma\\)", `Altitude against ${axisLabel}, with \\(\\gamma\\) overlaid on the secondary axis.`)}
+        ${chartPanel("mission-mach", "Mach profile", `Mission Mach number against ${axisLabel}.`)}
+        ${chartPanel("mission-lod", "\\(L/D\\)", `Computed \\(L/D\\) against ${axisLabel}.`)}
+        ${chartPanel("mission-roc", "Rate of climb", `Useful for spotting climb and descent behavior shifts over ${axisLabel}.`)}
+        ${chartPanel("mission-weight", "\\(W/W_{MTO}\\)", `Mission weight fraction positioned by ${axisLabel}.`)}
+        ${chartPanel("mission-cd", "\\(C_D \\times 10^4\\)", "Total \\(C_D\\) scaled by \\(10^4\\) for readability.")}
+      </div>
     </section>
   `;
 }
@@ -524,26 +568,26 @@ function renderMissionTab() {
 function renderGeometryTab() {
   const pointText = missionPointText(state.pointIndex);
   return `
-    <section class="tab-grid three-col">
-      ${renderTablePanel("Geometry snapshot", "Wing, fuselage, and propulsor dimensions for quick size comparison.", geometrySnapshotRows())}
-      ${chartPanel("geometry-chord", "Wing chord distribution", "Planform chord values exported directly from the sized wing geometry.")}
-      ${chartPanel("geometry-cl", "Spanwise section \\(C_l\\)", `Selected mission point: ${pointText}.`)}
-      ${chartPanel("geometry-fuse", "Fuselage cross section", "Exported fuselage section geometry from the TASOPT layout, including multi-bubble shaping instead of a circular proxy.")}
-      ${chartPanel("geometry-bars", "Geometry scalar comparison", "Span, area, AR, sweep, and fuselage dimensions in one scan.")}
+    <section class="tab-grid split-grid">
+      ${renderTablePanel("Geometry snapshot", "Wing, fuselage, and propulsor dimensions for quick size comparison.", geometrySnapshotRows(), "Snapshot", false, "compact-table-panel")}
+      <div class="split-right-grid">
+        ${chartPanel("geometry-chord", "Wing chord distribution", "Planform chord values exported directly from the sized wing geometry.")}
+        ${chartPanel("geometry-cl", "Spanwise section \\(C_l\\)", `Selected mission point: ${pointText}.`)}
+        ${chartPanel("geometry-fuse", "Fuselage cross section", "Exported fuselage section geometry from the TASOPT layout, including multi-bubble shaping instead of a circular proxy.")}
+        ${chartPanel("geometry-bars", "Geometry scalar comparison", "Span, area, AR, sweep, and fuselage dimensions in one scan.")}
+      </div>
     </section>
   `;
 }
 
 function renderWeightsTab() {
-  const piePanels = state.data.aircraft
-    .map((aircraft, index) => chartPanel(`weights-pie-${index}`, `${aircraft.name} MTOW breakdown`, "OEW, fuel, and payload as shares of MTOW."))
-    .join("");
   return `
-    <section class="tab-grid three-col">
-      ${renderTablePanel("Weights snapshot", "Primary mass totals plus subsystem structure weights.", weightsSnapshotRows())}
-      ${piePanels}
-      ${chartPanel("weights-bar", "Primary weight totals", "MTOW, OEW, fuel, and payload side by side.")}
-      ${chartPanel("weights-structure", "Structural breakdown", "Subsystem-level structure and installed system weights.", true)}
+    <section class="tab-grid split-grid">
+      ${renderTablePanel("Weights snapshot", "Primary mass totals plus subsystem structure weights.", weightsSnapshotRows(), "Snapshot", false, "compact-table-panel")}
+      <div class="split-right-grid one-col">
+        ${chartPanel("weights-bar", "Primary weight totals", "MTOW, OEW, fuel, and payload side by side.")}
+        ${chartPanel("weights-structure", "Structural breakdown", "Subsystem-level structure and installed system weights.", true)}
+      </div>
     </section>
   `;
 }
@@ -555,13 +599,15 @@ function renderAeroTab() {
     .map((aircraft, index) => chartPanel(`aero-fractions-${index}`, `${aircraft.name} drag fractions`, "Component drag fractions stacked over the mission."))
     .join("");
   return `
-    <section class="tab-grid three-col">
-      ${renderTablePanel("Aerodynamic snapshot", `Cruise drag build-up plus selected-point aerodynamic state at ${pointText}.`, aeroSnapshotRows())}
-      ${chartPanel("aero-drag", "Cruise drag areas", "\\(C_D S\\) at Cruise 1, shown as equivalent cm\\(^2\\).")}
-      ${chartPanel("aero-lod", "Mission \\(L/D\\)", `Aerodynamic efficiency through the mission, positioned by ${missionAxisLabel().toLowerCase()}.`)}
-      ${fractionPanels}
-      ${hasTrefftz ? chartPanel("aero-circulation", "Trefftz circulation", `Selected mission point: ${pointText}.`) : ""}
-      ${hasTrefftz ? chartPanel("aero-induced", "Trefftz induced drag density", `Selected mission point: ${pointText}; plotted as the exported \\(-\\Gamma v_n\\) distribution.`) : ""}
+    <section class="tab-grid split-grid">
+      ${renderTablePanel("Aerodynamic snapshot", `Cruise drag build-up plus selected-point aerodynamic state at ${pointText}.`, aeroSnapshotRows(), "Snapshot", false, "compact-table-panel")}
+      <div class="split-right-grid">
+        ${chartPanel("aero-drag", "Cruise drag areas", "\\(C_D S\\) at Cruise 1, shown as equivalent cm\\(^2\\).")}
+        ${chartPanel("aero-lod", "Mission \\(L/D\\)", `Aerodynamic efficiency through the mission, positioned by ${missionAxisLabel().toLowerCase()}.`)}
+        ${fractionPanels}
+        ${hasTrefftz ? chartPanel("aero-circulation", "Trefftz circulation", `Selected mission point: ${pointText}.`) : ""}
+        ${hasTrefftz ? chartPanel("aero-induced", "Trefftz induced drag density", `Selected mission point: ${pointText}; plotted as the exported \\(-\\Gamma v_n\\) distribution.`) : ""}
+      </div>
     </section>
   `;
 }
@@ -578,16 +624,15 @@ function renderEngineTab() {
       )))
     .join("");
   return `
-    <section class="tab-grid two-col">
-      ${renderTablePanel("Engine snapshot", `Engine cycle metrics at ${pointText} plus mission-driving design values.`, engineSnapshotRows())}
-      <div class="nested-grid two-col full-span">
-        ${chartPanel("engine-temp", "Station temperatures", `Selected mission point: ${pointText}.`)}
-        ${chartPanel("engine-pressure", "Station pressures", `Selected mission point: ${pointText}; pressures in kPa.`)}
+    <section class="tab-grid split-grid">
+      ${renderTablePanel("Engine snapshot", `Engine cycle metrics at ${pointText} plus mission-driving design values.`, engineSnapshotRows(), "Snapshot", false, "compact-table-panel")}
+      <div class="split-right-grid">
+        ${chartPanel("engine-thermo", "Station temperatures and pressures", `Selected mission point: ${pointText}; temperatures on the upper subplot and pressures in kPa on the lower subplot.`, true)}
         ${chartPanel("engine-tsfc", "\\(\\mathrm{TSFC}\\) and \\(T_{t4}\\)", `Mission trends for \\(\\mathrm{TSFC}\\) with \\(T_{t4}\\) overlaid on a secondary axis, positioned by ${missionAxisLabel().toLowerCase()}.`)}
         ${chartPanel("engine-ratios", "\\(\\mathrm{BPR}\\), \\(\\mathrm{OPR}\\), and \\(\\mathrm{FPR}\\)", "Mission trends for the main engine cycle ratios.")}
-      </div>
-      <div class="nested-grid two-col full-span">
-        ${mapPanels}
+        <div class="nested-grid two-col full-span">
+          ${mapPanels}
+        </div>
       </div>
     </section>
   `;
@@ -615,24 +660,24 @@ function renderSummaryCards() {
   `).join("");
 }
 
-function renderTablePanel(title, note, rows, eyebrow = "Snapshot", fullSpan = false) {
+function renderTablePanel(title, note, rows, eyebrow = "Snapshot", fullSpan = false, panelClass = "", tableClass = "") {
   return `
-    <article class="panel table-panel ${fullSpan ? "full-span" : ""}">
+    <article class="panel table-panel ${fullSpan ? "full-span" : ""} ${panelClass}">
       <div class="panel-head">
         <div class="eyebrow">${escapeHtml(eyebrow)}</div>
         <h3>${renderRichText(title)}</h3>
         <div class="panel-note">${renderRichText(note)}</div>
       </div>
-      <div class="panel-body">${renderMetricTable(rows)}</div>
+      <div class="panel-body">${renderMetricTable(rows, tableClass)}</div>
     </article>
   `;
 }
 
-function renderMetricTable(rows) {
+function renderMetricTable(rows, tableClass = "") {
   if (!isCompareMode()) {
     const aircraft = state.data.aircraft[0];
     return `
-      <table class="metric-table">
+      <table class="metric-table ${tableClass}">
         <thead>
           <tr><th>Metric</th><th>${escapeHtml(aircraft.name)}</th></tr>
         </thead>
@@ -649,7 +694,7 @@ function renderMetricTable(rows) {
   }
 
   return `
-    <table class="metric-table">
+    <table class="metric-table ${tableClass}">
       <thead>
         <tr>
           <th>Metric</th>
@@ -698,29 +743,75 @@ function plotOverviewTab() {
       return tsfc > 0 ? lod / tsfc : 0;
     }),
     "(L/D) / TSFC %{y:.3f}",
-    {},
+    {
+      margin: { l: 48, r: 10, t: 22, b: 56 },
+      legend: { orientation: "h", x: 0, y: -0.18, font: { size: 10 } },
+    },
     (_aircraft, index) => ({
       fill: "tozeroy",
       fillcolor: FILL_COLORS[index],
     }),
   );
 
-  const driverLabels = ["Cruise L/D", "1000 / TSFC", "10 / PFEI"];
-  const driverTraces = state.data.aircraft.map((aircraft, index) => barTrace(
-    driverLabels,
-    [
-      aircraft.summary.cruise_lod,
-      aircraft.summary.cruise_tsfc_mg_ns > 0 ? 1000 / aircraft.summary.cruise_tsfc_mg_ns : 0,
-      aircraft.summary.pfei_kj_kg_km > 0 ? 10 / aircraft.summary.pfei_kj_kg_km : 0,
-    ],
-    aircraft.name,
-    index,
-  ));
+  const driverX = [0, 1, 2, 3];
+  const driverLabels = [
+    "W_fuel",
+    "W_empty",
+    "TSFC",
+    "1 / (L/D)",
+  ];
+  const baselineAircraft = state.data.aircraft[0];
+  const baselineInverseLod = baselineAircraft.summary.cruise_lod > 0 ? 1 / baselineAircraft.summary.cruise_lod : 0;
+  const driverBaselines = [
+    baselineAircraft.summary.fuel_t,
+    baselineAircraft.summary.oew_t,
+    baselineAircraft.summary.cruise_tsfc_mg_ns,
+    baselineInverseLod,
+  ];
+  const driverTraces = state.data.aircraft.map((aircraft, index) => {
+    const inverseLod = aircraft.summary.cruise_lod > 0 ? 1 / aircraft.summary.cruise_lod : 0;
+    const driverValues = [
+      aircraft.summary.fuel_t,
+      aircraft.summary.oew_t,
+      aircraft.summary.cruise_tsfc_mg_ns > 0 ? aircraft.summary.cruise_tsfc_mg_ns : 0,
+      inverseLod,
+    ];
+    return {
+      x: driverX,
+      y: driverValues.map((value, point) => {
+        const baseline = driverBaselines[point];
+        return baseline > 0 ? value / baseline : 0;
+      }),
+      customdata: [
+        ["W_fuel", aircraft.summary.fuel_t, driverBaselines[0], "t"],
+        ["W_empty", aircraft.summary.oew_t, driverBaselines[1], "t"],
+        ["TSFC", aircraft.summary.cruise_tsfc_mg_ns, driverBaselines[2], "mg/N/s"],
+        ["1 / (L/D)", inverseLod, driverBaselines[3], ""],
+      ],
+      name: aircraft.name,
+      type: "bar",
+      marker: {
+        color: COLORS[index],
+        opacity: 0.86,
+        line: { color: COLORS[index], width: 1 },
+      },
+      hovertemplate: "%{customdata[0]}<br>Normalized %{y:.3f}x<br>Actual %{customdata[1]:.3f} %{customdata[3]}<br>AC1 %{customdata[2]:.3f} %{customdata[3]}<extra>" + aircraft.name + "</extra>",
+    };
+  });
   plotChart("overview-drivers", driverTraces, layout({
     barmode: "group",
-    yaxis: { title: "Scaled value" },
-    margin: { l: 54, r: 20, t: 24, b: 60 },
+    xaxis: {
+      tickmode: "array",
+      tickvals: driverX,
+      ticktext: driverLabels,
+      automargin: true,
+    },
+    yaxis: { title: "Normalized to aircraft 1" },
+    margin: { l: 48, r: 10, t: 22, b: 60 },
+    legend: { orientation: "h", x: 0, y: -0.18, font: { size: 10 } },
   }));
+
+  plotMtowBreakdownCharts("overview-pie");
 }
 
 function plotMissionTab() {
@@ -832,32 +923,6 @@ function plotGeometryTab() {
 }
 
 function plotWeightsTab() {
-  state.data.aircraft.forEach((aircraft, index) => {
-    plotChart(`weights-pie-${index}`, [{
-      labels: aircraft.weights.mtow_breakdown.labels,
-      values: aircraft.weights.mtow_breakdown.values_t,
-      type: "pie",
-      hole: 0.48,
-      marker: { colors: [COLORS[index], "#d7b46a", "#7ed09a"] },
-      textinfo: "label+percent",
-      hovertemplate: "%{label}: %{value:.2f} t<extra></extra>",
-    }], {
-      paper_bgcolor: "rgba(0,0,0,0)",
-      plot_bgcolor: "rgba(0,0,0,0)",
-      font: { family: "IBM Plex Sans, Avenir Next, Segoe UI, sans-serif", color: "#8fa5ae" },
-      margin: { l: 4, r: 4, t: 8, b: 8 },
-      showlegend: true,
-      legend: { orientation: "h", y: -0.08, font: { size: 10 } },
-      annotations: [{
-        showarrow: false,
-        x: 0.5,
-        y: 0.5,
-        text: `<b>${formatMetricValue(aircraft.weights.mtow_t, 1)}</b><br>MTOW`,
-        font: { color: "#e9efe8", size: 13 },
-      }],
-    });
-  });
-
   const categories = ["MTOW", "OEW", "Fuel", "Payload"];
   const barTraces = state.data.aircraft.map((aircraft, index) => barTrace(
     categories,
@@ -884,6 +949,34 @@ function plotWeightsTab() {
   }));
 }
 
+function plotMtowBreakdownCharts(idPrefix) {
+  state.data.aircraft.forEach((aircraft, index) => {
+    plotChart(`${idPrefix}-${index}`, [{
+      labels: aircraft.weights.mtow_breakdown.labels,
+      values: aircraft.weights.mtow_breakdown.values_t,
+      type: "pie",
+      hole: 0.48,
+      marker: { colors: [aircraftColor(index, 0), aircraftColor(index, 1), aircraftColor(index, 2)] },
+      textinfo: "label+percent",
+      hovertemplate: "%{label}: %{value:.2f} t<extra></extra>",
+    }], {
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: { family: "IBM Plex Sans, Avenir Next, Segoe UI, sans-serif", color: "#8fa5ae" },
+      margin: { l: 4, r: 4, t: 8, b: 8 },
+      showlegend: true,
+      legend: { orientation: "h", x: 0.25, y: -0.08, font: { size: 10 } },
+      annotations: [{
+        showarrow: false,
+        x: 0.5,
+        y: 0.5,
+        text: `<b>${formatMetricValue(aircraft.weights.mtow_t, 1)}</b><br>MTOW`,
+        font: { color: "#e9efe8", size: 13 },
+      }],
+    });
+  });
+}
+
 function plotAeroTab() {
   const dragTraces = state.data.aircraft.map((aircraft, index) => barTrace(
     aircraft.aero.drag_keys,
@@ -893,7 +986,7 @@ function plotAeroTab() {
   ));
   plotChart("aero-drag", dragTraces, layout({
     barmode: "group",
-    yaxis: { title: "$C_D S$ [cm^2]" },
+    yaxis: { title: "$$C_D S$$ [cm^2]" },
     margin: { l: 54, r: 20, t: 24, b: 62 },
   }));
 
@@ -909,8 +1002,9 @@ function plotAeroTab() {
       mode: "lines",
       stackgroup: "one",
       fill: keyIndex === 0 ? "tozeroy" : "tonexty",
+      fillcolor: hexToRgba(aircraftColor(index, keyIndex), keyIndex === 0 ? 0.24 : 0.16),
       line: {
-        color: keyIndex % 2 === 0 ? COLORS[index] : "#d7b46a",
+        color: aircraftColor(index, keyIndex),
         width: 1.2,
         dash: keyIndex % 3 === 0 ? "solid" : "dot",
       },
@@ -984,28 +1078,54 @@ function plotEngineTab() {
     x: aircraft.engine.temperature_stations,
     y: aircraft.engine.temperature_k[pointIndex],
     name: aircraft.name,
+    legendgroup: aircraft.name,
     type: "scatter",
     mode: "lines+markers",
     line: { color: COLORS[index], width: 2.4 },
     marker: { size: 7, color: COLORS[index] },
     hovertemplate: "%{y:.1f} K<extra>" + aircraft.name + "</extra>",
   }));
-  plotChart("engine-temp", tempTraces, layout({
-    yaxis: { title: "Temperature [K]" },
-  }));
 
   const pressureTraces = state.data.aircraft.map((aircraft, index) => ({
     x: aircraft.engine.pressure_stations,
     y: aircraft.engine.pressure_kpa[pointIndex],
     name: aircraft.name,
+    legendgroup: aircraft.name,
+    showlegend: false,
     type: "scatter",
     mode: "lines+markers",
+    xaxis: "x2",
+    yaxis: "y2",
     line: { color: COLORS[index], width: 2.4 },
     marker: { size: 7, color: COLORS[index] },
     hovertemplate: "%{y:.1f} kPa<extra>" + aircraft.name + "</extra>",
   }));
-  plotChart("engine-pressure", pressureTraces, layout({
-    yaxis: { title: "Pressure [kPa]" },
+  plotChart("engine-thermo", tempTraces.concat(pressureTraces), layout({
+    xaxis: {
+      title: "",
+      domain: [0, 1],
+      anchor: "y",
+      automargin: true,
+    },
+    yaxis: {
+      title: "Temperature [K]",
+      domain: [0.58, 1],
+      automargin: true,
+    },
+    xaxis2: {
+      title: "",
+      domain: [0, 1],
+      anchor: "y2",
+      automargin: true,
+    },
+    yaxis2: {
+      title: "Pressure [kPa]",
+      domain: [0, 0.38],
+      automargin: true,
+    },
+    legend: { orientation: "h", x: 0, y: -0.14, font: { size: 10 } },
+    hovermode: "closest",
+    margin: { l: 58, r: 18, t: 18, b: 64 },
   }));
 
   const tsfcTraces = state.data.aircraft.flatMap((aircraft, index) => ([
@@ -1051,7 +1171,7 @@ function plotEngineTab() {
       index,
       {
         mode: "lines",
-        line: { color: "#d7b46a", width: 1.4, dash: index === 0 ? "dash" : "dashdot" },
+        line: { color: aircraftColor(index, 2), width: 1.4, dash: index === 0 ? "dash" : "dashdot" },
       },
       "FPR %{y:.3f}",
     ),
@@ -1088,6 +1208,22 @@ function plotCompressorMap(id, aircraft, index, mapPayload) {
     Number(mapPayload.operating_line.speed_frac[pointIndex] || 0),
     Number(mapPayload.operating_line.eff[pointIndex] || 0),
   ]);
+  const xGrid = (mapPayload.efficiency_grid.x || []).map((value) => Number(value)).filter((value) => Number.isFinite(value));
+  const yGrid = (mapPayload.efficiency_grid.y || []).map((value) => Number(value)).filter((value) => Number.isFinite(value));
+  const speedLineX = (mapPayload.speed_lines || [])
+    .flatMap((line) => (line.x || []).map((value) => Number(value)))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const speedLineY = (mapPayload.speed_lines || [])
+    .flatMap((line) => (line.y || []).map((value) => Number(value)))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const operatingX = (mapPayload.operating_line.x || [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const operatingY = (mapPayload.operating_line.y || [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const xRange = niceAxisRange(xGrid.concat(speedLineX, operatingX, [1.0]), 0.05, [0.25, 1.15], 0.04, 0.03);
+  const yRange = niceAxisRange(yGrid.concat(speedLineY, operatingY, [1.0]), 0.05, [0.55, 1.45], 0.04, 0.03);
 
   const traces = [{
     x: mapPayload.efficiency_grid.x,
@@ -1098,17 +1234,22 @@ function plotCompressorMap(id, aircraft, index, mapPayload) {
     contours: {
       coloring: "fill",
       showlines: true,
-      start: 0.6,
+      start: 0.7,
       end: 0.96,
       size: 0.02,
     },
-    line: { width: 0.7, color: "rgba(8, 17, 24, 0.32)" },
+    line: { width: 0.7, color: hexToRgba(aircraftColor(index, 1), 0.5) },
     showscale: true,
     colorbar: {
-      title: { text: "$\\eta_p$" },
-      thickness: 10,
-      len: 0.78,
+      title: { text: "$\\eta_p$", side:"bottom"},
+      thicknessmode: "pixels",
+      thickness: 16,
+      len: 0.82,
       y: 0.5,
+      x: 1.01,
+      xpad: 4,
+      outlinewidth: 0.8,
+      outlinecolor: "rgba(214, 225, 232, 0.18)",
       tickfont: { size: 10, color: "#8fa5ae" },
     },
     hovertemplate: "mb / mbD %{x:.3f}<br>PR / piD %{y:.3f}<br>Eff %{z:.3f}<extra>" + aircraft.name + " map</extra>",
@@ -1119,7 +1260,9 @@ function plotCompressorMap(id, aircraft, index, mapPayload) {
       type: "scatter",
       mode: "lines",
       line: {
-        color: Math.abs(Number(line.speed_frac) - 1.0) < 0.03 ? "rgba(233, 239, 232, 0.78)" : "rgba(143, 165, 174, 0.48)",
+        color: Math.abs(Number(line.speed_frac) - 1.0) < 0.03
+          ? hexToRgba(aircraftColor(index, 3), 0.86)
+          : hexToRgba(aircraftColor(index, 2), 0.48),
         width: Math.abs(Number(line.speed_frac) - 1.0) < 0.03 ? 2.0 : 1.0,
       },
       hovertemplate: "mb / mbD %{x:.3f}<br>PR / piD %{y:.3f}<br>N / ND " + formatMetricValue(line.speed_frac, 2) + "<extra>Speed line</extra>",
@@ -1147,7 +1290,7 @@ function plotCompressorMap(id, aircraft, index, mapPayload) {
       mode: "markers",
       marker: {
         size: 11,
-        color: "#d7b46a",
+        color: aircraftColor(index, 3),
         symbol: "diamond",
         line: { color: "#081118", width: 1.2 },
       },
@@ -1169,28 +1312,46 @@ function plotCompressorMap(id, aircraft, index, mapPayload) {
     }]);
 
   plotChart(id, traces, layout({
-    xaxis: { title: "$\\dot{m}_b/\\dot{m}_{bD}$", range: [0.45, 1.5] },
-    yaxis: { title: "$PR/\\pi_D$", range: [0.5, 1.45] },
+    xaxis: { title: "$\\dot{m}_b/\\dot{m}_{bD}$", range: xRange },
+    yaxis: { title: "$PR/\\pi_D$", range: yRange },
     shapes: [
       {
         type: "line",
         x0: 1,
         x1: 1,
-        y0: 0.5,
-        y1: 1.45,
+        y0: yRange[0],
+        y1: yRange[1],
         line: { color: "rgba(233, 239, 232, 0.18)", width: 1, dash: "dot" },
       },
       {
         type: "line",
-        x0: 0.45,
-        x1: 1.5,
+        x0: xRange[0],
+        x1: xRange[1],
         y0: 1,
         y1: 1,
         line: { color: "rgba(233, 239, 232, 0.18)", width: 1, dash: "dot" },
       },
     ],
-    margin: { l: 58, r: 18, t: 18, b: 46 },
+    margin: { l: 58, r: 42, t: 18, b: 46 },
   }));
+}
+
+function niceAxisRange(values, step, fallback, lowerPadFraction = 0.04, upperPadFraction = 0.03) {
+  const finiteValues = values.filter((value) => Number.isFinite(value));
+  if (!finiteValues.length) {
+    return fallback.slice();
+  }
+  const minValue = Math.min(...finiteValues);
+  const maxValue = Math.max(...finiteValues);
+  const span = Math.max(maxValue - minValue, step);
+  const lower = Math.max(0, minValue - lowerPadFraction * span);
+  const upper = maxValue + upperPadFraction * span;
+  const roundedLower = Math.floor(lower / step) * step;
+  const roundedUpper = Math.ceil(upper / step) * step;
+  return [
+    Number.isFinite(roundedLower) ? roundedLower : fallback[0],
+    Number.isFinite(roundedUpper) ? Math.max(roundedUpper, roundedLower + step) : fallback[1],
+  ];
 }
 
 function missionAxisLabel() {
@@ -1320,13 +1481,19 @@ function plotChart(id, traces, customLayout) {
     node.innerHTML = `<div class="chart-warning">Plotly.js is unavailable. Connect to the internet or vendor the pinned Plotly bundle locally if you need offline viewing.</div>`;
     return;
   }
-  const plotLayout = normalizePlotlyMath(customLayout || layout());
-  const plotTraces = Array.isArray(traces) ? traces.map((trace) => normalizePlotlyMath(trace)) : traces;
-  window.Plotly.newPlot(id, plotTraces, plotLayout, {
-    responsive: true,
-    displaylogo: false,
-    modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"],
-  });
+  try {
+    const plotPromise = window.Plotly.newPlot(id, traces, normalizePlotlyLayout(customLayout || layout()), {
+      responsive: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"],
+    });
+    Promise.resolve(plotPromise)
+      .catch((error) => {
+        renderChartError(node, error);
+      });
+  } catch (error) {
+    renderChartError(node, error);
+  }
 }
 
 function lineTrace(x, y, name, index, extra) {
@@ -1390,6 +1557,26 @@ function layout(overrides) {
     },
   };
   return Object.assign(base, overrides || {});
+}
+
+function normalizePlotlyLayout(plotLayout) {
+  const normalized = Object.assign({}, plotLayout || {});
+  Object.keys(normalized).forEach((key) => {
+    if (/^[xy]axis\d*$/.test(key)) {
+      const axis = normalized[key];
+      if (axis && typeof axis === "object" && !Array.isArray(axis) && typeof axis.title === "string") {
+        normalized[key] = Object.assign({}, axis, {
+          title: { text: axis.title },
+        });
+      }
+    }
+  });
+  return normalized;
+}
+
+function renderChartError(node, error) {
+  const message = error instanceof Error ? error.message : String(error || "Unknown plot error");
+  node.innerHTML = `<div class="chart-warning">Could not render this plot. ${escapeHtml(message)}</div>`;
 }
 
 function overviewSnapshotRows() {
@@ -1541,7 +1728,7 @@ function renderMathLabel(label) {
 }
 
 function renderRichText(text) {
-  return replaceInlineMath(String(text ?? ""), (content) => escapeHtml(texToReadableText(content)));
+  return escapeHtml(String(text ?? ""));
 }
 
 function isFiniteMetric(value) {
@@ -1624,7 +1811,33 @@ function trimLast(values) {
 }
 
 function typesetMath() {
-  return;
+  const container = document.getElementById("tab-content");
+  if (!container || !container.querySelector(".panel")) {
+    return;
+  }
+  if (mathTypesetScheduled) {
+    return;
+  }
+  mathTypesetScheduled = true;
+  if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Queue) {
+    window.requestAnimationFrame(() => {
+      window.MathJax.Hub.Queue(
+        ["Typeset", window.MathJax.Hub, container],
+        () => { mathTypesetScheduled = false; }
+      );
+    });
+    return;
+  }
+  if (!window.MathJax || !window.MathJax.startup || !window.MathJax.startup.promise || !window.MathJax.typesetPromise) {
+    mathTypesetScheduled = false;
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    window.MathJax.startup.promise
+      .then(() => window.MathJax.typesetPromise([container]))
+      .catch(() => {})
+      .finally(() => { mathTypesetScheduled = false; });
+  });
 }
 
 function escapeHtml(value) {
@@ -1638,82 +1851,6 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replaceAll("\n", "&#10;");
-}
-
-function replaceInlineMath(text, renderer) {
-  const pattern = /\\\((.+?)\\\)|\$([^$]+?)\$/g;
-  let result = "";
-  let lastIndex = 0;
-  let matched = false;
-  let match;
-
-  while ((match = pattern.exec(text)) !== null) {
-    matched = true;
-    if (match.index > lastIndex) {
-      result += escapeHtml(text.slice(lastIndex, match.index));
-    }
-    result += renderer(match[1] || match[2] || "");
-    lastIndex = pattern.lastIndex;
-  }
-
-  if (!matched) {
-    return escapeHtml(text);
-  }
-
-  if (lastIndex < text.length) {
-    result += escapeHtml(text.slice(lastIndex));
-  }
-  return result;
-}
-
-function texToReadableText(tex) {
-  let value = String(tex ?? "").trim();
-  let previous = "";
-
-  while (value !== previous) {
-    previous = value;
-    value = value.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_match, num, den) => `${texToReadableText(num)}/${texToReadableText(den)}`);
-    value = value.replace(/\\mathrm\{([^{}]+)\}/g, "$1");
-    value = value.replace(/\\text\{([^{}]+)\}/g, "$1");
-    value = value.replace(/\\dot\{m\}/g, "ṁ");
-    value = value.replace(/([A-Za-zΑ-Ωα-ωΓΛγληπṁ]+)_\{([^{}]+)\}/g, (_match, base, sub) => `${base}_${texToReadableText(sub)}`);
-    value = value.replace(/([A-Za-zΑ-Ωα-ωΓΛγληπṁ]+)_([A-Za-z0-9,]+)/g, "$1_$2");
-    value = value.replace(/([A-Za-zΑ-Ωα-ωΓΛγληπṁ0-9]+)\^\{([^{}]+)\}/g, (_match, base, sup) => `${base}^${texToReadableText(sup)}`);
-    value = value.replace(/([A-Za-zΑ-Ωα-ωΓΛγληπṁ0-9]+)\^([A-Za-z0-9+-]+)/g, "$1^$2");
-  }
-
-  return value
-    .replace(/\\gamma/g, "γ")
-    .replace(/\\Gamma/g, "Γ")
-    .replace(/\\Lambda/g, "Λ")
-    .replace(/\\eta/g, "η")
-    .replace(/\\pi/g, "π")
-    .replace(/\\times/g, "×")
-    .replace(/\\cdot/g, "·")
-    .replace(/[{}]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function plotlyText(text) {
-  return replaceInlineMath(String(text ?? ""), (content) => texToReadableText(content));
-}
-
-function normalizePlotlyMath(value, key = "") {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizePlotlyMath(item, key));
-  }
-  if (value && typeof value === "object") {
-    const normalized = {};
-    Object.entries(value).forEach(([entryKey, entryValue]) => {
-      normalized[entryKey] = normalizePlotlyMath(entryValue, entryKey);
-    });
-    return normalized;
-  }
-  if (typeof value === "string" && (key === "title" || key === "text")) {
-    return plotlyText(value);
-  }
-  return value;
 }
 
 export {};

@@ -6,24 +6,24 @@
   <title>TASOPT Diagnostic Dashboard</title>
   <script>
     window.MathJax = {
-      tex: {
-        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+      tex2jax: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true,
       },
-      chtml: {
-        scale: 0.96,
-      },
-      startup: {
-        ready() {
-          MathJax.startup.defaultReady();
+      messageStyle: "none",
+      showMathMenu: false,
+      AuthorInit() {
+        MathJax.Hub.Register.StartupHook("End", function () {
           document.dispatchEvent(new Event("mathjax-ready"));
-        },
+        });
       },
     };
     window.PlotlyConfig = {
       MathJaxConfig: "local",
     };
   </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML"></script>
   <script defer src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
 </head>
 <body>

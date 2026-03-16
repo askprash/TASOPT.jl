@@ -41,23 +41,49 @@ function json_escape(s::AbstractString)
     return escaped
 end
 
-_to_json(x::String) = "\"" * json_escape(x) * "\""
-_to_json(x::Bool) = x ? "true" : "false"
-_to_json(x::Nothing) = "null"
-_to_json(x::Missing) = "null"
-_to_json(x::Real) = isnan(x) || isinf(x) ? "null" : string(x)
-_to_json(x::AbstractVector) = "[" * join(_to_json.(x), ",") * "]"
-_to_json(x::Tuple) = "[" * join(_to_json.(collect(x)), ",") * "]"
-_to_json(x::Symbol) = _to_json(String(x))
+json_indent(level::Integer) = repeat(" ", level)
+json_scalar_like(x) = x isa Union{String, Bool, Nothing, Missing, Real, Symbol}
 
-function _to_json(d::AbstractDict)
-    body = join(["$(_to_json(string(k))):$(_to_json(v))" for (k, v) in d], ",")
-    return "{" * body * "}"
+_to_json(x) = _to_json(x, 0)
+_to_json(x::String, ::Integer) = "\"" * json_escape(x) * "\""
+_to_json(x::Bool, ::Integer) = x ? "true" : "false"
+_to_json(x::Nothing, ::Integer) = "null"
+_to_json(x::Missing, ::Integer) = "null"
+_to_json(x::Real, ::Integer) = isnan(x) || isinf(x) ? "null" : string(x)
+_to_json(x::Symbol, indent::Integer) = _to_json(String(x), indent)
+
+function _to_json(items::AbstractVector, indent::Integer)
+    isempty(items) && return "[]"
+
+    if all(json_scalar_like, items)
+        return "[" * join((_to_json(item, indent) for item in items), ", ") * "]"
+    end
+
+    inner_indent = indent + 2
+    body = join((json_indent(inner_indent) * _to_json(item, inner_indent) for item in items), ",\n")
+    return "[\n" * body * "\n" * json_indent(indent) * "]"
 end
 
-function _to_json(nt::NamedTuple)
-    body = join(["$(_to_json(string(k))):$(_to_json(v))" for (k, v) in pairs(nt)], ",")
-    return "{" * body * "}"
+_to_json(items::Tuple, indent::Integer) = _to_json(collect(items), indent)
+
+function _to_json(d::AbstractDict, indent::Integer)
+    isempty(d) && return "{}"
+    inner_indent = indent + 2
+    body = join((
+        json_indent(inner_indent) * _to_json(string(k), inner_indent) * ": " * _to_json(v, inner_indent)
+        for (k, v) in d
+    ), ",\n")
+    return "{\n" * body * "\n" * json_indent(indent) * "}"
+end
+
+function _to_json(nt::NamedTuple, indent::Integer)
+    isempty(nt) && return "{}"
+    inner_indent = indent + 2
+    body = join((
+        json_indent(inner_indent) * _to_json(string(k), inner_indent) * ": " * _to_json(v, inner_indent)
+        for (k, v) in pairs(nt)
+    ), ",\n")
+    return "{\n" * body * "\n" * json_indent(indent) * "}"
 end
 
 function dashboard_dist_dir()
@@ -185,8 +211,13 @@ function compressor_speed_lines(map::engine.CompressorMap, piD::Real)
 end
 
 function compressor_efficiency_grid(map::engine.CompressorMap, piD::Real, mbD::Real, NbD::Real, ep0::Real; n = 34)
-    mb_grid = collect(range(0.50, 1.50, length = n))
-    pr_grid = collect(range(0.55, 1.45, length = n))
+    mb_min = min(0.25, minimum(map.WcMap) / map.defaults.Wc)
+    mb_max = max(1.50, maximum(map.WcMap) / map.defaults.Wc)
+    mb_grid = collect(range(mb_min, mb_max, length = n))
+    pr_abs_map = @. 1.0 + (map.PRMap - 1.0) * (piD - 1.0) / (map.defaults.PR - 1.0)
+    pr_min = minimum(pr_abs_map) / piD
+    pr_max = max(1.50, maximum(pr_abs_map) / piD)
+    pr_grid = collect(range(pr_min, pr_max, length = n))
     eff = Matrix{Float64}(undef, n, n)
 
     for (j, pr_frac) in enumerate(pr_grid)
