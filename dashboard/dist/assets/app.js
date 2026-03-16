@@ -56,6 +56,7 @@ const state = {
     pointIndex: 9,
     missionAxisMode: "range",
     geometryCompareMode: "full",
+    aeroSweepField: "LDs",
     advanced: {
         missionKey: "",
         compareText: "",
@@ -113,6 +114,7 @@ function setData(data) {
     const defaultPoint = (data.meta && data.meta.default_point) || 1;
     const labels = (data.meta && data.meta.mission_short) || [];
     state.pointIndex = clamp(defaultPoint - 1, 0, Math.max(labels.length - 1, 0));
+    initializeAeroSweepState(state.data);
     initializeAdvancedState(state.data);
     renderDashboard();
 }
@@ -536,6 +538,16 @@ function wireAdvancedControls() {
         });
     }
 }
+function wireAeroControls() {
+    const sweepSelect = document.getElementById("aero-sweep-field");
+    if (!sweepSelect) {
+        return;
+    }
+    sweepSelect.addEventListener("change", (event) => {
+        state.aeroSweepField = event.target.value;
+        renderTab();
+    });
+}
 function installSvgTooltips() {
     const tooltip = document.getElementById("hover-tooltip");
     if (!tooltip) {
@@ -589,6 +601,7 @@ function renderTab() {
         plotAdvancedTab();
     }
     wireAdvancedControls();
+    wireAeroControls();
     installSvgTooltips();
     typesetMath();
 }
@@ -666,6 +679,7 @@ function renderWeightsTab() {
 function renderAeroTab() {
     const pointText = missionPointText(state.pointIndex);
     const hasTrefftz = state.data.aircraft.some((aircraft) => aircraft.aero.trefftz);
+    const aeroSweepFields = availableAeroSweepFields();
     const fractionPanels = state.data.aircraft
         .map((aircraft, index) => chartPanel(`aero-fractions-${index}`, `${aircraft.name} drag fractions`, "Component drag fractions stacked over the mission."))
         .join("");
@@ -676,6 +690,7 @@ function renderAeroTab() {
         ${renderTablePanel("Aerodynamic snapshot", `Cruise drag build-up plus selected-point aerodynamic state at ${pointText}.`, aeroSnapshotRows(), "Snapshot", false, "compact-table-panel")}
       </div>
       <div class="split-right-grid">
+        ${aeroSweepFields.length ? renderAeroSweepPanel() : ""}
         ${chartPanel("aero-drag", "Cruise drag areas", "\\(C_D S\\) at Cruise 1, shown as equivalent cm\\(^2\\).")}
         ${chartPanel("aero-lod", "Mission \\(L/D\\)", `Aerodynamic efficiency through the mission, positioned by ${missionAxisLabel().toLowerCase()}.`)}
         ${chartPanel("aero-tail-volume", "Tail volume coefficients", "Horizontal and vertical tail volume coefficients for a quick stability-sizing comparison.")}
@@ -685,6 +700,33 @@ function renderAeroTab() {
         ${hasTrefftz ? chartPanel("aero-induced", "Trefftz induced drag density", `Selected mission point: ${pointText}; plotted as the exported \\(-\\Gamma v_n\\) distribution.`) : ""}
       </div>
     </section>
+  `;
+}
+function renderAeroSweepPanel() {
+    const fields = availableAeroSweepFields();
+    const selected = fields.some((field) => field.key === state.aeroSweepField)
+        ? state.aeroSweepField
+        : ((fields.find((field) => field.key === "LDs") || fields[0] || { key: "LDs" }).key);
+    return `
+    <article class="panel full-span">
+      <div class="panel-head panel-head-row">
+        <div class="panel-head-copy">
+          <h3>Aeroperformance sweep</h3>
+          <div class="panel-note">Default view shows \\(L/D\\) versus \\(C_L\\) for a few Mach numbers around cruise. Use the selector to swap in any other exported field from <code>aeroperf_sweep()</code>.</div>
+        </div>
+        <label class="panel-select-group">
+          <span>Y field</span>
+          <select id="aero-sweep-field" class="point-select aero-select">
+            ${fields.map((field) => `
+              <option value="${escapeAttr(field.key)}" ${field.key === selected ? "selected" : ""}>${escapeHtml(field.label)}</option>
+            `).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="panel-body">
+        <div id="aero-sweep" class="chart-frame tall"></div>
+      </div>
+    </article>
   `;
 }
 function renderEngineTab() {
@@ -718,7 +760,7 @@ function renderAdvancedTab() {
         : (missionEntries[0] ? missionEntries[0].key : "");
     const compareSelection = parseAdvancedCompareText(state.advanced.compareText);
     const invalidNote = compareSelection.invalid.length
-        ? `Ignored unknown keys: ${compareSelection.invalid.join(", ")}.`
+        ? `Ignored invalid expressions: ${compareSelection.invalid.join(", ")}.`
         : "";
     return `
     <section class="tab-grid split-grid">
@@ -727,7 +769,7 @@ function renderAdvancedTab() {
           <div class="panel-head">
             <div class="eyebrow">Custom</div>
             <h3>Advanced raw plots</h3>
-            <div class="panel-note">Mission plots use raw \\(ia*\\) and \\(ie*\\) series. Compare plots accept \\(ig*\\), \\(im*\\), \\(ia*\\), and \\(ie*\\) keys; mission-series keys use the currently selected point ${pointText}.</div>
+            <div class="panel-note">Mission plots use raw \\(ia*\\) and \\(ie*\\) series. Compare plots accept \\(ig*\\), \\(im*\\), \\(ia*\\), and \\(ie*\\) keys or simple expressions; mission-series keys use the currently selected point ${pointText}.</div>
           </div>
           <div class="panel-body advanced-controls">
             <label class="advanced-field">
@@ -753,12 +795,12 @@ function renderAdvancedTab() {
               </select>
             </label>
             <label class="advanced-field">
-              <span>Compare variables</span>
+              <span>Compare variables or expressions</span>
               <textarea id="advanced-compare-input" class="advanced-input" rows="4">${escapeHtml(state.advanced.compareText)}</textarea>
             </label>
             <div class="advanced-actions">
               <button class="load-button" id="advanced-apply" type="button">Apply Variables</button>
-              <div class="advanced-help">Examples: <code>igWMTO, igWeng, imRange, iaMach, ieTSFC</code></div>
+              <div class="advanced-help">Examples: <code>igWMTO</code>, <code>igWMTO/igWeng</code>, <code>(igWMTO-igWfuel)/igWeng</code>, <code>iaMach/ieTSFC</code></div>
             </div>
             <label class="advanced-toggle">
               <input id="advanced-normalize-toggle" type="checkbox" ${isCompareMode() && state.advanced.normalizeCompare ? "checked" : ""} ${isCompareMode() ? "" : "disabled"} />
@@ -933,7 +975,7 @@ function plotOverviewTab() {
     plotMtowBreakdownCharts("overview-pie");
 }
 function plotMissionTab() {
-    const missionLegend = { orientation: "h", x: 0, y: -0.22, font: { size: 10 } };
+    const missionLegend = { orientation: "h", x: 0, y: -0.4, font: { size: 10 } };
     const missionBottomMargin = { l: 54, r: 20, t: 24, b: 78 };
     const altMachTraces = state.data.aircraft.flatMap((aircraft, index) => ([
         missionTrace(aircraft, aircraft.mission.alt_km, `${aircraft.name} altitude`, index, {
@@ -1144,6 +1186,54 @@ function plotAeroTab() {
         margin: { l: 54, r: 20, t: 24, b: 62 },
     }));
     missionPlot("aero-lod", "$L/D$", (aircraft) => aircraft.aero.lod, "L/D %{y:.2f}");
+    const sweepFields = availableAeroSweepFields();
+    if (sweepFields.length) {
+        const selectedField = sweepFields.some((field) => field.key === state.aeroSweepField)
+            ? state.aeroSweepField
+            : (sweepFields.find((field) => field.key === "LDs") || sweepFields[0]).key;
+        const selectedLabel = aeroSweepFieldLabel(selectedField);
+        const dashStyles = ["solid", "dot", "dash", "longdash", "dashdot"];
+        const sweepTraces = state.data.aircraft.flatMap((aircraft, aircraftIndex) => {
+            const sweep = aircraft.aero.aeroperf_sweep;
+            if (!sweep) {
+                return [];
+            }
+            return (sweep.curves || [])
+                .map((curve, machIndex) => {
+                const x = curve.CLs || [];
+                const y = curve[selectedField] || [];
+                if (!x.length || !y.length) {
+                    return null;
+                }
+                return {
+                    x,
+                    y,
+                    name: `${aircraft.name}  M=${formatMetricValue(curve.mach, 2)}`,
+                    type: "scatter",
+                    mode: "lines+markers",
+                    line: {
+                        color: COLORS[aircraftIndex],
+                        width: machIndex === 1 ? 2.8 : 2.1,
+                        dash: dashStyles[machIndex % dashStyles.length],
+                    },
+                    marker: {
+                        size: 5,
+                        color: COLORS[aircraftIndex],
+                        symbol: machIndex % 2 === 0 ? "circle" : "diamond",
+                    },
+                    hovertemplate: `CL %{x:.3f}<br>${selectedLabel} %{y:.6g}<br>M ${formatMetricValue(curve.mach, 3)}<extra>${aircraft.name}</extra>`,
+                };
+            })
+                .filter(Boolean);
+        });
+        plotChart("aero-sweep", sweepTraces, layout({
+            xaxis: { title: "Lift coefficient $C_L$" },
+            yaxis: { title: selectedLabel },
+            legend: { orientation: "v", x: 1.02, xanchor: "left", y: 1, font: { size: 10 } },
+            margin: { l: 56, r: 132, t: 24, b: 54 },
+            hovermode: "closest",
+        }));
+    }
     const tailVolumeTraces = state.data.aircraft.map((aircraft, index) => barTrace(["Vh", "Vv"], [aircraft.aero.tail_volume.htail, aircraft.aero.tail_volume.vtail], aircraft.name, index));
     plotChart("aero-tail-volume", tailVolumeTraces, layout({
         barmode: "group",
@@ -1180,10 +1270,10 @@ function plotAeroTab() {
         plotChart(`aero-fractions-${index}`, traces, layout({
             xaxis: missionAxisConfig(),
             yaxis: { title: "Fraction of $C_D$" },
-            legend: { orientation: "h", y: -0.22, font: { size: 10 } },
+            legend: { orientation: "v", x: 1.02, xanchor: "left", y: 1, font: { size: 10 } },
             shapes: missionSelectionShapes(index),
             hovermode: "closest",
-            margin: { l: 54, r: 20, t: 24, b: 78 },
+            margin: { l: 54, r: 120, t: 24, b: 54 },
         }));
     });
     if (state.data.aircraft.some((aircraft) => aircraft.aero.trefftz)) {
@@ -1353,28 +1443,28 @@ function plotAdvancedTab() {
     const compareSelection = parseAdvancedCompareText(state.advanced.compareText);
     if (!compareSelection.valid.length) {
         if (compareNode) {
-            compareNode.innerHTML = `<div class="chart-warning">Enter one or more valid raw keys such as igWMTO, igWeng, iaMach, or ieTSFC.</div>`;
+            compareNode.innerHTML = `<div class="chart-warning">Enter one or more valid raw keys or expressions such as igWMTO, igWeng, igWMTO/igWeng, iaMach, or ieTSFC.</div>`;
         }
         return;
     }
     const normalizeCompare = isCompareMode() && state.advanced.normalizeCompare;
     const baselineAircraft = state.data.aircraft[0];
-    const comparePositions = compareSelection.valid.map((_key, index) => index);
+    const comparePositions = compareSelection.valid.map((_entry, index) => index);
     const compareTraces = state.data.aircraft.map((aircraft, index) => ({
         x: comparePositions,
-        y: compareSelection.valid.map((key) => {
-            const value = rawCompareValue(aircraft, key).value;
+        y: compareSelection.valid.map((entry) => {
+            const value = evaluateCompareExpression(aircraft, entry.expression).value;
             if (!normalizeCompare) {
                 return value;
             }
-            const baseline = rawCompareValue(baselineAircraft, key).value;
+            const baseline = evaluateCompareExpression(baselineAircraft, entry.expression).value;
             return Math.abs(Number(baseline)) < Number.EPSILON ? NaN : value / baseline;
         }),
-        customdata: compareSelection.valid.map((key) => {
-            const value = rawCompareValue(aircraft, key);
-            const baseline = rawCompareValue(baselineAircraft, key).value;
+        customdata: compareSelection.valid.map((entry) => {
+            const value = evaluateCompareExpression(aircraft, entry.expression);
+            const baseline = evaluateCompareExpression(baselineAircraft, entry.expression).value;
             const normalized = Math.abs(Number(baseline)) < Number.EPSILON ? NaN : value.value / baseline;
-            return [value.source, value.index, value.missionBased ? missionPointText(state.pointIndex) : "", value.value, baseline, normalized, key];
+            return [value.sourceSummary, value.indexSummary, value.missionBased ? missionPointText(state.pointIndex) : "", value.value, baseline, normalized, entry.expression];
         }),
         name: aircraft.name,
         type: "bar",
@@ -1384,8 +1474,8 @@ function plotAdvancedTab() {
             line: { color: COLORS[index], width: 1 },
         },
         hovertemplate: normalizeCompare
-            ? "%{customdata[6]}<br>Normalized %{y:.6g}<br>Actual %{customdata[3]:.6g}<br>AC1 %{customdata[4]:.6g}<br>Source %{customdata[0]}[%{customdata[1]}]<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>"
-            : "%{customdata[6]}<br>Value %{y:.6g}<br>Source %{customdata[0]}[%{customdata[1]}]<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>",
+            ? "%{customdata[6]}<br>Normalized %{y:.6g}<br>Actual %{customdata[3]:.6g}<br>AC1 %{customdata[4]:.6g}<br>Terms %{customdata[0]}<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>"
+            : "%{customdata[6]}<br>Value %{y:.6g}<br>Terms %{customdata[0]}<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>",
     }));
     plotChart("advanced-compare", compareTraces, layout({
         barmode: isCompareMode() ? "group" : "relative",
@@ -1393,7 +1483,7 @@ function plotAdvancedTab() {
             title: "",
             tickmode: "array",
             tickvals: comparePositions,
-            ticktext: compareSelection.valid.map((key) => advancedDisplayKey(key)),
+            ticktext: compareSelection.valid.map((entry) => entry.display),
             tickangle: -25,
         },
         yaxis: { title: normalizeCompare ? "Normalized to aircraft 1" : "Value" },
@@ -1769,6 +1859,29 @@ function renderChartError(node, error) {
     const message = error instanceof Error ? error.message : String(error || "Unknown plot error");
     node.innerHTML = `<div class="chart-warning">Could not render this plot. ${escapeHtml(message)}</div>`;
 }
+function availableAeroSweepFields(data = state.data) {
+    if (!data || !Array.isArray(data.aircraft)) {
+        return [];
+    }
+    const payload = data.aircraft
+        .map((aircraft) => aircraft && aircraft.aero && aircraft.aero.aeroperf_sweep)
+        .find(Boolean);
+    return (payload && payload.fields) || [];
+}
+function initializeAeroSweepState(data) {
+    const fields = availableAeroSweepFields(data);
+    if (!fields.length) {
+        state.aeroSweepField = "LDs";
+        return;
+    }
+    if (!fields.some((field) => field.key === state.aeroSweepField)) {
+        state.aeroSweepField = (fields.find((field) => field.key === "LDs") || fields[0]).key;
+    }
+}
+function aeroSweepFieldLabel(fieldKey) {
+    const field = availableAeroSweepFields().find((item) => item.key === fieldKey);
+    return field ? field.label : fieldKey;
+}
 function initializeAdvancedState(data) {
     const missionEntries = availableRawMissionEntriesFromData(data);
     const missionKeys = missionEntries.map((entry) => entry.key);
@@ -1780,7 +1893,7 @@ function initializeAdvancedState(data) {
         state.advanced.compareText = defaultAdvancedCompareText(data);
     }
     else {
-        state.advanced.compareText = parsed.valid.join(", ");
+        state.advanced.compareText = parsed.valid.map((entry) => entry.expression).join(", ");
     }
 }
 function availableRawMissionEntries() {
@@ -1814,21 +1927,26 @@ function defaultAdvancedCompareText(data = state.data) {
 function parseAdvancedCompareText(text, data = state.data) {
     const available = availableRawKeySet(data);
     const tokens = String(text || "")
-        .split(/[\s,]+/)
+        .split(/[\n,;]+/)
         .map((token) => token.trim())
         .filter(Boolean);
     const valid = [];
     const invalid = [];
+    const seen = new Set();
     tokens.forEach((token) => {
-        if (valid.includes(token) || invalid.includes(token)) {
+        if (seen.has(token) || invalid.includes(token)) {
             return;
         }
-        if (!available.size || available.has(token)) {
-            valid.push(token);
-        }
-        else {
+        const parsed = parseCompareExpression(token, available);
+        if (!parsed.valid) {
             invalid.push(token);
+            return;
         }
+        valid.push({
+            expression: token,
+            display: formatAdvancedExpressionDisplay(token),
+        });
+        seen.add(token);
     });
     return { valid, invalid };
 }
@@ -1864,9 +1982,226 @@ function rawCompareValue(aircraft, key) {
         missionBased: false,
     };
 }
+function tokenizeCompareExpression(text, available) {
+    const source = String(text || "");
+    const tokens = [];
+    let index = 0;
+    while (index < source.length) {
+        const char = source[index];
+        if (/\s/.test(char)) {
+            index += 1;
+            continue;
+        }
+        if ("()+-*/".includes(char)) {
+            tokens.push({ type: char, value: char });
+            index += 1;
+            continue;
+        }
+        const numberMatch = source.slice(index).match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/);
+        if (numberMatch) {
+            tokens.push({ type: "number", value: numberMatch[0] });
+            index += numberMatch[0].length;
+            continue;
+        }
+        const identMatch = source.slice(index).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+        if (identMatch) {
+            const ident = identMatch[0];
+            if (!available.size || available.has(ident)) {
+                tokens.push({ type: "identifier", value: ident });
+            }
+            else {
+                return null;
+            }
+            index += ident.length;
+            continue;
+        }
+        return null;
+    }
+    return tokens;
+}
+function parseCompareExpression(text, available = availableRawKeySet()) {
+    const tokens = tokenizeCompareExpression(text, available);
+    if (!tokens || !tokens.length) {
+        return { valid: false, ast: null };
+    }
+    let position = 0;
+    function peek() {
+        return tokens[position] || null;
+    }
+    function consume(type = null) {
+        const token = tokens[position] || null;
+        if (!token || (type && token.type !== type)) {
+            return null;
+        }
+        position += 1;
+        return token;
+    }
+    function parsePrimary() {
+        const token = peek();
+        if (!token) {
+            return null;
+        }
+        if (token.type === "number") {
+            consume("number");
+            return { type: "number", value: Number(token.value) };
+        }
+        if (token.type === "identifier") {
+            consume("identifier");
+            return { type: "identifier", key: token.value };
+        }
+        if (token.type === "(") {
+            consume("(");
+            const expr = parseAddSub();
+            if (!expr || !consume(")")) {
+                return null;
+            }
+            return expr;
+        }
+        if (token.type === "+" || token.type === "-") {
+            consume(token.type);
+            const expr = parsePrimary();
+            if (!expr) {
+                return null;
+            }
+            return token.type === "+"
+                ? expr
+                : { type: "unary", op: "-", expr };
+        }
+        return null;
+    }
+    function parseMulDiv() {
+        let left = parsePrimary();
+        if (!left) {
+            return null;
+        }
+        while (true) {
+            const token = peek();
+            if (!token || (token.type !== "*" && token.type !== "/")) {
+                break;
+            }
+            consume(token.type);
+            const right = parsePrimary();
+            if (!right) {
+                return null;
+            }
+            left = { type: "binary", op: token.type, left, right };
+        }
+        return left;
+    }
+    function parseAddSub() {
+        let left = parseMulDiv();
+        if (!left) {
+            return null;
+        }
+        while (true) {
+            const token = peek();
+            if (!token || (token.type !== "+" && token.type !== "-")) {
+                break;
+            }
+            consume(token.type);
+            const right = parseMulDiv();
+            if (!right) {
+                return null;
+            }
+            left = { type: "binary", op: token.type, left, right };
+        }
+        return left;
+    }
+    const ast = parseAddSub();
+    if (!ast || position !== tokens.length) {
+        return { valid: false, ast: null };
+    }
+    return { valid: true, ast };
+}
+function mergeExpressionTerms(left, right) {
+    const terms = [];
+    const seen = new Set();
+    left.concat(right).forEach((term) => {
+        const key = `${term.key}|${term.source}|${term.index}|${term.missionBased ? "m" : "s"}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            terms.push(term);
+        }
+    });
+    return terms;
+}
+function evaluateCompareAst(aircraft, node) {
+    if (!node) {
+        return { value: NaN, terms: [], missionBased: false };
+    }
+    if (node.type === "number") {
+        return { value: Number(node.value), terms: [], missionBased: false };
+    }
+    if (node.type === "identifier") {
+        const value = rawCompareValue(aircraft, node.key);
+        return {
+            value: value.value,
+            terms: [{
+                    key: node.key,
+                    source: value.source,
+                    index: value.index,
+                    missionBased: value.missionBased,
+                }],
+            missionBased: value.missionBased,
+        };
+    }
+    if (node.type === "unary") {
+        const inner = evaluateCompareAst(aircraft, node.expr);
+        return {
+            value: node.op === "-" ? -inner.value : inner.value,
+            terms: inner.terms,
+            missionBased: inner.missionBased,
+        };
+    }
+    if (node.type === "binary") {
+        const left = evaluateCompareAst(aircraft, node.left);
+        const right = evaluateCompareAst(aircraft, node.right);
+        let value = NaN;
+        if (node.op === "+") {
+            value = left.value + right.value;
+        }
+        else if (node.op === "-") {
+            value = left.value - right.value;
+        }
+        else if (node.op === "*") {
+            value = left.value * right.value;
+        }
+        else if (node.op === "/") {
+            value = Math.abs(Number(right.value)) < Number.EPSILON ? NaN : left.value / right.value;
+        }
+        return {
+            value,
+            terms: mergeExpressionTerms(left.terms, right.terms),
+            missionBased: left.missionBased || right.missionBased,
+        };
+    }
+    return { value: NaN, terms: [], missionBased: false };
+}
+function evaluateCompareExpression(aircraft, expression) {
+    const parsed = parseCompareExpression(expression);
+    if (!parsed.valid || !parsed.ast) {
+        return {
+            value: NaN,
+            terms: [],
+            missionBased: false,
+            sourceSummary: "invalid expression",
+            indexSummary: "",
+        };
+    }
+    const result = evaluateCompareAst(aircraft, parsed.ast);
+    return Object.assign(result, {
+        sourceSummary: result.terms.length
+            ? result.terms.map((term) => `${term.key}=${term.source}[${term.index}]`).join(", ")
+            : "literal only",
+        indexSummary: result.terms.map((term) => term.index).join(", "),
+    });
+}
 function advancedDisplayKey(key) {
     const text = String(key || "");
     return /^[A-Za-z]{2}/.test(text) ? text.slice(2) : text;
+}
+function formatAdvancedExpressionDisplay(expression) {
+    return String(expression || "").replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (token) => advancedDisplayKey(token));
 }
 function advancedMissionSearchLabel(key) {
     return `${advancedDisplayKey(key)} [${key}]`;

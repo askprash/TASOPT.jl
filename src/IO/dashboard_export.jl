@@ -1,6 +1,6 @@
 export export_dashboard_data, export_dashboard_bundle, start_dashboard
 
-const DASHBOARD_SCHEMA_VERSION = "1.4.0"
+const DASHBOARD_SCHEMA_VERSION = "1.5.0"
 const DASHBOARD_PLOTLY_SRC = "https://cdn.plot.ly/plotly-2.35.0.min.js"
 
 const DASHBOARD_MISSION_LABELS = [
@@ -18,6 +18,25 @@ const DASHBOARD_MISSION_SHORT = [
 
 const DASHBOARD_DRAG_KEYS = ["CDi", "CDfuse", "CDwing", "CDhtail", "CDvtail", "CDnace"]
 const DASHBOARD_DRAG_INDICES = [iaCDi, iaCDfuse, iaCDwing, iaCDhtail, iaCDvtail, iaCDnace]
+
+const DASHBOARD_AEROPERF_FIELDS = [
+    (key = :LDs, label = "L/D"),
+    (key = :CDs, label = "Total CD"),
+    (key = :CLhs, label = "Tail CLh"),
+    (key = :CDis, label = "Induced drag CDi"),
+    (key = :CDwings, label = "Wing drag CD"),
+    (key = :CDfuses, label = "Fuselage drag CD"),
+    (key = :CDhtails, label = "H-tail drag CD"),
+    (key = :CDvtails, label = "V-tail drag CD"),
+    (key = :CDothers, label = "Other drag CD"),
+    (key = :clpos, label = "Section cl root"),
+    (key = :clpss, label = "Section cl break"),
+    (key = :clpts, label = "Section cl tip"),
+    (key = :cdfss, label = "Section cd friction"),
+    (key = :cdpss, label = "Section cd pressure"),
+    (key = :cdwss, label = "Section cd wave"),
+    (key = :cdss, label = "Section cd total"),
+]
 
 const DASHBOARD_T_STATION_LABELS = ["Tt0", "Tt2", "Tt21", "Tt25", "Tt3", "Tt4", "Tt41", "Tt45", "Tt5", "Tt7"]
 const DASHBOARD_T_STATION_INDICES = [ieTt0, ieTt2, ieTt21, ieTt25, ieTt3, ieTt4, ieTt41, ieTt45, ieTt5, ieTt7]
@@ -973,6 +992,50 @@ function mission_payload(para)
     )
 end
 
+function aeroperf_cl_range(para)
+    cls = Float64[safe_float(para[iaCL, ip]) for ip in 1:iptotal if para[iaCL, ip] isa Real && isfinite(para[iaCL, ip]) && para[iaCL, ip] > 0.05]
+    if isempty(cls)
+        return collect(range(0.15, 0.90; length = 16))
+    end
+
+    cl_min = clamp(minimum(cls) * 0.70, 0.12, 0.55)
+    cl_max = clamp(maximum(cls) * 1.10, cl_min + 0.20, 0.90)
+    return collect(range(cl_min, cl_max; length = 16))
+end
+
+function aeroperf_mach_values(para)
+    cruise_mach = safe_float(para[iaMach, ipcruise1])
+    candidates = [round(clamp(cruise_mach + ΔM, 0.30, 0.90); digits = 3) for ΔM in (-0.05, 0.0, 0.05)]
+    return unique(candidates)
+end
+
+function aeroperf_sweep_payload(ac::aircraft, para)
+    cl_range = aeroperf_cl_range(para)
+    mach_values = aeroperf_mach_values(para)
+    curves = Any[]
+
+    for mach in mach_values
+        try
+            sweep = aeroperf_sweep(ac, cl_range; Mach = mach, ip = ipcruise1)
+            field_values = (; (field.key => safe_array(getfield(sweep, field.key)) for field in DASHBOARD_AEROPERF_FIELDS)...)
+            push!(curves, merge((
+                mach = safe_float(sweep.Mach),
+                CLs = safe_array(sweep.CLs),
+            ), field_values))
+        catch
+            continue
+        end
+    end
+
+    isempty(curves) && return nothing
+
+    return (
+        default_field = "LDs",
+        fields = [(key = String(field.key), label = field.label) for field in DASHBOARD_AEROPERF_FIELDS],
+        curves = curves,
+    )
+end
+
 function aero_payload(ac::aircraft, para)
     area = ac.wing.layout.S
     chord_eta_values, chord_values = chord_eta(ac)
@@ -999,6 +1062,7 @@ function aero_payload(ac::aircraft, para)
             cl_eta = cl_eta,
             cl_by_point = cl_by_point,
         ),
+        aeroperf_sweep = aeroperf_sweep_payload(ac, para),
         trefftz = trefftz_payload(ac),
     )
 end
@@ -1193,6 +1257,14 @@ function export_dashboard_data(ac1, ac2 = nothing; filepath::AbstractString = "d
     return String(filepath)
 end
 
+function export_dashboard_data(ac1::aircraft, filepath::AbstractString)
+    return export_dashboard_data(ac1; filepath = filepath)
+end
+
+function export_dashboard_data(ac1, ac2, filepath::AbstractString)
+    return export_dashboard_data(ac1, ac2; filepath = filepath)
+end
+
 function injected_index_html(json::AbstractString)
     dist_dir, _ = ensure_dashboard_dist()
     dist_index = read(joinpath(dist_dir, "index.html"), String)
@@ -1221,6 +1293,14 @@ function export_dashboard_bundle(ac1, ac2 = nothing; outdir::AbstractString = "d
     write(joinpath(outdir, "dashboard.json"), json)
     write(joinpath(outdir, "index.html"), injected_index_html(json))
     return joinpath(String(outdir), "index.html")
+end
+
+function export_dashboard_bundle(ac1::aircraft, outdir::AbstractString)
+    return export_dashboard_bundle(ac1; outdir = outdir)
+end
+
+function export_dashboard_bundle(ac1, ac2, outdir::AbstractString)
+    return export_dashboard_bundle(ac1, ac2; outdir = outdir)
 end
 
 """

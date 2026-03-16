@@ -988,6 +988,36 @@ select {
   padding: 10px 12px 0;
 }
 
+.panel-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-head-copy {
+  min-width: 0;
+}
+
+.panel-select-group {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  justify-items: end;
+}
+
+.panel-select-group span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.aero-select {
+  min-width: 180px;
+  max-width: none;
+}
+
 .eyebrow {
   color: var(--warm);
   text-transform: uppercase;
@@ -1368,6 +1398,20 @@ mjx-container[jax="SVG"] > svg {
 
   .compact-figure-grid.compare {
     grid-template-columns: 1fr;
+  }
+
+  .panel-head-row {
+    flex-direction: column;
+  }
+
+  .panel-select-group {
+    justify-items: start;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .aero-select {
+    width: 100%;
   }
 }
 
