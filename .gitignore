@@ -21,3 +21,5 @@ docs/build/*
 .vscode/*
 .CondaPkg/*
 __pycache__/*
+# Dashboard local/dev artifacts
+dashboard/node_modules/
