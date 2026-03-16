@@ -1610,14 +1610,14 @@ function missionSnapshotRows() {
 
 function geometrySnapshotRows() {
   return metricRows([
-    { label: "\\(b\\) [m]", get: (aircraft) => aircraft.summary.wing_span_m, digits: 2, lowerBetter: false },
-    { label: "\\(S\\) [m^2]", get: (aircraft) => aircraft.summary.wing_area_m2, digits: 1, lowerBetter: false },
+    { label: "Span \\(b\\) [m]", get: (aircraft) => aircraft.summary.wing_span_m, digits: 2, lowerBetter: false },
+    { label: "\\(S\\) [\\(m^2\\)]", get: (aircraft) => aircraft.summary.wing_area_m2, digits: 1, lowerBetter: false },
     { label: "\\(AR\\)", get: (aircraft) => aircraft.summary.wing_ar, digits: 2, lowerBetter: false },
     { label: "\\(\\Lambda\\) [deg]", get: (aircraft) => aircraft.summary.wing_sweep_deg, digits: 1, lowerBetter: false },
     { label: "\\(c_{root}\\) [m]", get: (aircraft) => aircraft.geometry.wing.root_chord_m, digits: 2, lowerBetter: false },
-    { label: "\\(L_f\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.length_m, digits: 2, lowerBetter: false },
-    { label: "\\(W_f\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.width_m, digits: 2, lowerBetter: false },
-    { label: "\\(H_f\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.height_m, digits: 2, lowerBetter: false },
+    { label: "\\(L_\\text{fuse}\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.length_m, digits: 2, lowerBetter: false },
+    { label: "\\(w_\\text{fuse}\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.width_m, digits: 2, lowerBetter: false },
+    { label: "\\(h_\\text{fuse}\\) [m]", get: (aircraft) => aircraft.geometry.fuselage.height_m, digits: 2, lowerBetter: false },
     { label: "Cabin width [m]", get: (aircraft) => aircraft.geometry.fuselage.cabin_width_m, digits: 2, lowerBetter: false },
     { label: "\\(D_f\\) [m]", get: (aircraft) => aircraft.summary.fan_diameter_m, digits: 3, lowerBetter: false },
   ]);
