@@ -4,7 +4,7 @@
 // - "dark-orbit"
 // - "light-drafting"
 // - "light-aero"
-const DASHBOARD_THEME = "dark-signal";
+const DASHBOARD_THEME = "light-drafting";
 const AIRCRAFT_PALETTES = [
     ["#0072B2", "#56B4E9", "#8FD3F4", "#D9F1FB"],
     ["#D55E00", "#E48D4C", "#F1B587", "#F8DDC6"],
@@ -647,10 +647,9 @@ function renderEngineTab() {
       </div>
       <div class="split-right-grid">
         ${chartPanel("engine-thermo", "Station temperatures and pressures", `Selected mission point: ${pointText}; temperatures on the upper subplot and pressures in kPa on the lower subplot.`, true)}
-        ${chartPanel("engine-thrust", "Mission thrust", `Total installed thrust against ${missionAxisLabel().toLowerCase()}.`)}
-        ${chartPanel("engine-tsfc", "\\(\\mathrm{TSFC}\\) and \\(T_{t4}\\)", `Mission trends for \\(\\mathrm{TSFC}\\) with \\(T_{t4}\\) overlaid on a secondary axis, positioned by ${missionAxisLabel().toLowerCase()}.`)}
-        ${chartPanel("engine-ratios", "\\(\\mathrm{BPR}\\), \\(\\mathrm{OPR}\\), and \\(\\mathrm{FPR}\\)", "Mission trends for the main engine cycle ratios.")}
         ${chartPanel("engine-weight", "Engine weight waterfall", "Bare engine, heat exchangers, nacelle, and support weights accumulated to the total installed engine system.", true)}
+        ${chartPanel("engine-thrust", "Mission thrust", `Total installed thrust against ${missionAxisLabel().toLowerCase()}.`, false, "full-span")}
+        ${chartPanel("engine-tsfc", "\\(\\mathrm{TSFC}\\) and \\(T_{t4}\\)", `Mission trends for \\(\\mathrm{TSFC}\\) with \\(T_{t4}\\) overlaid on a secondary axis, positioned by ${missionAxisLabel().toLowerCase()}.`, false, "full-span")}
         <div class="nested-grid two-col full-span">
           ${mapPanels}
         </div>
@@ -735,9 +734,9 @@ function renderMetricTable(rows, tableClass = "") {
     </table>
   `;
 }
-function chartPanel(id, title, note, tall = false) {
+function chartPanel(id, title, note, tall = false, panelClass = "") {
     return `
-    <article class="panel">
+    <article class="panel ${panelClass}">
       <div class="panel-head">
         <h3>${renderRichText(title)}</h3>
         <div class="panel-note">${renderRichText(note)}</div>
@@ -1176,25 +1175,6 @@ function plotEngineTab() {
         yaxis2: { title: "$T_{t4}$ [K]", overlaying: "y", side: "right", showgrid: false },
         shapes: missionSelectionShapes(),
         hovermode: "closest",
-    }));
-    const ratioTraces = state.data.aircraft.flatMap((aircraft, index) => ([
-        missionTrace(aircraft, aircraft.engine.bpr, `${aircraft.name} BPR`, index, {}, "BPR %{y:.3f}"),
-        missionTrace(aircraft, aircraft.engine.opr.map((value) => value / 10), `${aircraft.name} OPR / 10`, index, {
-            mode: "lines",
-            line: { color: COLORS[index], width: 1.5, dash: "dot" },
-        }, "OPR / 10 %{y:.2f}"),
-        missionTrace(aircraft, aircraft.engine.fpr, `${aircraft.name} FPR`, index, {
-            mode: "lines",
-            line: { color: aircraftColor(index, 2), width: 1.4, dash: index === 0 ? "dash" : "dashdot" },
-        }, "FPR %{y:.3f}"),
-    ]));
-    plotChart("engine-ratios", ratioTraces, layout({
-        xaxis: missionAxisConfig(),
-        yaxis: { title: "Cycle ratio" },
-        legend: { orientation: "h", y: -0.22, font: { size: 10 } },
-        shapes: missionSelectionShapes(),
-        hovermode: "closest",
-        margin: { l: 54, r: 20, t: 24, b: 80 },
     }));
     const engineWeightLabels = state.data.aircraft[0].engine.weight_breakdown.labels.concat(["Total"]);
     const engineWeightTraces = state.data.aircraft.map((aircraft, index) => ({
