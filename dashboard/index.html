@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TASOPT Diagnostic Dashboard</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+      },
+      chtml: {
+        scale: 0.96,
+      },
+      startup: {
+        ready() {
+          MathJax.startup.defaultReady();
+          document.dispatchEvent(new Event("mathjax-ready"));
+        },
+      },
+    };
+    window.PlotlyConfig = {
+      MathJaxConfig: "local",
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script defer src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
