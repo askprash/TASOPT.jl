@@ -1,4 +1,5 @@
-:root {
+:root,
+:root[data-dashboard-theme="dark-signal"] {
   --bg: #0a1620;
   --bg-elev: #10222d;
   --bg-card: #112a37;
@@ -7,17 +8,292 @@
   --line-strong: rgba(214, 225, 232, 0.22);
   --text: #e9efe8;
   --muted: #8fa5ae;
-  --warm: #d7b46a;
-  --cool: #5fa0c7;
-  --hot: #d77b52;
-  --good: #7ed09a;
-  --bad: #f0907a;
+  --warm: #f0e442;
+  --cool: #56b4e9;
+  --hot: #d55e00;
+  --good: #009e73;
+  --bad: #cc79a7;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --body-glow-left: rgba(240, 228, 66, 0.12);
+  --body-glow-right: rgba(0, 114, 178, 0.16);
+  --body-grad-start: #08131b;
+  --body-grad-mid: #0a1620;
+  --body-grad-end: #091019;
+  --masthead-accent: rgba(240, 228, 66, 0.12);
+  --masthead-top: rgba(17, 42, 55, 0.96);
+  --masthead-bottom: rgba(13, 29, 39, 0.96);
+  --toolbar-bg: rgba(11, 25, 34, 0.92);
+  --surface-strong: rgba(8, 18, 24, 0.52);
+  --surface-soft: rgba(255, 255, 255, 0.03);
+  --button-border: rgba(240, 228, 66, 0.34);
+  --button-top: rgba(240, 228, 66, 0.18);
+  --button-bottom: rgba(240, 228, 66, 0.08);
+  --button-border-hover: rgba(240, 228, 66, 0.62);
+  --card-accent-a: rgba(0, 114, 178, 0.10);
+  --card-accent-b: rgba(213, 94, 0, 0.10);
+  --card-top: rgba(16, 34, 45, 0.94);
+  --card-bottom: rgba(10, 22, 32, 0.96);
+  --figure-bg: #09141c;
+  --figure-glow-a: rgba(0, 114, 178, 0.14);
+  --figure-glow-b: rgba(213, 94, 0, 0.14);
+  --airframe-a-wing-fill: rgba(95, 160, 199, 0.18);
+  --airframe-a-wing-stroke: #71b0d4;
+  --airframe-a-body-fill: rgba(151, 201, 226, 0.22);
+  --airframe-a-body-stroke: rgba(200, 228, 241, 0.92);
+  --airframe-a-tail-fill: rgba(79, 146, 188, 0.18);
+  --airframe-a-tail-stroke: rgba(151, 201, 226, 0.94);
+  --airframe-a-engine-fill: rgba(200, 228, 241, 0.16);
+  --airframe-a-engine-stroke: rgba(151, 201, 226, 0.88);
+  --airframe-b-wing-fill: rgba(215, 123, 82, 0.16);
+  --airframe-b-wing-stroke: #df8f6a;
+  --airframe-b-body-fill: rgba(240, 176, 142, 0.22);
+  --airframe-b-body-stroke: rgba(246, 210, 190, 0.92);
+  --airframe-b-tail-fill: rgba(199, 111, 71, 0.18);
+  --airframe-b-tail-stroke: rgba(240, 176, 142, 0.94);
+  --airframe-b-engine-fill: rgba(246, 210, 190, 0.16);
+  --airframe-b-engine-stroke: rgba(240, 176, 142, 0.88);
+  --plot-bg: #09141c;
+  --plot-grid: rgba(214, 225, 232, 0.08);
+  --plot-axis: rgba(214, 225, 232, 0.16);
+  --plot-zero: rgba(214, 225, 232, 0.12);
+  --plot-marker-line: #081118;
+  --plot-marker-clear: rgba(8, 17, 24, 0);
+  --plot-ref-line: rgba(233, 239, 232, 0.85);
+  --selection-a: rgba(0, 114, 178, 0.36);
+  --selection-b: rgba(213, 94, 0, 0.36);
+  --tooltip-bg: rgba(8, 17, 24, 0.95);
+  --tooltip-border: rgba(240, 228, 66, 0.24);
+  --focus-ring: rgba(240, 228, 66, 0.12);
+  --summary-bg: rgba(255, 255, 255, 0.03);
+  --empty-accent: rgba(240, 228, 66, 0.16);
+  --empty-top: rgba(17, 42, 55, 0.96);
+  --empty-bottom: rgba(11, 25, 34, 0.96);
+  --dropzone-bg: rgba(8, 17, 24, 0.4);
+  --dropzone-active: rgba(240, 228, 66, 0.08);
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 10px;
   --font-ui: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+}
+
+:root[data-dashboard-theme="dark-orbit"] {
+  --bg: #12151d;
+  --bg-elev: #1b1f29;
+  --bg-card: #212834;
+  --bg-muted: #171c24;
+  --line: rgba(224, 228, 238, 0.12);
+  --line-strong: rgba(224, 228, 238, 0.20);
+  --text: #f1f3f8;
+  --muted: #a8b0c0;
+  --warm: #cc79a7;
+  --cool: #56b4e9;
+  --hot: #d55e00;
+  --good: #009e73;
+  --bad: #f0e442;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+  --body-glow-left: rgba(204, 121, 167, 0.14);
+  --body-glow-right: rgba(0, 114, 178, 0.14);
+  --body-grad-start: #12141c;
+  --body-grad-mid: #171a23;
+  --body-grad-end: #10131a;
+  --masthead-accent: rgba(204, 121, 167, 0.14);
+  --masthead-top: rgba(34, 38, 51, 0.96);
+  --masthead-bottom: rgba(20, 24, 34, 0.96);
+  --toolbar-bg: rgba(18, 22, 32, 0.92);
+  --surface-strong: rgba(10, 12, 18, 0.52);
+  --surface-soft: rgba(255, 255, 255, 0.04);
+  --button-border: rgba(204, 121, 167, 0.34);
+  --button-top: rgba(204, 121, 167, 0.18);
+  --button-bottom: rgba(204, 121, 167, 0.08);
+  --button-border-hover: rgba(204, 121, 167, 0.62);
+  --card-accent-a: rgba(0, 114, 178, 0.10);
+  --card-accent-b: rgba(204, 121, 167, 0.10);
+  --card-top: rgba(27, 31, 41, 0.94);
+  --card-bottom: rgba(18, 22, 30, 0.96);
+  --figure-bg: #11141b;
+  --figure-glow-a: rgba(86, 180, 233, 0.14);
+  --figure-glow-b: rgba(204, 121, 167, 0.14);
+  --airframe-a-wing-fill: rgba(95, 160, 199, 0.18);
+  --airframe-a-wing-stroke: #71b0d4;
+  --airframe-a-body-fill: rgba(151, 201, 226, 0.22);
+  --airframe-a-body-stroke: rgba(200, 228, 241, 0.92);
+  --airframe-a-tail-fill: rgba(79, 146, 188, 0.18);
+  --airframe-a-tail-stroke: rgba(151, 201, 226, 0.94);
+  --airframe-a-engine-fill: rgba(200, 228, 241, 0.16);
+  --airframe-a-engine-stroke: rgba(151, 201, 226, 0.88);
+  --airframe-b-wing-fill: rgba(190, 126, 168, 0.18);
+  --airframe-b-wing-stroke: #c889b3;
+  --airframe-b-body-fill: rgba(217, 168, 198, 0.22);
+  --airframe-b-body-stroke: rgba(235, 204, 223, 0.92);
+  --airframe-b-tail-fill: rgba(171, 102, 150, 0.18);
+  --airframe-b-tail-stroke: rgba(217, 168, 198, 0.94);
+  --airframe-b-engine-fill: rgba(235, 204, 223, 0.16);
+  --airframe-b-engine-stroke: rgba(217, 168, 198, 0.88);
+  --plot-bg: #11141b;
+  --plot-grid: rgba(224, 228, 238, 0.08);
+  --plot-axis: rgba(224, 228, 238, 0.16);
+  --plot-zero: rgba(224, 228, 238, 0.12);
+  --plot-marker-line: #0e1016;
+  --plot-marker-clear: rgba(14, 16, 22, 0);
+  --plot-ref-line: rgba(241, 243, 248, 0.80);
+  --selection-a: rgba(86, 180, 233, 0.36);
+  --selection-b: rgba(204, 121, 167, 0.36);
+  --tooltip-bg: rgba(14, 16, 22, 0.95);
+  --tooltip-border: rgba(204, 121, 167, 0.24);
+  --focus-ring: rgba(204, 121, 167, 0.14);
+  --summary-bg: rgba(255, 255, 255, 0.04);
+  --empty-accent: rgba(204, 121, 167, 0.16);
+  --empty-top: rgba(34, 38, 51, 0.96);
+  --empty-bottom: rgba(20, 24, 34, 0.96);
+  --dropzone-bg: rgba(14, 16, 22, 0.42);
+  --dropzone-active: rgba(204, 121, 167, 0.08);
+}
+
+:root[data-dashboard-theme="light-drafting"] {
+  --bg: #eef2f4;
+  --bg-elev: #ffffff;
+  --bg-card: #ffffff;
+  --bg-muted: #eef4f7;
+  --line: rgba(23, 51, 67, 0.12);
+  --line-strong: rgba(23, 51, 67, 0.20);
+  --text: #173343;
+  --muted: #5e7784;
+  --warm: #d55e00;
+  --cool: #0072b2;
+  --hot: #cc79a7;
+  --good: #009e73;
+  --bad: #d55e00;
+  --shadow: 0 14px 34px rgba(20, 39, 52, 0.10);
+  --body-glow-left: rgba(240, 228, 66, 0.16);
+  --body-glow-right: rgba(86, 180, 233, 0.18);
+  --body-grad-start: #f6f2e8;
+  --body-grad-mid: #eef2f4;
+  --body-grad-end: #e7eef2;
+  --masthead-accent: rgba(86, 180, 233, 0.12);
+  --masthead-top: rgba(255, 255, 255, 0.95);
+  --masthead-bottom: rgba(245, 248, 250, 0.98);
+  --toolbar-bg: rgba(255, 255, 255, 0.88);
+  --surface-strong: rgba(245, 248, 250, 0.86);
+  --surface-soft: rgba(0, 114, 178, 0.04);
+  --button-border: rgba(0, 114, 178, 0.28);
+  --button-top: rgba(86, 180, 233, 0.18);
+  --button-bottom: rgba(0, 114, 178, 0.05);
+  --button-border-hover: rgba(0, 114, 178, 0.52);
+  --card-accent-a: rgba(86, 180, 233, 0.10);
+  --card-accent-b: rgba(213, 94, 0, 0.08);
+  --card-top: rgba(255, 255, 255, 0.98);
+  --card-bottom: rgba(247, 250, 252, 0.98);
+  --figure-bg: #f7fbfd;
+  --figure-glow-a: rgba(86, 180, 233, 0.14);
+  --figure-glow-b: rgba(240, 177, 120, 0.14);
+  --airframe-a-wing-fill: rgba(0, 114, 178, 0.22);
+  --airframe-a-wing-stroke: #005e94;
+  --airframe-a-body-fill: rgba(86, 180, 233, 0.26);
+  --airframe-a-body-stroke: rgba(0, 114, 178, 0.86);
+  --airframe-a-tail-fill: rgba(0, 114, 178, 0.20);
+  --airframe-a-tail-stroke: rgba(0, 114, 178, 0.82);
+  --airframe-a-engine-fill: rgba(86, 180, 233, 0.20);
+  --airframe-a-engine-stroke: rgba(0, 114, 178, 0.76);
+  --airframe-b-wing-fill: rgba(213, 94, 0, 0.20);
+  --airframe-b-wing-stroke: #ab4b00;
+  --airframe-b-body-fill: rgba(228, 141, 76, 0.24);
+  --airframe-b-body-stroke: rgba(171, 75, 0, 0.84);
+  --airframe-b-tail-fill: rgba(213, 94, 0, 0.18);
+  --airframe-b-tail-stroke: rgba(171, 75, 0, 0.80);
+  --airframe-b-engine-fill: rgba(241, 181, 135, 0.20);
+  --airframe-b-engine-stroke: rgba(171, 75, 0, 0.74);
+  --plot-bg: #ffffff;
+  --plot-grid: rgba(23, 51, 67, 0.08);
+  --plot-axis: rgba(23, 51, 67, 0.18);
+  --plot-zero: rgba(23, 51, 67, 0.12);
+  --plot-marker-line: #f4f7f9;
+  --plot-marker-clear: rgba(255, 255, 255, 0);
+  --plot-ref-line: rgba(23, 51, 67, 0.60);
+  --selection-a: rgba(0, 114, 178, 0.26);
+  --selection-b: rgba(213, 94, 0, 0.24);
+  --tooltip-bg: rgba(255, 255, 255, 0.96);
+  --tooltip-border: rgba(0, 114, 178, 0.18);
+  --focus-ring: rgba(86, 180, 233, 0.18);
+  --summary-bg: rgba(0, 114, 178, 0.03);
+  --empty-accent: rgba(86, 180, 233, 0.16);
+  --empty-top: rgba(255, 255, 255, 0.98);
+  --empty-bottom: rgba(245, 248, 250, 0.98);
+  --dropzone-bg: rgba(255, 255, 255, 0.78);
+  --dropzone-active: rgba(86, 180, 233, 0.08);
+}
+
+:root[data-dashboard-theme="light-aero"] {
+  --bg: #edf4f7;
+  --bg-elev: #ffffff;
+  --bg-card: #ffffff;
+  --bg-muted: #f1f7f9;
+  --line: rgba(19, 47, 61, 0.12);
+  --line-strong: rgba(19, 47, 61, 0.20);
+  --text: #17303d;
+  --muted: #587281;
+  --warm: #009e73;
+  --cool: #0072b2;
+  --hot: #d55e00;
+  --good: #009e73;
+  --bad: #cc79a7;
+  --shadow: 0 14px 34px rgba(20, 39, 52, 0.10);
+  --body-glow-left: rgba(0, 158, 115, 0.12);
+  --body-glow-right: rgba(86, 180, 233, 0.18);
+  --body-grad-start: #eef7f5;
+  --body-grad-mid: #edf4f7;
+  --body-grad-end: #e4edf2;
+  --masthead-accent: rgba(0, 158, 115, 0.12);
+  --masthead-top: rgba(255, 255, 255, 0.95);
+  --masthead-bottom: rgba(243, 248, 250, 0.98);
+  --toolbar-bg: rgba(255, 255, 255, 0.88);
+  --surface-strong: rgba(246, 250, 251, 0.88);
+  --surface-soft: rgba(0, 158, 115, 0.04);
+  --button-border: rgba(0, 158, 115, 0.28);
+  --button-top: rgba(0, 158, 115, 0.16);
+  --button-bottom: rgba(0, 158, 115, 0.05);
+  --button-border-hover: rgba(0, 158, 115, 0.48);
+  --card-accent-a: rgba(86, 180, 233, 0.10);
+  --card-accent-b: rgba(213, 94, 0, 0.07);
+  --card-top: rgba(255, 255, 255, 0.98);
+  --card-bottom: rgba(244, 249, 250, 0.98);
+  --figure-bg: #f7fbfc;
+  --figure-glow-a: rgba(86, 180, 233, 0.12);
+  --figure-glow-b: rgba(213, 94, 0, 0.12);
+  --airframe-a-wing-fill: rgba(0, 114, 178, 0.21);
+  --airframe-a-wing-stroke: #005a8e;
+  --airframe-a-body-fill: rgba(86, 180, 233, 0.24);
+  --airframe-a-body-stroke: rgba(0, 114, 178, 0.84);
+  --airframe-a-tail-fill: rgba(0, 114, 178, 0.19);
+  --airframe-a-tail-stroke: rgba(0, 114, 178, 0.80);
+  --airframe-a-engine-fill: rgba(86, 180, 233, 0.18);
+  --airframe-a-engine-stroke: rgba(0, 114, 178, 0.72);
+  --airframe-b-wing-fill: rgba(213, 94, 0, 0.18);
+  --airframe-b-wing-stroke: #b65208;
+  --airframe-b-body-fill: rgba(228, 141, 76, 0.22);
+  --airframe-b-body-stroke: rgba(182, 82, 8, 0.82);
+  --airframe-b-tail-fill: rgba(213, 94, 0, 0.17);
+  --airframe-b-tail-stroke: rgba(182, 82, 8, 0.78);
+  --airframe-b-engine-fill: rgba(241, 181, 135, 0.18);
+  --airframe-b-engine-stroke: rgba(182, 82, 8, 0.72);
+  --plot-bg: #ffffff;
+  --plot-grid: rgba(23, 48, 61, 0.08);
+  --plot-axis: rgba(23, 48, 61, 0.18);
+  --plot-zero: rgba(23, 48, 61, 0.12);
+  --plot-marker-line: #f6f9fa;
+  --plot-marker-clear: rgba(255, 255, 255, 0);
+  --plot-ref-line: rgba(23, 48, 61, 0.58);
+  --selection-a: rgba(0, 114, 178, 0.24);
+  --selection-b: rgba(213, 94, 0, 0.22);
+  --tooltip-bg: rgba(255, 255, 255, 0.96);
+  --tooltip-border: rgba(0, 158, 115, 0.18);
+  --focus-ring: rgba(0, 158, 115, 0.16);
+  --summary-bg: rgba(0, 158, 115, 0.03);
+  --empty-accent: rgba(0, 158, 115, 0.14);
+  --empty-top: rgba(255, 255, 255, 0.98);
+  --empty-bottom: rgba(244, 249, 250, 0.98);
+  --dropzone-bg: rgba(255, 255, 255, 0.80);
+  --dropzone-active: rgba(0, 158, 115, 0.08);
 }
 
 * {
@@ -29,9 +305,9 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(215, 180, 106, 0.12), transparent 32%),
-    radial-gradient(circle at top right, rgba(95, 160, 199, 0.18), transparent 34%),
-    linear-gradient(180deg, #08131b 0%, #0a1620 55%, #091019 100%);
+    radial-gradient(circle at top left, var(--body-glow-left), transparent 32%),
+    radial-gradient(circle at top right, var(--body-glow-right), transparent 34%),
+    linear-gradient(180deg, var(--body-grad-start) 0%, var(--body-grad-mid) 55%, var(--body-grad-end) 100%);
   color: var(--text);
   font-family: var(--font-ui);
 }
@@ -73,8 +349,8 @@ select {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(215, 180, 106, 0.12), transparent 22%),
-    linear-gradient(180deg, rgba(17, 42, 55, 0.96), rgba(13, 29, 39, 0.96));
+    linear-gradient(135deg, var(--masthead-accent), transparent 22%),
+    linear-gradient(180deg, var(--masthead-top), var(--masthead-bottom));
   box-shadow: var(--shadow);
 }
 
@@ -104,7 +380,7 @@ select {
   padding: 7px 12px;
   font-size: 0.84rem;
   border: 1px solid var(--line);
-  background: rgba(8, 18, 24, 0.52);
+  background: var(--surface-strong);
 }
 
 .pill strong {
@@ -113,8 +389,8 @@ select {
 }
 
 .load-button {
-  border: 1px solid rgba(215, 180, 106, 0.4);
-  background: linear-gradient(180deg, rgba(215, 180, 106, 0.18), rgba(215, 180, 106, 0.08));
+  border: 1px solid var(--button-border);
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
   color: var(--text);
   border-radius: 999px;
   padding: 8px 14px;
@@ -124,7 +400,7 @@ select {
 
 .load-button:hover {
   transform: translateY(-1px);
-  border-color: rgba(215, 180, 106, 0.68);
+  border-color: var(--button-border-hover);
 }
 
 .hero-grid {
@@ -146,15 +422,15 @@ select {
   border-radius: var(--radius-lg);
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(95, 160, 199, 0.08), transparent 32%),
-    linear-gradient(180deg, rgba(16, 34, 45, 0.94), rgba(10, 22, 32, 0.96));
+    linear-gradient(180deg, var(--card-accent-a), transparent 32%),
+    linear-gradient(180deg, var(--card-top), var(--card-bottom));
   box-shadow: var(--shadow);
 }
 
 .aircraft-card.accent-b {
   background:
-    linear-gradient(180deg, rgba(215, 123, 82, 0.08), transparent 32%),
-    linear-gradient(180deg, rgba(16, 34, 45, 0.94), rgba(10, 22, 32, 0.96));
+    linear-gradient(180deg, var(--card-accent-b), transparent 32%),
+    linear-gradient(180deg, var(--card-top), var(--card-bottom));
 }
 
 .aircraft-head {
@@ -181,20 +457,28 @@ select {
 .figure-frame {
   height: 198px;
   border-radius: 18px;
-  border: 1px solid rgba(214, 225, 232, 0.08);
+  border: 1px solid var(--line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-    radial-gradient(circle at center, rgba(113, 176, 212, 0.10), transparent 46%),
-    #09141c;
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--text) 2.4%, transparent),
+      color-mix(in srgb, var(--text) 1.1%, transparent)
+    ),
+    radial-gradient(circle at center, var(--figure-glow-a), transparent 46%),
+    var(--figure-bg);
   overflow: hidden;
   position: relative;
 }
 
 .figure-frame.accent-b {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-    radial-gradient(circle at center, rgba(223, 143, 106, 0.10), transparent 46%),
-    #09141c;
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--text) 2.4%, transparent),
+      color-mix(in srgb, var(--text) 1.1%, transparent)
+    ),
+    radial-gradient(circle at center, var(--figure-glow-b), transparent 46%),
+    var(--figure-bg);
 }
 
 .figure-frame svg {
@@ -204,13 +488,13 @@ select {
 }
 
 .figure-centerline {
-  stroke: rgba(233, 239, 232, 0.14);
+  stroke: color-mix(in srgb, var(--text) 14%, transparent);
   stroke-width: 0.45;
   stroke-dasharray: 2 2;
 }
 
 .figure-divider {
-  stroke: rgba(233, 239, 232, 0.18);
+  stroke: color-mix(in srgb, var(--text) 18%, transparent);
   stroke-width: 0.25;
   stroke-dasharray: 2 2;
 }
@@ -223,47 +507,47 @@ select {
 }
 
 .aircraft-component.kind-wing {
-  fill: rgba(95, 160, 199, 0.18);
-  stroke: #71b0d4;
+  fill: var(--airframe-a-wing-fill);
+  stroke: var(--airframe-a-wing-stroke);
   stroke-width: 1.5;
 }
 
 .accent-b .aircraft-component.kind-wing {
-  fill: rgba(215, 123, 82, 0.16);
-  stroke: #df8f6a;
+  fill: var(--airframe-b-wing-fill);
+  stroke: var(--airframe-b-wing-stroke);
 }
 
 .aircraft-component.kind-fuselage {
-  fill: rgba(151, 201, 226, 0.22);
-  stroke: rgba(200, 228, 241, 0.92);
+  fill: var(--airframe-a-body-fill);
+  stroke: var(--airframe-a-body-stroke);
   stroke-width: 1.2;
 }
 
 .accent-b .aircraft-component.kind-fuselage {
-  fill: rgba(240, 176, 142, 0.22);
-  stroke: rgba(246, 210, 190, 0.92);
+  fill: var(--airframe-b-body-fill);
+  stroke: var(--airframe-b-body-stroke);
 }
 
 .aircraft-component.kind-htail {
-  fill: rgba(79, 146, 188, 0.18);
-  stroke: rgba(151, 201, 226, 0.94);
+  fill: var(--airframe-a-tail-fill);
+  stroke: var(--airframe-a-tail-stroke);
   stroke-width: 1.2;
 }
 
 .accent-b .aircraft-component.kind-htail {
-  fill: rgba(199, 111, 71, 0.18);
-  stroke: rgba(240, 176, 142, 0.94);
+  fill: var(--airframe-b-tail-fill);
+  stroke: var(--airframe-b-tail-stroke);
 }
 
 .aircraft-component.kind-engine {
-  fill: rgba(200, 228, 241, 0.16);
-  stroke: rgba(151, 201, 226, 0.88);
+  fill: var(--airframe-a-engine-fill);
+  stroke: var(--airframe-a-engine-stroke);
   stroke-width: 1.1;
 }
 
 .accent-b .aircraft-component.kind-engine {
-  fill: rgba(246, 210, 190, 0.16);
-  stroke: rgba(240, 176, 142, 0.88);
+  fill: var(--airframe-b-engine-fill);
+  stroke: var(--airframe-b-engine-stroke);
 }
 
 .aircraft-component:hover {
@@ -282,8 +566,8 @@ select {
   min-width: 74px;
   padding: 5px 8px;
   border-radius: 11px;
-  border: 1px solid rgba(214, 225, 232, 0.08);
-  background: rgba(8, 17, 24, 0.48);
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
 }
 
 .metric-chip span {
@@ -310,7 +594,7 @@ select {
   padding: 8px 10px;
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: rgba(11, 25, 34, 0.92);
+  background: var(--toolbar-bg);
   position: sticky;
   top: 8px;
   z-index: 18;
@@ -335,7 +619,7 @@ select {
 
 .tab-button {
   border: 1px solid transparent;
-  background: rgba(233, 239, 232, 0.03);
+  background: var(--surface-soft);
   color: var(--muted);
   padding: 6px 10px;
   border-radius: 999px;
@@ -381,8 +665,8 @@ select {
   gap: 4px;
   padding: 3px;
   border-radius: 999px;
-  border: 1px solid rgba(214, 225, 232, 0.08);
-  background: rgba(8, 17, 24, 0.42);
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
 }
 
 .segmented-button {
@@ -398,13 +682,13 @@ select {
 
 .segmented-button.active {
   color: var(--text);
-  background: rgba(215, 180, 106, 0.14);
+  background: color-mix(in srgb, var(--warm) 16%, transparent);
 }
 
 .tab-button.active {
   color: var(--text);
-  border-color: rgba(215, 180, 106, 0.4);
-  background: rgba(215, 180, 106, 0.08);
+  border-color: color-mix(in srgb, var(--warm) 42%, transparent);
+  background: color-mix(in srgb, var(--warm) 10%, transparent);
 }
 
 .point-control {
@@ -417,9 +701,9 @@ select {
 .point-select {
   min-width: 154px;
   max-width: min(220px, 24vw);
-  border: 1px solid rgba(214, 225, 232, 0.12);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(8, 17, 24, 0.68);
+  background: var(--surface-strong);
   color: var(--warm);
   padding: 6px 30px 6px 10px;
   font-family: var(--font-mono);
@@ -438,8 +722,8 @@ select {
 
 .point-select:focus {
   outline: none;
-  border-color: rgba(215, 180, 106, 0.48);
-  box-shadow: 0 0 0 2px rgba(215, 180, 106, 0.12);
+  border-color: color-mix(in srgb, var(--warm) 48%, transparent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .tab-grid {
@@ -460,6 +744,13 @@ select {
 .split-grid {
   grid-template-columns: minmax(0, 1.02fr) minmax(360px, 1.72fr);
   align-items: start;
+}
+
+.split-left-stack {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
 }
 
 .overview-right-grid {
@@ -506,7 +797,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(17, 42, 55, 0.92), rgba(11, 25, 34, 0.96));
+    linear-gradient(180deg, var(--card-top), var(--card-bottom));
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -537,6 +828,11 @@ select {
   width: min(100%, 550px);
 }
 
+.compact-figure-panel {
+  justify-self: stretch;
+  width: min(100%, 550px);
+}
+
 .overview-table-panel .panel-body {
   max-height: 600px;
   overflow: auto;
@@ -545,6 +841,54 @@ select {
 .compact-table-panel .panel-body {
   max-height: 600px;
   overflow: auto;
+}
+
+.compact-figure-panel .panel-body {
+  padding-top: 6px;
+}
+
+.compact-figure-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-figure-grid.compare {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compact-figure-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.compact-figure-card {
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: 14px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 72%, transparent);
+}
+
+.compact-figure-label {
+  margin-bottom: 6px;
+}
+
+.compact-figure-wrap {
+  padding: 0;
+}
+
+.compact-half-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.compact-figure-panel .figure-frame {
+  height: 134px;
+  border-radius: 14px;
+}
+
+.compact-figure-panel .figure-frame.half-compare {
+  height: 220px;
 }
 
 .panel-head {
@@ -583,8 +927,12 @@ select {
 .summary-card {
   padding: 8px;
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  border: 1px solid rgba(214, 225, 232, 0.06);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 3%, transparent),
+    color-mix(in srgb, var(--text) 1%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
 }
 
 .summary-card .label {
@@ -609,17 +957,17 @@ select {
 
 .delta.good {
   color: var(--good);
-  background: rgba(126, 208, 154, 0.12);
+  background: color-mix(in srgb, var(--good) 14%, transparent);
 }
 
 .delta.bad {
   color: var(--bad);
-  background: rgba(240, 144, 122, 0.14);
+  background: color-mix(in srgb, var(--bad) 15%, transparent);
 }
 
 .delta.flat {
   color: var(--muted);
-  background: rgba(143, 165, 174, 0.12);
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
 }
 
 .metric-table {
@@ -633,7 +981,7 @@ select {
 .metric-table th,
 .metric-table td {
   padding: 6px 8px;
-  border-bottom: 1px solid rgba(214, 225, 232, 0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
   text-align: left;
 }
 
@@ -816,8 +1164,8 @@ mjx-container[jax="SVG"] > svg {
   border-radius: 28px;
   border: 1px solid var(--line);
   background:
-    radial-gradient(circle at top right, rgba(215, 180, 106, 0.18), transparent 28%),
-    linear-gradient(180deg, rgba(17, 42, 55, 0.96), rgba(11, 25, 34, 0.96));
+    radial-gradient(circle at top right, var(--empty-accent), transparent 28%),
+    linear-gradient(180deg, var(--empty-top), var(--empty-bottom));
   box-shadow: var(--shadow);
 }
 
@@ -833,17 +1181,17 @@ mjx-container[jax="SVG"] > svg {
 
 .dropzone {
   margin-top: 22px;
-  border: 1px dashed rgba(215, 180, 106, 0.38);
+  border: 1px dashed color-mix(in srgb, var(--warm) 38%, transparent);
   border-radius: 24px;
   padding: 26px;
-  background: rgba(8, 17, 24, 0.4);
+  background: var(--dropzone-bg);
   text-align: center;
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
 .dropzone.dragover {
-  border-color: rgba(215, 180, 106, 0.82);
-  background: rgba(215, 180, 106, 0.07);
+  border-color: color-mix(in srgb, var(--warm) 82%, transparent);
+  background: var(--dropzone-active);
   transform: translateY(-2px);
 }
 
@@ -864,8 +1212,8 @@ mjx-container[jax="SVG"] > svg {
   max-width: 280px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(215, 180, 106, 0.22);
-  background: rgba(8, 17, 24, 0.95);
+  border: 1px solid var(--tooltip-border);
+  background: var(--tooltip-bg);
   color: var(--text);
   font-size: 0.82rem;
   line-height: 1.35;
@@ -923,6 +1271,10 @@ mjx-container[jax="SVG"] > svg {
 
   .metric-rail.right .metric-chip {
     text-align: left;
+  }
+
+  .compact-figure-grid.compare {
+    grid-template-columns: 1fr;
   }
 }
 

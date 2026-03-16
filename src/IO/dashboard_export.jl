@@ -1,6 +1,6 @@
 export export_dashboard_data, export_dashboard_bundle, start_dashboard
 
-const DASHBOARD_SCHEMA_VERSION = "1.2.0"
+const DASHBOARD_SCHEMA_VERSION = "1.3.0"
 const DASHBOARD_PLOTLY_SRC = "https://cdn.plot.ly/plotly-2.35.0.min.js"
 
 const DASHBOARD_MISSION_LABELS = [
@@ -183,12 +183,195 @@ function extract_structural_weights(ac::aircraft)
                     wing.weight_frac_attachments)
     wadd = parg[igWMTO] * fuse.HPE_sys.W + lg.nose_gear.weight.W + lg.main_gear.weight.W
 
-    labels = ["Fuselage", "Wing", "H-Tail", "V-Tail", "Engine Sys", "Fuel Tank", "Added"]
+    labels = ["Fuselage", "Wing", "H-Tail", "V-Tail", "Installed engines", "Fuel Tank", "Added"]
     values_t = tonnes_from_force.([
         fuse.weight, wwing, htail.weight, vtail.weight,
-        parg[igWtesys], parg[igWftank], wadd,
+        parg[igWeng], parg[igWftank], wadd,
     ])
     return labels, values_t
+end
+
+function wing_load_payload(ac::aircraft)
+    wing = ac.wing
+    etao = safe_float(wing.layout.ηo)
+    etas = safe_float(wing.layout.ηs)
+    b = safe_float(wing.layout.span)
+
+    if wing.has_strut || b <= 0.0
+        eta_range = vcat(collect(range(etao, etas, length = 20)), collect(range(etas, 1.0, length = 20)))
+        shear = fill(safe_float(wing.inboard.max_shear_load), length(eta_range))
+        moment = fill(safe_float(wing.inboard.moment), length(eta_range))
+        return (
+            eta = [safe_float(value) for value in eta_range],
+            shear_N = safe_array(shear),
+            moment_Nm = safe_array(moment),
+            markers_eta = (
+                wing_box_end = safe_float(etao),
+                planform_break = safe_float(etas),
+            ),
+        )
+    end
+
+    para = view(ac.para, :, :, 1)
+    parg = ac.parg
+    ip = ipcruise1
+
+    γt = safe_float(wing.outboard.λ * para[iarclt, ip])
+    γs = safe_float(wing.inboard.λ * para[iarcls, ip])
+    Nlift = safe_float(parg[igNlift])
+    Lhtail = safe_float(parg[igWMTO] * ac.htail.CL_CLmax * ac.htail.layout.S / max(wing.layout.S, eps(Float64)))
+    po = safe_float(wing_loading(wing, para[iarclt, ip], para[iarcls, ip], Nlift, parg[igWMTO], Lhtail))
+
+    dLt = safe_float(wing.tip_lift_loss * po * wing.layout.root_chord * γt * wing.outboard.λ)
+    half_span = 0.5 * b
+
+    function q_in(eta)
+        return 0.5 * po * b * (1.0 + (γs - 1.0) * (eta - etao) / max(etas - etao, eps(Float64)))
+    end
+
+    function q_out(eta)
+        return 0.5 * po * b * (γs + (γt - γs) * (eta - etas) / max(1.0 - etas, eps(Float64)))
+    end
+
+    engine_step_N = 0.0
+    if ac.options.opt_engine_location == EngineLocation.Wing && Int(round(parg[igneng])) > 0
+        eng_per_side = safe_float(parg[igWeng] / max(parg[igneng], 1.0))
+        engine_step_N = safe_float(Nlift * eng_per_side)
+    end
+
+    λs = safe_float(wing.inboard.λ)
+    λt = safe_float(wing.outboard.λ)
+
+    function chord_in(eta)
+        return 1.0 + (λs - 1.0) * (eta - etao) / max(etas - etao, eps(Float64))
+    end
+
+    function chord_out(eta)
+        return λs + (λt - λs) * (eta - etas) / max(1.0 - etas, eps(Float64))
+    end
+
+    i_in = max((etas - etao) * (1.0 + λs + λs^2) / 3.0, eps(Float64))
+    i_out = max((1.0 - etas) * (λs^2 + λs * λt + λt^2) / 3.0, eps(Float64))
+
+    w_in_total = safe_float(Nlift * wing.inboard.weight)
+    w_out_total = safe_float(Nlift * wing.outboard.weight)
+
+    function q_weight_in(eta)
+        return w_in_total * chord_in(eta)^2 / i_in
+    end
+
+    function q_weight_out(eta)
+        return w_out_total * chord_out(eta)^2 / i_out
+    end
+
+    function segment_integral(f, a, b; n = 60)
+        b <= a && return 0.0
+        xs = collect(range(a, b, length = n))
+        ys = f.(xs)
+        total = 0.0
+        for i in 1:(length(xs) - 1)
+            total += 0.5 * (ys[i] + ys[i + 1]) * (xs[i + 1] - xs[i])
+        end
+        return safe_float(total)
+    end
+
+    function segment_moment(f, station, a, b; n = 60)
+        b <= a && return 0.0
+        xs = collect(range(a, b, length = n))
+        ys = [f(x) * half_span * (x - station) for x in xs]
+        total = 0.0
+        for i in 1:(length(xs) - 1)
+            total += 0.5 * (ys[i] + ys[i + 1]) * (xs[i + 1] - xs[i])
+        end
+        return safe_float(total)
+    end
+
+    function shear_at(eta)
+        force = 0.0
+        force += segment_integral(q_out, max(eta, etas), 1.0)
+        force -= segment_integral(q_weight_out, max(eta, etas), 1.0)
+        if eta < etas
+            force += segment_integral(q_in, max(eta, etao), etas)
+            force -= segment_integral(q_weight_in, max(eta, etao), etas)
+        end
+        eta < 1.0 && (force += dLt)
+        eta <= etas && (force -= engine_step_N)
+        return safe_float(force)
+    end
+
+    function moment_at(eta)
+        bending = 0.0
+        bending += segment_moment(q_out, eta, max(eta, etas), 1.0)
+        bending -= segment_moment(q_weight_out, eta, max(eta, etas), 1.0)
+        if eta < etas
+            bending += segment_moment(q_in, eta, max(eta, etao), etas)
+            bending -= segment_moment(q_weight_in, eta, max(eta, etao), etas)
+        end
+        eta < 1.0 && (bending += dLt * half_span * (1.0 - eta))
+        eta <= etas && (bending -= engine_step_N * half_span * (etas - eta))
+        return safe_float(bending)
+    end
+
+    eta_inboard = collect(range(etao, etas, length = 28))
+    eta_outboard = collect(range(etas, 1.0, length = 28))
+    eta_range = copy(eta_inboard)
+    shear = [shear_at(eta) for eta in eta_inboard]
+    moment = [moment_at(eta) for eta in eta_inboard]
+    if !isempty(shear)
+        shear[end] = safe_float(wing.outboard.max_shear_load - engine_step_N)
+        moment[end] = safe_float(wing.outboard.moment)
+
+        Δη = max(etas - etao, eps(Float64))
+        root_shear_target = safe_float(wing.inboard.max_shear_load)
+        root_moment_target = safe_float(wing.inboard.moment)
+        ds0 = root_shear_target - shear[1]
+        dm0 = root_moment_target - moment[1]
+        k = 2.0 * dm0 / max(b * Δη, eps(Float64))
+        v = 3.0 * ds0 - 6.0 * k
+        u = ds0 - v
+
+        for i in eachindex(eta_inboard)
+            t = clamp((etas - eta_inboard[i]) / Δη, 0.0, 1.0)
+            shear[i] += u * t + v * t^2
+            moment[i] += 0.5 * b * Δη * (u * t^2 / 2.0 + v * t^3 / 3.0)
+        end
+    end
+
+    if !isempty(eta_outboard)
+        push!(eta_range, etas)
+        push!(shear, safe_float(wing.outboard.max_shear_load))
+        push!(moment, safe_float(wing.outboard.moment))
+        for eta in eta_outboard[2:end]
+            push!(eta_range, eta)
+            push!(shear, shear_at(eta))
+            push!(moment, moment_at(eta))
+        end
+    end
+
+    return (
+        eta = [safe_float(value) for value in eta_range],
+        shear_N = safe_array(shear),
+        moment_Nm = safe_array(moment),
+        markers_eta = (
+            wing_box_end = safe_float(etao),
+            planform_break = safe_float(etas),
+        ),
+    )
+end
+
+function engine_weight_breakdown_payload(ac::aircraft)
+    parg = ac.parg
+    total_t = tonnes_from_force(parg[igWeng])
+    hx_t = tonnes_from_force(parg[igWHXs])
+    bare_no_hx_t = tonnes_from_force(parg[igWebare] - parg[igWHXs])
+    nacelle_t = tonnes_from_force(parg[igWnace])
+    support_t = tonnes_from_force(parg[igWeng] - parg[igWebare] - parg[igWnace])
+
+    return (
+        labels = ["Bare engine", "Heat exchangers", "Nacelle", "Add'l. + pylon"],
+        values_t = [bare_no_hx_t, hx_t, nacelle_t, support_t],
+        total_t = total_t,
+    )
 end
 
 function compressor_speed_lines(map::engine.CompressorMap, piD::Real)
@@ -737,6 +920,10 @@ function aero_payload(ac::aircraft, para)
         ],
         drag_fractions = drag_fracs,
         lod = [safe_ratio(para[iaCL, ip], para[iaCD, ip]) for ip in 1:iptotal],
+        tail_volume = (
+            htail = safe_float(ac.htail.volume),
+            vtail = safe_float(ac.vtail.volume),
+        ),
         wing = (
             eta = chord_eta_values,
             chord_m = chord_values,
@@ -761,6 +948,7 @@ function engine_payload(ac::aircraft, pare)
         pressure_stations = DASHBOARD_P_STATION_LABELS,
         temperature_k = tt_by_point,
         pressure_kpa = pt_by_point,
+        fan_diameter_m = safe_float(parg[igdfan]),
         thrust_total_kN = safe_array(pare[ieFe, :] .* parg[igneng] ./ 1e3),
         thrust_per_engine_kN = safe_array(pare[ieFe, :] ./ 1e3),
         tsfc_mg_ns = safe_array(pare[ieTSFC, :] .* 1e6),
@@ -780,6 +968,7 @@ function engine_payload(ac::aircraft, pare)
         lpc_mass_flow_frac = [safe_ratio(pare[iemblc, ip], pare[iemblcD, ipcruise1]) for ip in 1:iptotal],
         hpc_mass_flow_frac = [safe_ratio(pare[iembhc, ip], pare[iembhcD, ipcruise1]) for ip in 1:iptotal],
         tt4_k = safe_array(pare[ieTt4, :]),
+        weight_breakdown = engine_weight_breakdown_payload(ac),
         maps = (
             fan = compressor_map_payload(engine.FanMap, pare;
                 label = "Fan",
@@ -836,6 +1025,7 @@ function weights_payload(ac::aircraft)
             labels = labels,
             values_t = structure_values,
         ),
+        wing_loads = wing_load_payload(ac),
     )
 end
 
