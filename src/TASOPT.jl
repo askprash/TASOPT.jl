@@ -101,6 +101,7 @@ include(joinpath(__TASOPTroot__,"IO/save_model.jl"))
 include(joinpath(__TASOPTroot__,"IO/quicksave_load.jl"))
 include(joinpath(__TASOPTroot__,"IO/par_array_opers.jl"))
 include(joinpath(__TASOPTroot__,"IO/output_csv.jl"))
+include(joinpath(__TASOPTroot__,"IO/dashboard_export.jl"))
 
 include(joinpath(__TASOPTroot__,"cost/cost_est.jl"))
 include(joinpath(__TASOPTroot__,"cost/cost_val.jl"))
@@ -108,6 +109,7 @@ include(joinpath(__TASOPTroot__,"utils/printBADA.jl"))
 include(joinpath(__TASOPTroot__,"utils/sensitivity.jl"))
 
 export size_aircraft!
+export export_dashboard_data, export_dashboard_bundle, start_dashboard
 
 
 #------------------------------------------------------

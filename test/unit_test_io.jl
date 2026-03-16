@@ -121,4 +121,32 @@
     rm(filepath_csv)
     rm(filepath_csv2)
 
+#D: dashboard export smoke test
+    filepath_dashboard_single = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_dashboard_single.json")
+    filepath_dashboard_compare = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_dashboard_compare.json")
+    bundle_dir = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_dashboard_bundle")
+
+    isfile(filepath_dashboard_single) ? rm(filepath_dashboard_single) : nothing
+    isfile(filepath_dashboard_compare) ? rm(filepath_dashboard_compare) : nothing
+    isdir(bundle_dir) ? rm(bundle_dir; recursive=true, force=true) : nothing
+
+    export_dashboard_data(ac_def; filepath=filepath_dashboard_single)
+    export_dashboard_data(ac_def, ac_quick; filepath=filepath_dashboard_compare)
+    export_dashboard_bundle(ac_def, ac_quick; outdir=bundle_dir)
+
+    @test isfile(filepath_dashboard_single)
+    @test isfile(filepath_dashboard_compare)
+    @test isfile(joinpath(bundle_dir, "index.html"))
+    @test isfile(joinpath(bundle_dir, "dashboard.json"))
+    @test occursin("\"schema_version\"", read(filepath_dashboard_single, String))
+    @test occursin("\"gamma_rad\"", read(filepath_dashboard_single, String))
+    @test occursin("\"cross_section\"", read(filepath_dashboard_single, String))
+    @test occursin("\"operating_line\"", read(filepath_dashboard_single, String))
+    @test occursin("\"maps\"", read(filepath_dashboard_single, String))
+    @test occursin(ac_def.name, read(filepath_dashboard_compare, String))
+
+    rm(filepath_dashboard_single)
+    rm(filepath_dashboard_compare)
+    rm(bundle_dir; recursive=true, force=true)
+
 end #testset "io"
