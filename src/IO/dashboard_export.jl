@@ -1,6 +1,6 @@
 export export_dashboard_data, export_dashboard_bundle, start_dashboard
 
-const DASHBOARD_SCHEMA_VERSION = "1.3.0"
+const DASHBOARD_SCHEMA_VERSION = "1.4.0"
 const DASHBOARD_PLOTLY_SRC = "https://cdn.plot.ly/plotly-2.35.0.min.js"
 
 const DASHBOARD_MISSION_LABELS = [
@@ -34,6 +34,75 @@ safe_nested(x::AbstractMatrix) = [[begin
     value = x[i, j]
     (value isa Real && isfinite(value)) ? Float64(value) : missing
 end for j in axes(x, 2)] for i in axes(x, 1)]
+
+first_column_vector(x) = ndims(x) == 1 ? vec(x) : vec(view(x, :, 1))
+mission_matrix(x) = ndims(x) == 2 ? x : view(x, :, :, 1)
+
+function raw_index_entries(prefix::AbstractString, total::Integer)
+    total_symbol = Symbol(prefix * "total")
+    pairs = Tuple{Int, String}[]
+    seen = Set{Int}()
+
+    for sym in names(@__MODULE__; all = true, imported = false)
+        sym == total_symbol && continue
+        name = String(sym)
+        startswith(name, prefix) || continue
+        isdefined(@__MODULE__, sym) || continue
+        value = getfield(@__MODULE__, sym)
+        value isa Integer || continue
+        index = Int(value)
+        1 <= index <= total || continue
+        index in seen && continue
+        push!(pairs, (index, name))
+        push!(seen, index)
+    end
+
+    sort!(pairs; by = first)
+    return pairs
+end
+
+function raw_scalar_entries(values, prefix::AbstractString, source::AbstractString)
+    entries = Any[]
+    data = safe_array(values)
+    for (index, key) in raw_index_entries(prefix, length(data))
+        push!(entries, (
+            key = key,
+            source = String(source),
+            index = index,
+            value = data[index],
+        ))
+    end
+    return entries
+end
+
+function raw_series_entries(values, prefix::AbstractString, source::AbstractString)
+    entries = Any[]
+    matrix = mission_matrix(values)
+    row_count = size(matrix, 1)
+    for (index, key) in raw_index_entries(prefix, row_count)
+        push!(entries, (
+            key = key,
+            source = String(source),
+            index = index,
+            values = safe_array(view(matrix, index, :)),
+        ))
+    end
+    return entries
+end
+
+function raw_payload(ac::aircraft)
+    return (
+        note = "Raw labeled TASOPT variables for advanced dashboard plots. ig*/im* are scalar values; ia*/ie* are mission-point series.",
+        scalar_values = vcat(
+            raw_scalar_entries(ac.parg, "ig", "parg"),
+            raw_scalar_entries(first_column_vector(ac.parm), "im", "parm"),
+        ),
+        mission_series = vcat(
+            raw_series_entries(ac.para, "ia", "para"),
+            raw_series_entries(ac.pare, "ie", "pare"),
+        ),
+    )
+end
 
 function json_escape(s::AbstractString)
     escaped = escape_string(String(s))
@@ -1045,6 +1114,7 @@ function dashboard_aircraft_payload(ac::aircraft, id::AbstractString; source::Un
         weights = weights_payload(ac),
         aero = aero_payload(ac, para),
         engine = engine_payload(ac, pare),
+        raw = raw_payload(ac),
     )
 end
 

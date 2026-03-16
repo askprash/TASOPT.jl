@@ -27,9 +27,10 @@ const TABS = [
     ["overview", "Overview"],
     ["mission", "Mission"],
     ["geometry", "Geometry"],
-    ["weights", "Weights & Structures"],
+    ["weights", "Weights & Structs"],
     ["aero", "Aerodynamics"],
     ["engine", "Engine"],
+    ["advanced", "Advanced"],
 ];
 const ENGINE_MAPS = [
     ["fan", "Fan"],
@@ -55,6 +56,11 @@ const state = {
     pointIndex: 9,
     missionAxisMode: "range",
     geometryCompareMode: "full",
+    advanced: {
+        missionKey: "",
+        compareText: "",
+        normalizeCompare: true,
+    },
 };
 const root = document.getElementById("app");
 let mathTypesetScheduled = false;
@@ -107,6 +113,7 @@ function setData(data) {
     const defaultPoint = (data.meta && data.meta.default_point) || 1;
     const labels = (data.meta && data.meta.mission_short) || [];
     state.pointIndex = clamp(defaultPoint - 1, 0, Math.max(labels.length - 1, 0));
+    initializeAdvancedState(state.data);
     renderDashboard();
 }
 function renderLoader(message) {
@@ -488,6 +495,47 @@ function wirePointSelect() {
         renderTab();
     });
 }
+function wireAdvancedControls() {
+    const missionSelect = document.getElementById("advanced-mission-select");
+    if (missionSelect) {
+        missionSelect.addEventListener("change", (event) => {
+            state.advanced.missionKey = event.target.value;
+            renderTab();
+        });
+    }
+    const missionSearch = document.getElementById("advanced-mission-search");
+    if (missionSearch) {
+        missionSearch.addEventListener("focus", () => {
+            missionSearch.select();
+        });
+        missionSearch.addEventListener("mouseup", (event) => {
+            event.preventDefault();
+            missionSearch.select();
+        });
+        missionSearch.addEventListener("change", (event) => {
+            const resolved = resolveAdvancedMissionKey(event.target.value);
+            if (resolved) {
+                state.advanced.missionKey = resolved;
+                renderTab();
+            }
+        });
+    }
+    const compareInput = document.getElementById("advanced-compare-input");
+    const applyButton = document.getElementById("advanced-apply");
+    if (compareInput && applyButton) {
+        applyButton.addEventListener("click", () => {
+            state.advanced.compareText = compareInput.value;
+            renderTab();
+        });
+    }
+    const normalizeToggle = document.getElementById("advanced-normalize-toggle");
+    if (normalizeToggle) {
+        normalizeToggle.addEventListener("change", (event) => {
+            state.advanced.normalizeCompare = Boolean(event.target.checked);
+            renderTab();
+        });
+    }
+}
 function installSvgTooltips() {
     const tooltip = document.getElementById("hover-tooltip");
     if (!tooltip) {
@@ -536,6 +584,11 @@ function renderTab() {
         container.innerHTML = renderEngineTab();
         plotEngineTab();
     }
+    else if (state.activeTab === "advanced") {
+        container.innerHTML = renderAdvancedTab();
+        plotAdvancedTab();
+    }
+    wireAdvancedControls();
     installSvgTooltips();
     typesetMath();
 }
@@ -653,6 +706,71 @@ function renderEngineTab() {
         <div class="nested-grid two-col full-span">
           ${mapPanels}
         </div>
+      </div>
+    </section>
+  `;
+}
+function renderAdvancedTab() {
+    const pointText = missionPointText(state.pointIndex);
+    const missionEntries = availableRawMissionEntries();
+    const missionKey = missionEntries.some((entry) => entry.key === state.advanced.missionKey)
+        ? state.advanced.missionKey
+        : (missionEntries[0] ? missionEntries[0].key : "");
+    const compareSelection = parseAdvancedCompareText(state.advanced.compareText);
+    const invalidNote = compareSelection.invalid.length
+        ? `Ignored unknown keys: ${compareSelection.invalid.join(", ")}.`
+        : "";
+    return `
+    <section class="tab-grid split-grid">
+      <div class="split-left-stack">
+        <article class="panel compact-table-panel">
+          <div class="panel-head">
+            <div class="eyebrow">Custom</div>
+            <h3>Advanced raw plots</h3>
+            <div class="panel-note">Mission plots use raw \\(ia*\\) and \\(ie*\\) series. Compare plots accept \\(ig*\\), \\(im*\\), \\(ia*\\), and \\(ie*\\) keys; mission-series keys use the currently selected point ${pointText}.</div>
+          </div>
+          <div class="panel-body advanced-controls">
+            <label class="advanced-field">
+              <span>Mission evolution of</span>
+              <input
+                id="advanced-mission-search"
+                class="advanced-search"
+                list="advanced-mission-options"
+                value="${escapeAttr(advancedMissionSearchLabel(missionKey))}"
+                placeholder="Type a mission variable"
+              />
+              <datalist id="advanced-mission-options">
+                ${missionEntries.map((entry) => `
+                  <option value="${escapeAttr(advancedMissionSearchLabel(entry.key))}"></option>
+                `).join("")}
+              </datalist>
+              <select id="advanced-mission-select" class="point-select advanced-select">
+                ${missionEntries.map((entry) => `
+                  <option value="${escapeAttr(entry.key)}" ${entry.key === missionKey ? "selected" : ""}>
+                    ${escapeHtml(`${advancedDisplayKey(entry.key)} [${entry.key}] (${entry.source})`)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+            <label class="advanced-field">
+              <span>Compare variables</span>
+              <textarea id="advanced-compare-input" class="advanced-input" rows="4">${escapeHtml(state.advanced.compareText)}</textarea>
+            </label>
+            <div class="advanced-actions">
+              <button class="load-button" id="advanced-apply" type="button">Apply Variables</button>
+              <div class="advanced-help">Examples: <code>igWMTO, igWeng, imRange, iaMach, ieTSFC</code></div>
+            </div>
+            <label class="advanced-toggle">
+              <input id="advanced-normalize-toggle" type="checkbox" ${isCompareMode() && state.advanced.normalizeCompare ? "checked" : ""} ${isCompareMode() ? "" : "disabled"} />
+              <span>Normalize compare plot by aircraft 1</span>
+            </label>
+            ${invalidNote ? `<div class="panel-note advanced-warning">${escapeHtml(invalidNote)}</div>` : ""}
+          </div>
+        </article>
+      </div>
+      <div class="split-right-grid one-col">
+        ${chartPanel("advanced-mission", "Custom mission evolution", "Plot any exported raw \\(ia*\\) or \\(ie*\\) mission series against the dashboard mission axis.")}
+        ${chartPanel("advanced-compare", "Custom parameter comparison", `${isCompareMode() && state.advanced.normalizeCompare ? "Normalized by aircraft 1 by default." : "Showing raw values."} Mission-series keys are sampled at ${pointText}.`, false, "full-span")}
       </div>
     </section>
   `;
@@ -1203,6 +1321,96 @@ function plotEngineTab() {
         });
     });
 }
+function plotAdvancedTab() {
+    const missionNode = document.getElementById("advanced-mission");
+    const compareNode = document.getElementById("advanced-compare");
+    const missionEntries = availableRawMissionEntries();
+    const missionEntry = missionEntries.find((entry) => entry.key === state.advanced.missionKey) || missionEntries[0] || null;
+    if (!missionEntry) {
+        if (missionNode) {
+            missionNode.innerHTML = `<div class="chart-warning">This dashboard JSON does not include the raw mission-series block. Re-export it from Julia to use custom plots.</div>`;
+        }
+    }
+    else {
+        const missionTraces = state.data.aircraft
+            .map((aircraft, index) => {
+            const series = rawMissionEntry(aircraft, missionEntry.key);
+            if (!series) {
+                return null;
+            }
+            return missionTrace(aircraft, series.values, aircraft.name, index, {}, `${missionEntry.key} %{y:.6g}`);
+        })
+            .filter(Boolean);
+        plotChart("advanced-mission", missionTraces, layout({
+            xaxis: missionAxisConfig(),
+            yaxis: { title: advancedDisplayKey(missionEntry.key) },
+            shapes: missionSelectionShapes(),
+            legend: { orientation: "h", y: -0.22, font: { size: 10 } },
+            margin: { l: 54, r: 20, t: 24, b: 80 },
+            hovermode: "closest",
+        }));
+    }
+    const compareSelection = parseAdvancedCompareText(state.advanced.compareText);
+    if (!compareSelection.valid.length) {
+        if (compareNode) {
+            compareNode.innerHTML = `<div class="chart-warning">Enter one or more valid raw keys such as igWMTO, igWeng, iaMach, or ieTSFC.</div>`;
+        }
+        return;
+    }
+    const normalizeCompare = isCompareMode() && state.advanced.normalizeCompare;
+    const baselineAircraft = state.data.aircraft[0];
+    const comparePositions = compareSelection.valid.map((_key, index) => index);
+    const compareTraces = state.data.aircraft.map((aircraft, index) => ({
+        x: comparePositions,
+        y: compareSelection.valid.map((key) => {
+            const value = rawCompareValue(aircraft, key).value;
+            if (!normalizeCompare) {
+                return value;
+            }
+            const baseline = rawCompareValue(baselineAircraft, key).value;
+            return Math.abs(Number(baseline)) < Number.EPSILON ? NaN : value / baseline;
+        }),
+        customdata: compareSelection.valid.map((key) => {
+            const value = rawCompareValue(aircraft, key);
+            const baseline = rawCompareValue(baselineAircraft, key).value;
+            const normalized = Math.abs(Number(baseline)) < Number.EPSILON ? NaN : value.value / baseline;
+            return [value.source, value.index, value.missionBased ? missionPointText(state.pointIndex) : "", value.value, baseline, normalized, key];
+        }),
+        name: aircraft.name,
+        type: "bar",
+        marker: {
+            color: COLORS[index],
+            opacity: 0.86,
+            line: { color: COLORS[index], width: 1 },
+        },
+        hovertemplate: normalizeCompare
+            ? "%{customdata[6]}<br>Normalized %{y:.6g}<br>Actual %{customdata[3]:.6g}<br>AC1 %{customdata[4]:.6g}<br>Source %{customdata[0]}[%{customdata[1]}]<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>"
+            : "%{customdata[6]}<br>Value %{y:.6g}<br>Source %{customdata[0]}[%{customdata[1]}]<br>%{customdata[2]}<extra>" + aircraft.name + "</extra>",
+    }));
+    plotChart("advanced-compare", compareTraces, layout({
+        barmode: isCompareMode() ? "group" : "relative",
+        xaxis: {
+            title: "",
+            tickmode: "array",
+            tickvals: comparePositions,
+            ticktext: compareSelection.valid.map((key) => advancedDisplayKey(key)),
+            tickangle: -25,
+        },
+        yaxis: { title: normalizeCompare ? "Normalized to aircraft 1" : "Value" },
+        legend: { orientation: "h", y: -0.22, font: { size: 10 } },
+        margin: { l: 54, r: 20, t: 24, b: 92 },
+        shapes: normalizeCompare ? [{
+                type: "line",
+                xref: "paper",
+                x0: 0,
+                x1: 1,
+                y0: 1,
+                y1: 1,
+                line: { color: themeVar("--plot-axis", "rgba(214, 225, 232, 0.16)"), width: 1, dash: "dot" },
+            }] : [],
+        hovermode: "closest",
+    }));
+}
 function plotCompressorMap(id, aircraft, index, mapPayload) {
     if (!mapPayload) {
         const node = document.getElementById(id);
@@ -1561,6 +1769,126 @@ function renderChartError(node, error) {
     const message = error instanceof Error ? error.message : String(error || "Unknown plot error");
     node.innerHTML = `<div class="chart-warning">Could not render this plot. ${escapeHtml(message)}</div>`;
 }
+function initializeAdvancedState(data) {
+    const missionEntries = availableRawMissionEntriesFromData(data);
+    const missionKeys = missionEntries.map((entry) => entry.key);
+    if (!missionKeys.includes(state.advanced.missionKey)) {
+        state.advanced.missionKey = missionKeys.includes("iaalt") ? "iaalt" : (missionKeys[0] || "");
+    }
+    const parsed = parseAdvancedCompareText(state.advanced.compareText, data);
+    if (!parsed.valid.length) {
+        state.advanced.compareText = defaultAdvancedCompareText(data);
+    }
+    else {
+        state.advanced.compareText = parsed.valid.join(", ");
+    }
+}
+function availableRawMissionEntries() {
+    return availableRawMissionEntriesFromData(state.data);
+}
+function availableRawMissionEntriesFromData(data) {
+    const entries = data && data.aircraft && data.aircraft[0] && data.aircraft[0].raw
+        ? (data.aircraft[0].raw.mission_series || [])
+        : [];
+    return entries.slice().sort((left, right) => String(left.source).localeCompare(String(right.source)) || Number(left.index) - Number(right.index));
+}
+function availableRawKeySet(data = state.data) {
+    const keys = new Set();
+    if (!data || !Array.isArray(data.aircraft)) {
+        return keys;
+    }
+    const aircraft = data.aircraft[0] || {};
+    ((aircraft.raw && aircraft.raw.scalar_values) || []).forEach((entry) => keys.add(String(entry.key)));
+    ((aircraft.raw && aircraft.raw.mission_series) || []).forEach((entry) => keys.add(String(entry.key)));
+    return keys;
+}
+function defaultAdvancedCompareText(data = state.data) {
+    const available = availableRawKeySet(data);
+    const preferred = ["igWMTO", "igWeng", "iaMach", "ieTSFC"];
+    const chosen = preferred.filter((key) => available.has(key));
+    if (chosen.length) {
+        return chosen.join(", ");
+    }
+    return Array.from(available).slice(0, 4).join(", ");
+}
+function parseAdvancedCompareText(text, data = state.data) {
+    const available = availableRawKeySet(data);
+    const tokens = String(text || "")
+        .split(/[\s,]+/)
+        .map((token) => token.trim())
+        .filter(Boolean);
+    const valid = [];
+    const invalid = [];
+    tokens.forEach((token) => {
+        if (valid.includes(token) || invalid.includes(token)) {
+            return;
+        }
+        if (!available.size || available.has(token)) {
+            valid.push(token);
+        }
+        else {
+            invalid.push(token);
+        }
+    });
+    return { valid, invalid };
+}
+function rawMissionEntry(aircraft, key) {
+    return ((aircraft.raw && aircraft.raw.mission_series) || []).find((entry) => String(entry.key) === String(key)) || null;
+}
+function rawScalarEntry(aircraft, key) {
+    return ((aircraft.raw && aircraft.raw.scalar_values) || []).find((entry) => String(entry.key) === String(key)) || null;
+}
+function rawCompareValue(aircraft, key) {
+    const missionEntry = rawMissionEntry(aircraft, key);
+    if (missionEntry) {
+        return {
+            value: Number((missionEntry.values || [])[state.pointIndex]),
+            source: missionEntry.source,
+            index: missionEntry.index,
+            missionBased: true,
+        };
+    }
+    const scalarEntry = rawScalarEntry(aircraft, key);
+    if (scalarEntry) {
+        return {
+            value: Number(scalarEntry.value),
+            source: scalarEntry.source,
+            index: scalarEntry.index,
+            missionBased: false,
+        };
+    }
+    return {
+        value: NaN,
+        source: "n/a",
+        index: -1,
+        missionBased: false,
+    };
+}
+function advancedDisplayKey(key) {
+    const text = String(key || "");
+    return /^[A-Za-z]{2}/.test(text) ? text.slice(2) : text;
+}
+function advancedMissionSearchLabel(key) {
+    return `${advancedDisplayKey(key)} [${key}]`;
+}
+function resolveAdvancedMissionKey(text) {
+    const value = String(text || "").trim();
+    if (!value) {
+        return null;
+    }
+    const bracketMatch = value.match(/\[([^\]]+)\]\s*$/);
+    if (bracketMatch) {
+        return bracketMatch[1];
+    }
+    const lowered = value.toLowerCase();
+    const entries = availableRawMissionEntries();
+    const exact = entries.find((entry) => String(entry.key).toLowerCase() === lowered);
+    if (exact) {
+        return exact.key;
+    }
+    const displayMatch = entries.find((entry) => advancedDisplayKey(entry.key).toLowerCase() === lowered);
+    return displayMatch ? displayMatch.key : null;
+}
 function overviewSnapshotRows() {
     if (state.data.comparison) {
         return state.data.comparison.summary;
@@ -1755,6 +2083,13 @@ function trimHiddenMissionPoint(data) {
                     }
                 });
             }
+        }
+        if (aircraft.raw && Array.isArray(aircraft.raw.mission_series)) {
+            aircraft.raw.mission_series.forEach((entry) => {
+                if (Array.isArray(entry.values)) {
+                    entry.values = trimLast(entry.values);
+                }
+            });
         }
     });
     return data;

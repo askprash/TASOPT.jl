@@ -726,6 +726,99 @@ select {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+.advanced-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.advanced-field {
+  display: grid;
+  gap: 6px;
+}
+
+.advanced-field span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.advanced-select {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.advanced-search {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 7px 12px;
+}
+
+.advanced-search:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--warm) 48%, transparent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.advanced-input {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  line-height: 1.45;
+}
+
+.advanced-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--warm) 48%, transparent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.advanced-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.advanced-help {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.advanced-help code {
+  font-family: var(--font-mono);
+}
+
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.84rem;
+}
+
+.advanced-toggle input {
+  accent-color: var(--warm);
+}
+
+.advanced-toggle span {
+  color: var(--muted);
+}
+
+.advanced-warning {
+  color: var(--bad);
+}
+
 .tab-grid {
   display: grid;
   gap: 8px;
