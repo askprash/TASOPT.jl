@@ -2867,4 +2867,59 @@ isGradient = false
         isempty(failures) || @info "Engine sweep regression diff ($(length(failures)) failures):\n$(join(failures, "\n"))"
 
     end  # engine_sweep_regression
+
+    # ======================================================================
+    # engine_sweep_benchmark — tasopt-j9l.7
+    # Pin a performance baseline (allocation count + reference runtime) for
+    # run_engine_sweep and flag regressions.
+    #
+    # Allocation count:  deterministic post-JIT → hard @test (5% tolerance).
+    # Elapsed time:      hardware-dependent     → informational log (10% tol).
+    #
+    # To update the baseline after an intentional performance improvement:
+    #   julia --project=. test/generate_engine_benchmark_baseline.jl
+    # ======================================================================
+    @testset "engine_sweep_benchmark" begin
+        import TOML
+
+        baseline_path = joinpath(@__DIR__, "fixtures", "engine_benchmark_baseline.toml")
+        @test isfile(baseline_path)
+        baseline = TOML.parsefile(baseline_path)
+
+        baseline_alloc   = Int(baseline["benchmark"]["alloc_count"])
+        baseline_elapsed = Float64(baseline["benchmark"]["elapsed_s"])
+
+        # Setup: freshly sized aircraft (same state as regression test above).
+        ac_bench = TASOPT.load_default_model()
+        size_aircraft!(ac_bench; printiter=false)
+
+        # Warmup: one call to trigger JIT before measuring.
+        _ = TASOPT.engine.run_engine_sweep(ac_bench)
+
+        # --- Allocation check (deterministic) --------------------------------
+        # @allocations counts heap allocations made by the call post-JIT.
+        # Any new heap allocation introduced by a code change will show up here.
+        alloc = @allocations TASOPT.engine.run_engine_sweep(ac_bench)
+        alloc_limit = round(Int, baseline_alloc * 1.05)
+        alloc_ok = alloc <= alloc_limit
+        @test alloc_ok
+        if !alloc_ok
+            @info "Allocation regression: got $alloc, baseline $baseline_alloc, " *
+                  "limit $alloc_limit ($(round((alloc / baseline_alloc - 1) * 100; digits=1))% over)"
+        end
+
+        # --- Runtime check (informational) -----------------------------------
+        # Single post-warmup elapsed measurement; timing varies by hardware and
+        # system load so this is logged rather than asserted.
+        elapsed = @elapsed TASOPT.engine.run_engine_sweep(ac_bench)
+        time_limit = baseline_elapsed * 1.10
+        if elapsed > time_limit
+            @info "Runtime regression (informational, hardware-dependent): " *
+                  "got $(round(elapsed * 1e3; digits=2))ms, " *
+                  "baseline $(round(baseline_elapsed * 1e3; digits=2))ms, " *
+                  "limit $(round(time_limit * 1e3; digits=2))ms " *
+                  "($(round((elapsed / baseline_elapsed - 1) * 100; digits=1))% over)"
+        end
+
+    end  # engine_sweep_benchmark
 end

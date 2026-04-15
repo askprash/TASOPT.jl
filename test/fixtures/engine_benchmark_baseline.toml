@@ -1,0 +1,21 @@
+# Engine sweep performance baseline — tasopt-j9l.7
+#
+# To regenerate after intentional performance changes, run:
+#   julia --project=. test/generate_engine_benchmark_baseline.jl
+#
+# Allocation check tolerance: 5%  — hard @test failure on regression.
+# Runtime check tolerance:   10%  — informational log only (hardware-dependent).
+
+[meta]
+julia_version = "1.11.9"
+date          = "2026-04-15"
+description   = "Baseline captured post-warmup on ralph-bd-afk Docker sandbox"
+
+[benchmark]
+# Heap allocations made by run_engine_sweep(ac) after JIT warmup.
+# Measured with @allocations (deterministic — not hardware-dependent).
+alloc_count = 36889
+
+# Median wall-clock time (seconds) over 5 post-warmup runs.
+# Hardware-dependent; used as informational reference only.
+elapsed_s = 0.001377
