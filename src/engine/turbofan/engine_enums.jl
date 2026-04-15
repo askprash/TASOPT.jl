@@ -1,8 +1,135 @@
 """
-Enums for turbofan engine calculation options.
+Enums for turbofan engine calculation options and station identifiers.
 """
 
 using EnumX
+
+# ---------------------------------------------------------------------------
+# EngineStation — compile-time identifiers for every named turbofan station
+# ---------------------------------------------------------------------------
+
+"""
+    EngineStation
+
+Enumeration of every named flow station in the TASOPT turbofan.  Each member
+is a compile-time constant that can be used as a typed sentinel to index
+engine-state containers, eliminating bare integer indices.
+
+TASOPT station numbering convention (the original notation is preserved in
+`station_number`):
+
+| Member            | TASOPT # | Description                                  |
+|:------------------|:--------:|:---------------------------------------------|
+| `Freestream`      | 0        | Far-field ambient                            |
+| `FanFaceOuter`    | 18       | Fan face outside casing boundary layers      |
+| `FanFaceLPC`      | 19       | Fan face over LPC (low-pressure compressor)  |
+| `PreCoolerOut`    | 19c      | Pre-cooler outlet / LPC inlet                |
+| `FanFaceFan`      | 2        | Fan face over fan stream                     |
+| `FanExit`         | 21       | Fan exit / pre-cooler inlet                  |
+| `LPCExit`         | 25       | LPC exit / inter-cooler inlet                |
+| `InterCoolerOut`  | 25c      | Inter-cooler outlet / HPC inlet              |
+| `HPCExit`         | 3        | HPC (high-pressure compressor) exit          |
+| `CombustorExit`   | 4        | Combustor exit before cooling air addition   |
+| `CoolMixInlet`    | 4a       | Start-of-mixing / cooling-flow outlet        |
+| `TurbineInlet`    | 41       | Turbine inlet after cooling air addition     |
+| `HPTExit`         | 45       | HPT (high-pressure turbine) exit / LPT inlet |
+| `LPTExit`         | 49       | LPT (low-pressure turbine) exit              |
+| `RegenCoolerOut`  | 49c      | Regenerative cooler outlet                   |
+| `CoreNozzle`      | 5        | Core nozzle throat                           |
+| `CoreNozzleExit`  | 6        | Core flow downstream of nozzle               |
+| `FanNozzle`       | 7        | Fan nozzle throat                            |
+| `FanNozzleExit`   | 8        | Fan duct exit downstream of fan nozzle       |
+| `OfftakeDisch`    | 9        | Offtake air discharge point                  |
+"""
+@enumx EngineStation begin
+    Freestream       # station 0:   far-field ambient
+    FanFaceOuter     # station 18:  fan face outside casing boundary layers
+    FanFaceLPC       # station 19:  fan face over LPC portion
+    PreCoolerOut     # station 19c: pre-cooler outlet, LPC inlet
+    FanFaceFan       # station 2:   fan face over fan stream
+    FanExit          # station 21:  fan exit (off-design: precooler inlet)
+    LPCExit          # station 25:  LPC exit (off-design: intercooler inlet)
+    InterCoolerOut   # station 25c: inter-cooler outlet, HPC inlet
+    HPCExit          # station 3:   HPC discharge, combustor inlet
+    CombustorExit    # station 4:   combustor exit before cooling air addition
+    CoolMixInlet     # station 4a:  start-of-mixing / cooling-flow outlet
+    TurbineInlet     # station 41:  turbine inlet after cooling air addition
+    HPTExit          # station 45:  HPT exit, LPT inlet
+    LPTExit          # station 49:  LPT exit (off-design: regen cooler inlet)
+    RegenCoolerOut   # station 49c: regenerative cooler outlet
+    CoreNozzle       # station 5:   core nozzle throat
+    CoreNozzleExit   # station 6:   core flow downstream of nozzle
+    FanNozzle        # station 7:   fan nozzle throat
+    FanNozzleExit    # station 8:   fan duct exit downstream of fan nozzle
+    OfftakeDisch     # station 9:   offtake air discharge point
+end
+
+"""
+    station_number(s::EngineStation.T) -> String
+
+Return the TASOPT station number string for station `s`.  Fractional and
+suffixed TASOPT numbers (e.g. `"19c"`, `"4a"`, `"49c"`) are returned as
+strings because they are not valid integers.
+
+# Examples
+```julia
+station_number(EngineStation.Freestream)   # "0"
+station_number(EngineStation.HPCExit)      # "3"
+station_number(EngineStation.PreCoolerOut) # "19c"
+```
+"""
+function station_number(s::EngineStation.T)::String
+    s == EngineStation.Freestream      && return "0"
+    s == EngineStation.FanFaceOuter    && return "18"
+    s == EngineStation.FanFaceLPC      && return "19"
+    s == EngineStation.PreCoolerOut    && return "19c"
+    s == EngineStation.FanFaceFan      && return "2"
+    s == EngineStation.FanExit         && return "21"
+    s == EngineStation.LPCExit         && return "25"
+    s == EngineStation.InterCoolerOut  && return "25c"
+    s == EngineStation.HPCExit         && return "3"
+    s == EngineStation.CombustorExit   && return "4"
+    s == EngineStation.CoolMixInlet    && return "4a"
+    s == EngineStation.TurbineInlet    && return "41"
+    s == EngineStation.HPTExit         && return "45"
+    s == EngineStation.LPTExit         && return "49"
+    s == EngineStation.RegenCoolerOut  && return "49c"
+    s == EngineStation.CoreNozzle      && return "5"
+    s == EngineStation.CoreNozzleExit  && return "6"
+    s == EngineStation.FanNozzle       && return "7"
+    s == EngineStation.FanNozzleExit   && return "8"
+    s == EngineStation.OfftakeDisch    && return "9"
+    error("Unknown EngineStation variant: $s")
+end
+
+"""
+    station_description(s::EngineStation.T) -> String
+
+Return a short human-readable description of station `s`.
+"""
+function station_description(s::EngineStation.T)::String
+    s == EngineStation.Freestream      && return "freestream (ambient)"
+    s == EngineStation.FanFaceOuter    && return "fan face outside casing boundary layers"
+    s == EngineStation.FanFaceLPC      && return "fan face over LPC portion"
+    s == EngineStation.PreCoolerOut    && return "pre-cooler outlet / LPC inlet"
+    s == EngineStation.FanFaceFan      && return "fan face over fan stream"
+    s == EngineStation.FanExit         && return "fan exit / pre-cooler inlet"
+    s == EngineStation.LPCExit         && return "LPC exit / inter-cooler inlet"
+    s == EngineStation.InterCoolerOut  && return "inter-cooler outlet / HPC inlet"
+    s == EngineStation.HPCExit         && return "HPC discharge / combustor inlet"
+    s == EngineStation.CombustorExit   && return "combustor exit before cooling"
+    s == EngineStation.CoolMixInlet    && return "start-of-mixing / cooling-flow outlet"
+    s == EngineStation.TurbineInlet    && return "turbine inlet after cooling air"
+    s == EngineStation.HPTExit         && return "HPT exit / LPT inlet"
+    s == EngineStation.LPTExit         && return "LPT exit / regen cooler inlet"
+    s == EngineStation.RegenCoolerOut  && return "regenerative cooler outlet"
+    s == EngineStation.CoreNozzle      && return "core nozzle throat"
+    s == EngineStation.CoreNozzleExit  && return "core nozzle exit / downstream"
+    s == EngineStation.FanNozzle       && return "fan nozzle throat"
+    s == EngineStation.FanNozzleExit   && return "fan nozzle exit / downstream"
+    s == EngineStation.OfftakeDisch    && return "offtake air discharge"
+    error("Unknown EngineStation variant: $s")
+end
 
 """
     CalcMode

@@ -12,7 +12,7 @@ using Random
 
 export Engine
 
-export CalcMode, CoolingOpt
+export CalcMode, CoolingOpt, EngineStation, station_number, station_description
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!

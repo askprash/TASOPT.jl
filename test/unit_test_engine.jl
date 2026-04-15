@@ -1203,6 +1203,72 @@ isGradient = false
         @test depol_dmb ≈ outps_Ne[6] rtol = 1e-4
     end
 
+    @testset "EngineStation enumeration" begin
+        ES = TASOPT.engine.EngineStation
+        snum = TASOPT.engine.station_number
+        sdesc = TASOPT.engine.station_description
+
+        # All 20 stations must be distinct and constructable
+        all_stations = instances(ES.T)
+        @test length(all_stations) == 20
+
+        # station_number round-trip: every member maps to a non-empty string
+        for s in all_stations
+            num = snum(s)
+            @test num isa String
+            @test !isempty(num)
+        end
+
+        # Spot-check TASOPT numbering for all stations
+        @test snum(ES.Freestream)     == "0"
+        @test snum(ES.FanFaceOuter)   == "18"
+        @test snum(ES.FanFaceLPC)     == "19"
+        @test snum(ES.PreCoolerOut)   == "19c"
+        @test snum(ES.FanFaceFan)     == "2"
+        @test snum(ES.FanExit)        == "21"
+        @test snum(ES.LPCExit)        == "25"
+        @test snum(ES.InterCoolerOut) == "25c"
+        @test snum(ES.HPCExit)        == "3"
+        @test snum(ES.CombustorExit)  == "4"
+        @test snum(ES.CoolMixInlet)   == "4a"
+        @test snum(ES.TurbineInlet)   == "41"
+        @test snum(ES.HPTExit)        == "45"
+        @test snum(ES.LPTExit)        == "49"
+        @test snum(ES.RegenCoolerOut) == "49c"
+        @test snum(ES.CoreNozzle)     == "5"
+        @test snum(ES.CoreNozzleExit) == "6"
+        @test snum(ES.FanNozzle)      == "7"
+        @test snum(ES.FanNozzleExit)  == "8"
+        @test snum(ES.OfftakeDisch)   == "9"
+
+        # station_number values are all distinct
+        nums = [snum(s) for s in all_stations]
+        @test length(unique(nums)) == length(nums)
+
+        # station_description returns a non-empty string for every member
+        for s in all_stations
+            desc = sdesc(s)
+            @test desc isa String
+            @test !isempty(desc)
+        end
+
+        # Enum members are usable as Dict keys (field-access sentinel use-case)
+        d = Dict(s => snum(s) for s in all_stations)
+        @test d[ES.HPCExit]      == "3"
+        @test d[ES.TurbineInlet] == "41"
+
+        # Coverage: every station cited in tfsize! and tfoper! docs is present.
+        # Documented stations: 0, 18, 19, 19c, 2, 21, 25, 25c, 3, 4, 4a,
+        #                      41, 45, 49, 49c, 5, 6, 7, 8, 9
+        documented = Set([
+            "0", "18", "19", "19c", "2", "21", "25", "25c",
+            "3", "4", "4a", "41", "45", "49", "49c",
+            "5", "6", "7", "8", "9"
+        ])
+        enum_nums = Set(snum(s) for s in all_stations)
+        @test documented == enum_nums
+    end
+
     @testset "Simple engine" begin
 
         ac = TASOPT.load_default_model()
