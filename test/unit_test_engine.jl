@@ -2417,6 +2417,89 @@ isGradient = false
     end  # run_engine_design_point
 
     # ======================================================================
+    # engine_state_to_pare! / design_state_to_pare! — round-trip fidelity
+    # ======================================================================
+    @testset "engine_state_to_pare! round-trip" begin
+        # After sizing the pare slice at ipcruise1 is converged; verify that
+        # reading into EngineState and writing back produces bit-for-bit
+        # identical values for every field that pare_to_engine_state! covers.
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+
+        imission = 1
+        ip       = ipcruise1
+        pare_orig = view(ac.pare, :, ip, imission)
+
+        # Populate EngineState from original pare
+        eng = TASOPT.engine.EngineState{Float64}()
+        TASOPT.engine.pare_to_engine_state!(eng, pare_orig)
+
+        # Write EngineState back into a fresh copy of pare
+        pare_copy = copy(pare_orig)
+        TASOPT.engine.engine_state_to_pare!(eng, pare_copy)
+
+        # All fields written by pare_to_engine_state! must round-trip exactly.
+        for idx in [ieM0, ieT0, iep0, iea0,
+                    ieTt0, ieht0, iept0, iecpt0, ieRt0, ieu0,
+                    ieTt18, ieht18, iept18, iecpt18, ieRt18,
+                    ieTt19, ieht19, iept19, iecpt19, ieRt19,
+                    ieTt2, ieht2, iept2, iecpt2, ieRt2,
+                    iep2, ieT2, ieR2, iecp2, ieu2, ieA2, iemcore,
+                    ieTt21, ieht21, iept21, iecpt21, ieRt21,
+                    ieTt25, ieht25, iept25, iecpt25, ieRt25,
+                    iep25, ieT25, ieR25, iecp25, ieu25, ieA25,
+                    ieTt3, ieht3, iept3, iecpt3, ieRt3,
+                    ieht4, iept4, iecpt4, ieRt4,
+                    ieTt41, ieht41, iept41, iecpt41, ieRt41,
+                    ieTt45, ieht45, iept45, iecpt45, ieRt45,
+                    ieTt49, ieht49, iept49, iecpt49, ieRt49,
+                    ieTt5, ieht5, iept5, iecpt5, ieRt5,
+                    iep5, ieT5, ieR5, iecp5, ieu5, ieA5,
+                    iep6, ieT6, ieR6, iecp6, ieu6, ieA6,
+                    ieTt7, ieht7, iept7, iecpt7, ieRt7,
+                    iep7, ieT7, ieR7, iecp7, ieu7, ieA7,
+                    iep8, ieT8, ieR8, iecp8, ieu8, ieA8,
+                    ieu9, ieA9]
+            @test pare_copy[idx] == pare_orig[idx]
+        end
+    end  # engine_state_to_pare! round-trip
+
+    @testset "design_state_to_pare! round-trip" begin
+        # After sizing, DesignState can be read from pare and written back;
+        # every design scalar must match exactly.
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+
+        imission = 1
+        ip       = ipcruise1
+        pare_orig = view(ac.pare, :, ip, imission)
+
+        # Build a DesignState from the converged pare slice
+        ds = TASOPT.engine.DesignState{Float64}()
+        ds.A2    = pare_orig[ieA2];   ds.A25   = pare_orig[ieA25]
+        ds.A5    = pare_orig[ieA5];   ds.A7    = pare_orig[ieA7]
+        ds.NbfD  = pare_orig[ieNbfD]; ds.NblcD = pare_orig[ieNblcD]
+        ds.NbhcD = pare_orig[ieNbhcD]; ds.NbhtD = pare_orig[ieNbhtD]
+        ds.NbltD = pare_orig[ieNbltD]
+        ds.mbfD  = pare_orig[iembfD]; ds.mblcD = pare_orig[iemblcD]
+        ds.mbhcD = pare_orig[iembhcD]; ds.mbhtD = pare_orig[iembhtD]
+        ds.mbltD = pare_orig[iembltD]
+        ds.pifD  = pare_orig[iepifD]; ds.pilcD = pare_orig[iepilcD]
+        ds.pihcD = pare_orig[iepihcD]; ds.pihtD = pare_orig[iepihtD]
+        ds.piltD = pare_orig[iepiltD]
+
+        pare_copy = copy(collect(pare_orig))
+        TASOPT.engine.design_state_to_pare!(ds, pare_copy)
+
+        for idx in [ieA2, ieA25, ieA5, ieA7,
+                    ieNbfD, ieNblcD, ieNbhcD, ieNbhtD, ieNbltD,
+                    iembfD, iemblcD, iembhcD, iembhtD, iembltD,
+                    iepifD, iepilcD, iepihcD, iepihtD, iepiltD]
+            @test pare_copy[idx] == collect(pare_orig)[idx]
+        end
+    end  # design_state_to_pare! round-trip
+
+    # ======================================================================
     # run_engine_sweep / SweepResult / write_sweep_csv
     # ======================================================================
     @testset "run_engine_sweep" begin

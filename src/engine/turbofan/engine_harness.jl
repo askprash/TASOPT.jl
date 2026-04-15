@@ -196,6 +196,183 @@ function pare_to_engine_state!(eng::EngineState, pare)
 end
 
 # ---------------------------------------------------------------------------
+# engine_state_to_pare! — inverse of pare_to_engine_state!
+# ---------------------------------------------------------------------------
+
+"""
+    engine_state_to_pare!(eng, pare) -> eng
+
+Write the thermodynamic station state of an `EngineState` back into a single
+column of the `pare` array.  This is the inverse of [`pare_to_engine_state!`](@ref).
+
+Only fields that the legacy `pare` array actually stores are written (same
+coverage as `pare_to_engine_state!`):
+
+- **Ambient scalars**: `M0`, `T0`, `p0`, `a0`.
+- **Total state** (Tt, ht, pt, cpt, Rt): stations 0, 18, 19, 2, 21, 25, 3,
+  4 (ht/pt/cpt/Rt only — Tt4 is an input, not written), 41, 45, 49, 5, 7.
+- **Static state** (ps, Ts, Rs, cps, u): stations 2, 25, 5, 6, 7, 8.
+- **Area** (A): stations 2, 25, 5, 6, 7, 8, 9.
+- **Mass flow** (mdot): station 2 (`mcore`).
+- **Station 9**: Tt, pt, u, A.
+
+Fields not in `pare` (stations 19c, 25c, 4a, 49c; `hs`, `ss`) are not written.
+"""
+function engine_state_to_pare!(eng::EngineState, pare)
+    # Ambient scalars
+    pare[ieM0] = eng.M0
+    pare[ieT0] = eng.T0
+    pare[iep0] = eng.p0
+    pare[iea0] = eng.a0
+
+    # Station 0 — freestream
+    _write_total!(pare, ieTt0, ieht0, iept0, iecpt0, ieRt0, eng.st0)
+    pare[ieu0] = eng.st0.u
+
+    # Station 18 — FanFaceOuter
+    _write_total!(pare, ieTt18, ieht18, iept18, iecpt18, ieRt18, eng.st18)
+
+    # Station 19 — FanFaceLPC
+    _write_total!(pare, ieTt19, ieht19, iept19, iecpt19, ieRt19, eng.st19)
+
+    # Station 2 — FanFaceFan  (total + static + area + mdot)
+    _write_total!(pare, ieTt2, ieht2, iept2, iecpt2, ieRt2, eng.st2)
+    _write_static!(pare, iep2, ieT2, ieR2, iecp2, ieu2, eng.st2)
+    pare[ieA2]     = eng.st2.A
+    pare[iemcore]  = eng.st2.mdot
+
+    # Station 21 — FanExit
+    _write_total!(pare, ieTt21, ieht21, iept21, iecpt21, ieRt21, eng.st21)
+
+    # Station 25 — LPCExit  (total + static + area)
+    _write_total!(pare, ieTt25, ieht25, iept25, iecpt25, ieRt25, eng.st25)
+    _write_static!(pare, iep25, ieT25, ieR25, iecp25, ieu25, eng.st25)
+    pare[ieA25] = eng.st25.A
+
+    # Station 3 — HPCExit
+    _write_total!(pare, ieTt3, ieht3, iept3, iecpt3, ieRt3, eng.st3)
+
+    # Station 4 — CombustorExit
+    # NOTE: Tt4 is an INPUT to tfsize! (not written back); only derived
+    # quantities ht4/pt4/cpt4/Rt4 are outputs.
+    pare[ieht4]  = eng.st4.ht
+    pare[iept4]  = eng.st4.pt
+    pare[iecpt4] = eng.st4.cpt
+    pare[ieRt4]  = eng.st4.Rt
+
+    # Station 41 — TurbineInlet
+    _write_total!(pare, ieTt41, ieht41, iept41, iecpt41, ieRt41, eng.st41)
+
+    # Station 45 — HPTExit
+    _write_total!(pare, ieTt45, ieht45, iept45, iecpt45, ieRt45, eng.st45)
+
+    # Station 49 — LPTExit
+    _write_total!(pare, ieTt49, ieht49, iept49, iecpt49, ieRt49, eng.st49)
+
+    # Station 5 — CoreNozzle  (total + static + area)
+    _write_total!(pare, ieTt5, ieht5, iept5, iecpt5, ieRt5, eng.st5)
+    _write_static!(pare, iep5, ieT5, ieR5, iecp5, ieu5, eng.st5)
+    pare[ieA5] = eng.st5.A
+
+    # Station 6 — CoreNozzleExit  (static + area; no total in pare)
+    _write_static!(pare, iep6, ieT6, ieR6, iecp6, ieu6, eng.st6)
+    pare[ieA6] = eng.st6.A
+
+    # Station 7 — FanNozzle  (total + static + area)
+    _write_total!(pare, ieTt7, ieht7, iept7, iecpt7, ieRt7, eng.st7)
+    _write_static!(pare, iep7, ieT7, ieR7, iecp7, ieu7, eng.st7)
+    pare[ieA7] = eng.st7.A
+
+    # Station 8 — FanNozzleExit  (static + area; no total in pare)
+    _write_static!(pare, iep8, ieT8, ieR8, iecp8, ieu8, eng.st8)
+    pare[ieA8] = eng.st8.A
+
+    # Station 9 — OfftakeDisch
+    pare[ieTt9] = eng.st9.Tt
+    pare[iept9] = eng.st9.pt
+    pare[ieu9]  = eng.st9.u
+    pare[ieA9]  = eng.st9.A
+
+    return eng
+end
+
+"""
+    _write_total!(pare, iTt, iht, ipt, icpt, iRt, fs)
+
+Write the five total-state scalars from `fs` into a `pare` slice.
+Inverse of `_fill_total!`.
+"""
+@inline function _write_total!(pare, iTt::Int, iht::Int, ipt::Int, icpt::Int, iRt::Int,
+                                fs::FlowStation)
+    pare[iTt]  = fs.Tt
+    pare[iht]  = fs.ht
+    pare[ipt]  = fs.pt
+    pare[icpt] = fs.cpt
+    pare[iRt]  = fs.Rt
+end
+
+"""
+    _write_static!(pare, ip, iT, iR, icp, iu, fs)
+
+Write the five static-state scalars (p, T, R, cp, u) from `fs` into a `pare`
+slice.  Inverse of `_fill_static!`.
+"""
+@inline function _write_static!(pare, ip::Int, iT::Int, iR::Int, icp::Int, iu::Int,
+                                 fs::FlowStation)
+    pare[ip]  = fs.ps
+    pare[iT]  = fs.Ts
+    pare[iR]  = fs.Rs
+    pare[icp] = fs.cps
+    pare[iu]  = fs.u
+end
+
+# ---------------------------------------------------------------------------
+# design_state_to_pare! — write DesignState scalars back to pare
+# ---------------------------------------------------------------------------
+
+"""
+    design_state_to_pare!(ds, pare) -> ds
+
+Write the frozen design-point scalars from a `DesignState` back into the
+`pare` slice.  These are the quantities set once during `tfsize!` (design
+pressure ratios, corrected flows, corrected spool speeds, flow areas) and
+subsequently read by `tfoper!` for every off-design point.
+
+The cooling arrays (`epsrow`, `Tmrow`, `fc`) are managed by the conditional
+cooling section in `tfcalc!` and are **not** written here.
+"""
+function design_state_to_pare!(ds::DesignState, pare)
+    # Flow areas
+    pare[ieA2]  = ds.A2
+    pare[ieA25] = ds.A25
+    pare[ieA5]  = ds.A5
+    pare[ieA7]  = ds.A7
+
+    # Design-point corrected spool speeds
+    pare[ieNbfD]  = ds.NbfD
+    pare[ieNblcD] = ds.NblcD
+    pare[ieNbhcD] = ds.NbhcD
+    pare[ieNbhtD] = ds.NbhtD
+    pare[ieNbltD] = ds.NbltD
+
+    # Design-point corrected mass flows
+    pare[iembfD]  = ds.mbfD
+    pare[iemblcD] = ds.mblcD
+    pare[iembhcD] = ds.mbhcD
+    pare[iembhtD] = ds.mbhtD
+    pare[iembltD] = ds.mbltD
+
+    # Design-point pressure ratios
+    pare[iepifD]  = ds.pifD
+    pare[iepilcD] = ds.pilcD
+    pare[iepihcD] = ds.pihcD
+    pare[iepihtD] = ds.pihtD
+    pare[iepiltD] = ds.piltD
+
+    return ds
+end
+
+# ---------------------------------------------------------------------------
 # run_engine_design_point
 # ---------------------------------------------------------------------------
 

@@ -158,6 +158,16 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         if opt_calc_call == CalcMode.Sizing
                 #----- engine sizing case
 
+                # ── ENTRY ────────────────────────────────────────────────────
+                # Build a typed EngineState from the current pare slice.
+                # After tfsize! returns we populate every station and the
+                # DesignState from local variables, then project the design
+                # scalars back to pare via design_state_to_pare!.
+                # The shared thermodynamic-station writes below the if/else
+                # complete the pare projection for the current iteration.
+                eng_design = EngineState{Float64}()
+                pare_to_engine_state!(eng_design, pare)
+
                 Fe = pare[ieFe]
 
                 if (Lprint)
@@ -277,29 +287,102 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 pihtD = Trh^gexh
                 piltD = Trl^gexl
 
-                #----- store design-point parameters
-                pare[ieA2] = A2
-                pare[ieA25] = A25
-                pare[ieA5] = A5
-                pare[ieA7] = A7
+                # ── EXIT: populate EngineState with sizing results ───────────
+                # Station total states
+                eng_design.st0.Tt  = Tt0;  eng_design.st0.ht  = ht0
+                eng_design.st0.pt  = pt0;  eng_design.st0.cpt = cpt0;  eng_design.st0.Rt = Rt0
+                eng_design.st0.u   = u0
 
-                pare[ieNbfD] = NbfD
-                pare[ieNblcD] = NblcD
-                pare[ieNbhcD] = NbhcD
-                pare[ieNbhtD] = NbhtD
-                pare[ieNbltD] = NbltD
+                eng_design.st18.Tt  = Tt18; eng_design.st18.ht  = ht18
+                eng_design.st18.pt  = pt18; eng_design.st18.cpt = cpt18; eng_design.st18.Rt = Rt18
 
-                pare[iembfD] = mbfD
-                pare[iemblcD] = mblcD
-                pare[iembhcD] = mbhcD
-                pare[iembhtD] = mbhtD
-                pare[iembltD] = mbltD
+                eng_design.st19.Tt  = Tt19; eng_design.st19.ht  = ht19
+                eng_design.st19.pt  = pt19; eng_design.st19.cpt = cpt19; eng_design.st19.Rt = Rt19
 
-                pare[iepifD] = pifD
-                pare[iepilcD] = pilcD
-                pare[iepihcD] = pihcD
-                pare[iepihtD] = pihtD
-                pare[iepiltD] = piltD
+                # st19c (PreCoolerOut) populated by tfsize! but not in pare — update typed state
+                eng_design.st19c.Tt  = Tt19c; eng_design.st19c.ht  = ht19c
+                eng_design.st19c.pt  = pt19c; eng_design.st19c.cpt = cpt19c; eng_design.st19c.Rt = Rt19c
+
+                eng_design.st2.Tt  = Tt2;  eng_design.st2.ht  = ht2
+                eng_design.st2.pt  = pt2;  eng_design.st2.cpt = cpt2;  eng_design.st2.Rt = Rt2
+                eng_design.st2.Ts  = T2;   eng_design.st2.ps  = p2
+                eng_design.st2.Rs  = R2;   eng_design.st2.cps = cp2;   eng_design.st2.u = u2
+                eng_design.st2.A   = A2;   eng_design.st2.mdot = mcore
+
+                eng_design.st21.Tt  = Tt21; eng_design.st21.ht  = ht21
+                eng_design.st21.pt  = pt21; eng_design.st21.cpt = cpt21; eng_design.st21.Rt = Rt21
+
+                eng_design.st25.Tt  = Tt25; eng_design.st25.ht  = ht25
+                eng_design.st25.pt  = pt25; eng_design.st25.cpt = cpt25; eng_design.st25.Rt = Rt25
+                eng_design.st25.Ts  = T25;  eng_design.st25.ps  = p25
+                eng_design.st25.Rs  = R25;  eng_design.st25.cps = cp25;  eng_design.st25.u = u25
+                eng_design.st25.A   = A25
+
+                # st25c (InterCoolerOut) populated by tfsize! but not in pare — update typed state
+                eng_design.st25c.Tt  = Tt25c; eng_design.st25c.ht  = ht25c
+                eng_design.st25c.pt  = pt25c; eng_design.st25c.cpt = cpt25c; eng_design.st25c.Rt = Rt25c
+
+                eng_design.st3.Tt  = Tt3;  eng_design.st3.ht  = ht3
+                eng_design.st3.pt  = pt3;  eng_design.st3.cpt = cpt3;  eng_design.st3.Rt = Rt3
+
+                # st4: Tt4 is an INPUT (unchanged); ht4/pt4/cpt4/Rt4 are outputs
+                eng_design.st4.ht  = ht4;  eng_design.st4.pt  = pt4
+                eng_design.st4.cpt = cpt4; eng_design.st4.Rt  = Rt4
+
+                eng_design.st41.Tt  = Tt41; eng_design.st41.ht  = ht41
+                eng_design.st41.pt  = pt41; eng_design.st41.cpt = cpt41; eng_design.st41.Rt = Rt41
+
+                eng_design.st45.Tt  = Tt45; eng_design.st45.ht  = ht45
+                eng_design.st45.pt  = pt45; eng_design.st45.cpt = cpt45; eng_design.st45.Rt = Rt45
+
+                eng_design.st49.Tt  = Tt49; eng_design.st49.ht  = ht49
+                eng_design.st49.pt  = pt49; eng_design.st49.cpt = cpt49; eng_design.st49.Rt = Rt49
+
+                eng_design.st5.Tt  = Tt5;  eng_design.st5.ht  = ht5
+                eng_design.st5.pt  = pt5;  eng_design.st5.cpt = cpt5;  eng_design.st5.Rt = Rt5
+                eng_design.st5.Ts  = T5;   eng_design.st5.ps  = p5
+                eng_design.st5.Rs  = R5;   eng_design.st5.cps = cp5;   eng_design.st5.u = u5
+                eng_design.st5.A   = A5
+
+                eng_design.st6.Ts  = T6;   eng_design.st6.ps  = p6
+                eng_design.st6.Rs  = R6;   eng_design.st6.cps = cp6;   eng_design.st6.u = u6
+                eng_design.st6.A   = A6
+
+                eng_design.st7.Tt  = Tt7;  eng_design.st7.ht  = ht7
+                eng_design.st7.pt  = pt7;  eng_design.st7.cpt = cpt7;  eng_design.st7.Rt = Rt7
+                eng_design.st7.Ts  = T7;   eng_design.st7.ps  = p7
+                eng_design.st7.Rs  = R7;   eng_design.st7.cps = cp7;   eng_design.st7.u = u7
+                eng_design.st7.A   = A7
+
+                eng_design.st8.Ts  = T8;   eng_design.st8.ps  = p8
+                eng_design.st8.Rs  = R8;   eng_design.st8.cps = cp8;   eng_design.st8.u = u8
+                eng_design.st8.A   = A8
+
+                eng_design.st9.u   = u9;   eng_design.st9.A   = A9
+
+                # DesignState — frozen scalars needed by every off-design call
+                eng_design.design.pifD  = pifD;  eng_design.design.pilcD = pilcD
+                eng_design.design.pihcD = pihcD; eng_design.design.pihtD = pihtD
+                eng_design.design.piltD = piltD
+                eng_design.design.mbfD  = mbfD;  eng_design.design.mblcD = mblcD
+                eng_design.design.mbhcD = mbhcD; eng_design.design.mbhtD = mbhtD
+                eng_design.design.mbltD = mbltD
+                eng_design.design.NbfD  = NbfD;  eng_design.design.NblcD = NblcD
+                eng_design.design.NbhcD = NbhcD; eng_design.design.NbhtD = NbhtD
+                eng_design.design.NbltD = NbltD
+                eng_design.design.A2    = A2;    eng_design.design.A25   = A25
+                eng_design.design.A5    = A5;    eng_design.design.A7    = A7
+                eng_design.design.epsrow = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
+                eng_design.design.Tmrow  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
+                eng_design.design.fc    = (1.0 - fo) * sum(epsrow)
+                eng_design.design.ruc   = ruc
+                eng_design.design.M4a   = M4a
+
+                # ── PROJECT design scalars back to pare ──────────────────────
+                # Replaces direct pare[ieA2]=A2, pare[ieNbfD]=NbfD, … writes.
+                # The thermodynamic station state is projected by the shared
+                # writes below the if/else (lines ~530–660).
+                design_state_to_pare!(eng_design.design, pare)
 
                 #Fuel mass flow rate
                 pare[iemfuel] = ff * mcore * neng

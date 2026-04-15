@@ -18,7 +18,7 @@ export GasState
 export FlowStation
 export EngineState
 export dump_stations
-export pare_to_engine_state!, run_engine_design_point
+export pare_to_engine_state!, engine_state_to_pare!, design_state_to_pare!, run_engine_design_point
 export SweepResult, run_engine_sweep, write_sweep_csv
 export write_sweep_toml, ENGINE_BASELINE_PATH, regenerate_engine_baseline
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
