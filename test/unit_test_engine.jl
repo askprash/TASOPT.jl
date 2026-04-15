@@ -2922,4 +2922,51 @@ isGradient = false
         end
 
     end  # engine_sweep_benchmark
+
+    # ======================================================================
+    # engine_plots — tasopt-j9l.6
+    # Verify that the two plotting functions return a Plots.Plot without
+    # error on the default aircraft.  Structural invariants checked:
+    #   - correct return type
+    #   - expected subplot count
+    #   - savefig to a temp file succeeds without throwing
+    # ======================================================================
+    @testset "engine_plots" begin
+
+        ac_plots = TASOPT.load_default_model()
+        size_aircraft!(ac_plots; printiter=false)
+        sweep_plots = TASOPT.engine.run_engine_sweep(ac_plots)
+
+        # ---- plot_engine_station_profiles -----------------------------------
+        p_prof = TASOPT.plot_engine_station_profiles(sweep_plots)
+
+        @test p_prof isa Plots.Plot
+        # Two panels: Tt profile (top) and pt profile (bottom).
+        @test length(p_prof.subplots) == 2
+
+        # save to temp file — exercises the full Plots rendering path
+        tmp_prof = joinpath(tempdir(), "tasopt_test_station_profiles.png")
+        @test (savefig(p_prof, tmp_prof); isfile(tmp_prof))
+
+        # ---- plot_engine_performance (no spool speeds) ----------------------
+        p_basic = TASOPT.plot_engine_performance(sweep_plots)
+
+        @test p_basic isa Plots.Plot
+        # Four panels: Fe, TSFC, BPR, mcore.
+        @test length(p_basic.subplots) == 4
+
+        tmp_basic = joinpath(tempdir(), "tasopt_test_engine_perf_basic.png")
+        @test (savefig(p_basic, tmp_basic); isfile(tmp_basic))
+
+        # ---- plot_engine_performance (with spool speeds) --------------------
+        p_full = TASOPT.plot_engine_performance(sweep_plots; ac=ac_plots, imission=1)
+
+        @test p_full isa Plots.Plot
+        # Seven panels: Fe, TSFC, BPR, mcore, Nbf, Nblc, Nbhc.
+        @test length(p_full.subplots) == 7
+
+        tmp_full = joinpath(tempdir(), "tasopt_test_engine_perf_full.png")
+        @test (savefig(p_full, tmp_full); isfile(tmp_full))
+
+    end  # engine_plots
 end
