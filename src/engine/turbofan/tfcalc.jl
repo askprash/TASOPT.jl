@@ -22,6 +22,13 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
 function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifuel::Int64,
         opt_calc_call::CalcMode.T, opt_cooling::CoolingOpt.T, initializes_engine::Bool)
 
+        # ── ENTRY: build typed EngineState from pare once, shared by both paths ─
+        # Ambient scalars and all station thermodynamics are populated here so
+        # that the sizing and off-design branches can alias `eng` rather than
+        # each constructing their own copy.
+        eng = EngineState{Float64}()
+        pare_to_engine_state!(eng, pare)
+
         Lprint = false
 
         if (Lprint)
@@ -63,19 +70,17 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         etab = pare[ieetab]
         M2 = pare[ieM2]
         M25 = pare[ieM25]
-        M0 = pare[ieM0]
-        Tt0 = pare[ieTt0]
-        ht0 = pare[ieht0]
-        pt0 = pare[iept0]
-        cpt0 = pare[iecpt0]
-        Rt0 = pare[ieRt0]
-        p0 = pare[iep0]
-        a0 = pare[iea0]
-        rho0 = pare[ierho0]
-        mu0 = pare[iemu0]
-        T0 = pare[ieT0]
-        u0 = pare[ieu0]
-        mcore = pare[iemcore]
+        # Ambient / freestream scalars — read from typed state (not pare).
+        # Tt0/ht0/pt0/cpt0/Rt0 are computed outputs of tfsize!/tfoper! and are
+        # not pre-read here; they are assigned from the returned tuple below.
+        M0   = eng.M0
+        T0   = eng.T0
+        p0   = eng.p0
+        a0   = eng.a0
+        u0   = eng.st0.u
+        rho0 = pare[ierho0]   # not in EngineState; used only for BLI
+        mu0  = pare[iemu0]    # not in EngineState
+        mcore = eng.st2.mdot
         dTstrk = pare[iedTstrk]
         StA = pare[ieStA]
         Mtexit = pare[ieMtexit]
@@ -159,14 +164,10 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 #----- engine sizing case
 
                 # ── ENTRY ────────────────────────────────────────────────────
-                # Build a typed EngineState from the current pare slice.
+                # Alias the top-level EngineState built before the if/else.
                 # After tfsize! returns we populate every station and the
-                # DesignState from local variables, then project the design
-                # scalars back to pare via design_state_to_pare!.
-                # The shared thermodynamic-station writes below the if/else
-                # complete the pare projection for the current iteration.
-                eng_design = EngineState{Float64}()
-                pare_to_engine_state!(eng_design, pare)
+                # DesignState from local variables, then project back to pare.
+                eng_design = eng
 
                 Fe = pare[ieFe]
 
@@ -379,10 +380,12 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_design.design.M4a   = M4a
 
                 # ── PROJECT design scalars back to pare ──────────────────────
-                # Replaces direct pare[ieA2]=A2, pare[ieNbfD]=NbfD, … writes.
-                # The thermodynamic station state is projected by the shared
-                # writes below the if/else (lines ~530–660).
+                # design_state_to_pare! writes frozen design-point scalars.
+                # engine_state_to_pare! writes ambient scalars and all station
+                # thermodynamics; the shared ambient+inlet writes below the
+                # if/else (st0/st18/st19/u0) are now redundant and removed.
                 design_state_to_pare!(eng_design.design, pare)
+                engine_state_to_pare!(eng_design, pare)
 
                 #Fuel mass flow rate
                 pare[iemfuel] = ff * mcore * neng
@@ -403,16 +406,10 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 #----- off-design operation case
 
                 # ── ENTRY ────────────────────────────────────────────────────
-                # Build a typed EngineState from the current pare slice.
+                # Alias the top-level EngineState built before the if/else.
                 # After tfoper! returns we populate every station from local
-                # variables (including HX intermediate stations 19c and 25c
-                # that are NOT stored in pare) and project the thermodynamic
-                # state back via engine_state_to_pare!.  The off-design-
-                # specific scalars (M2, M25, Fe/Tt4, BPR) are written by the
-                # existing block that follows; the shared writes below the
-                # if/else complete the pare projection.
-                eng_offdes = EngineState{Float64}()
-                pare_to_engine_state!(eng_offdes, pare)
+                # variables and project back to pare via engine_state_to_pare!.
+                eng_offdes = eng
 
                 #----- fixed parameters
                 A2 = pare[ieA2]
@@ -690,23 +687,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iepilc] = pilc
         pare[iepihc] = pihc
 
-        pare[ieTt0] = Tt0
-        pare[ieht0] = ht0
-        pare[iept0] = pt0
-        pare[iecpt0] = cpt0
-        pare[ieRt0] = Rt0
-
-        pare[ieTt18] = Tt18
-        pare[ieht18] = ht18
-        pare[iept18] = pt18
-        pare[iecpt18] = cpt18
-        pare[ieRt18] = Rt18
-
-        pare[ieTt19] = Tt19
-        pare[ieht19] = ht19
-        pare[iept19] = pt19
-        pare[iecpt19] = cpt19
-        pare[ieRt19] = Rt19
+        # st0/st18/st19 are now written by engine_state_to_pare! in both sizing
+        # and off-design EXIT blocks above; the individual writes here are removed.
 
         pare[ieTt2] = Tt2
         pare[ieht2] = ht2
@@ -768,7 +750,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iecpt7] = cpt7
         pare[ieRt7] = Rt7
 
-        pare[ieu0] = u0
+        # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
 
         pare[iep2] = p2
         pare[ieT2] = T2
