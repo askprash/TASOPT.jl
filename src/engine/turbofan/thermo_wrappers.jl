@@ -134,3 +134,115 @@ function set_static_from_M!(station::FlowStation{T}, M::Real;
     station.u   = T(M) * sqrt(cps * Rs / (cps - Rs) * Ts)
     return station
 end
+
+# ---------------------------------------------------------------------------
+# apply_pratio_from!
+# ---------------------------------------------------------------------------
+
+"""
+    apply_pratio_from!(outlet::FlowStation, inlet::FlowStation, pratio; epol=1.0) → outlet
+
+Compute the total (stagnation) state of `outlet` given the total state of
+`inlet` and a pressure ratio `pratio = pt_out / pt_in`, with polytropic
+efficiency `epol`.
+
+Delegates to `gas_prat(alpha, 5, po, to, ho, so, cpo, ro, pratio, epol)`.
+
+| Updated field    | Meaning                                      |
+|:----------------|:---------------------------------------------|
+| `outlet.alpha`  | Copied from `inlet.alpha` (same gas mixture) |
+| `outlet.pt`     | Outlet total pressure = `inlet.pt * pratio`  |
+| `outlet.Tt`     | Outlet total temperature [K]                 |
+| `outlet.ht`     | Outlet total enthalpy [J/kg]                 |
+| `outlet.st`     | Outlet entropy-complement s[Tt] [J/(kg·K)]   |
+| `outlet.cpt`    | Outlet specific heat at Tt [J/(kg·K)]        |
+| `outlet.Rt`     | Outlet gas constant [J/(kg·K)]               |
+
+Static fields (`Ts`, `ps`, `hs`, `ss`, `u`) are **not** modified.
+
+## Example
+
+```julia
+inlet = FlowStation()
+inlet.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+inlet.Tt = 288.15;  inlet.pt = 1.0e5
+set_total_from_Tt!(inlet)
+
+outlet = FlowStation()
+apply_pratio_from!(outlet, inlet, 20.0; epol=0.9)
+# outlet now reflects the compressed state
+```
+"""
+function apply_pratio_from!(outlet::FlowStation{T}, inlet::FlowStation{T},
+                             pratio::Real;
+                             epol::Real = one(T)) where {T<:AbstractFloat}
+    pt, Tt, ht, st, cpt, Rt = gas_prat(
+        inlet.alpha, _NAIR,
+        inlet.pt, inlet.Tt, inlet.ht, inlet.st, inlet.cpt, inlet.Rt,
+        T(pratio), T(epol),
+    )
+    outlet.alpha = inlet.alpha
+    outlet.pt    = pt
+    outlet.Tt    = Tt
+    outlet.ht    = ht
+    outlet.st    = st
+    outlet.cpt   = cpt
+    outlet.Rt    = Rt
+    return outlet
+end
+
+# ---------------------------------------------------------------------------
+# apply_delh_from!
+# ---------------------------------------------------------------------------
+
+"""
+    apply_delh_from!(outlet::FlowStation, inlet::FlowStation, delh; epol=1.0) → outlet
+
+Compute the total (stagnation) state of `outlet` given the total state of
+`inlet` and a specific enthalpy rise `delh = ht_out - ht_in` [J/kg], with
+polytropic efficiency `epol`.
+
+Delegates to `gas_delh(alpha, 5, po, to, ho, so, cpo, ro, delh, epol)`.
+
+| Updated field    | Meaning                                              |
+|:----------------|:-----------------------------------------------------|
+| `outlet.alpha`  | Copied from `inlet.alpha` (same gas mixture)         |
+| `outlet.pt`     | Outlet total pressure [Pa]                           |
+| `outlet.Tt`     | Outlet total temperature [K]                         |
+| `outlet.ht`     | Outlet total enthalpy = `inlet.ht + delh` [J/kg]    |
+| `outlet.st`     | Outlet entropy-complement s[Tt] [J/(kg·K)]           |
+| `outlet.cpt`    | Outlet specific heat at Tt [J/(kg·K)]                |
+| `outlet.Rt`     | Outlet gas constant [J/(kg·K)]                       |
+
+Static fields (`Ts`, `ps`, `hs`, `ss`, `u`) are **not** modified.
+
+## Example
+
+```julia
+inlet = FlowStation()
+inlet.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+inlet.Tt = 900.0;  inlet.pt = 2.0e6
+set_total_from_Tt!(inlet)
+
+outlet = FlowStation()
+apply_delh_from!(outlet, inlet, -200_000.0; epol=0.88)  # turbine expansion
+# outlet.ht ≈ inlet.ht - 200_000  J/kg
+```
+"""
+function apply_delh_from!(outlet::FlowStation{T}, inlet::FlowStation{T},
+                           delh::Real;
+                           epol::Real = one(T)) where {T<:AbstractFloat}
+    pt, Tt, ht, st, cpt, Rt = gas_delh(
+        inlet.alpha, _NAIR,
+        inlet.pt, inlet.Tt, inlet.ht, inlet.st, inlet.cpt, inlet.Rt,
+        T(delh), T(epol),
+    )
+    outlet.alpha = inlet.alpha
+    outlet.pt    = pt
+    outlet.Tt    = Tt
+    outlet.ht    = ht
+    outlet.st    = st
+    outlet.cpt   = cpt
+    outlet.Rt    = Rt
+    return outlet
+end

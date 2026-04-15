@@ -1870,6 +1870,133 @@ isGradient = false
 
     end
 
+    # apply_pratio_from!
+    # ======================================================================
+    @testset "apply_pratio_from!" begin
+        using StaticArrays
+        FS          = TASOPT.engine.FlowStation
+        gas_prat    = TASOPT.engine.gas_prat
+        set_tt      = TASOPT.engine.set_total_from_Tt!
+        appr        = TASOPT.engine.apply_pratio_from!
+
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        Tt_in  = 288.15
+        pt_in  = 1.0e5
+        pratio = 20.0
+        epol   = 0.9
+
+        inlet = FS(); inlet.alpha = air_alpha; inlet.Tt = Tt_in; inlet.pt = pt_in
+        set_tt(inlet)
+        outlet = FS()
+
+        # Return value is the outlet station (for chaining)
+        ret = appr(outlet, inlet, pratio; epol=epol)
+        @test ret === outlet
+
+        # Results match direct gas_prat call
+        pt_ref, Tt_ref, ht_ref, st_ref, cpt_ref, Rt_ref =
+            gas_prat(air_alpha, 5,
+                     inlet.pt, inlet.Tt, inlet.ht, inlet.st, inlet.cpt, inlet.Rt,
+                     pratio, epol)
+
+        @test outlet.pt  ≈ pt_ref
+        @test outlet.Tt  ≈ Tt_ref
+        @test outlet.ht  ≈ ht_ref
+        @test outlet.st  ≈ st_ref
+        @test outlet.cpt ≈ cpt_ref
+        @test outlet.Rt  ≈ Rt_ref
+
+        # Pressure invariant: outlet.pt == inlet.pt * pratio (gas_prat sets p = po*pratio)
+        @test outlet.pt ≈ inlet.pt * pratio
+
+        # Composition preserved
+        @test outlet.alpha == air_alpha
+
+        # Static fields not touched
+        @test outlet.Ts === 0.0
+        @test outlet.ps === 0.0
+        @test outlet.u  === 0.0
+
+        # Inlet total state is not modified
+        @test inlet.Tt ≈ Tt_in
+        @test inlet.pt ≈ pt_in
+
+        # pratio=1, epol=1 → outlet equals inlet (identity process)
+        outlet_id = FS()
+        appr(outlet_id, inlet, 1.0)
+        @test outlet_id.Tt  ≈ inlet.Tt   rtol=1e-5
+        @test outlet_id.pt  ≈ inlet.pt   rtol=1e-5
+        @test outlet_id.ht  ≈ inlet.ht   rtol=1e-5
+
+        # Compression raises temperature and enthalpy
+        @test outlet.Tt > inlet.Tt
+        @test outlet.ht > inlet.ht
+
+    end
+
+    # apply_delh_from!
+    # ======================================================================
+    @testset "apply_delh_from!" begin
+        using StaticArrays
+        FS          = TASOPT.engine.FlowStation
+        gas_delh    = TASOPT.engine.gas_delh
+        set_tt      = TASOPT.engine.set_total_from_Tt!
+        appdh       = TASOPT.engine.apply_delh_from!
+
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        Tt_in  = 900.0
+        pt_in  = 2.0e6
+        delh   = -200_000.0   # turbine expansion (negative)
+        epol   = 0.88
+
+        inlet = FS(); inlet.alpha = air_alpha; inlet.Tt = Tt_in; inlet.pt = pt_in
+        set_tt(inlet)
+        outlet = FS()
+
+        # Return value is the outlet station (for chaining)
+        ret = appdh(outlet, inlet, delh; epol=epol)
+        @test ret === outlet
+
+        # Results match direct gas_delh call
+        pt_ref, Tt_ref, ht_ref, st_ref, cpt_ref, Rt_ref =
+            gas_delh(air_alpha, 5,
+                     inlet.pt, inlet.Tt, inlet.ht, inlet.st, inlet.cpt, inlet.Rt,
+                     delh, epol)
+
+        @test outlet.pt  ≈ pt_ref
+        @test outlet.Tt  ≈ Tt_ref
+        @test outlet.ht  ≈ ht_ref
+        @test outlet.st  ≈ st_ref
+        @test outlet.cpt ≈ cpt_ref
+        @test outlet.Rt  ≈ Rt_ref
+
+        # Enthalpy invariant: outlet.ht ≈ inlet.ht + delh
+        @test outlet.ht ≈ inlet.ht + delh   rtol=1e-6
+
+        # Composition preserved
+        @test outlet.alpha == air_alpha
+
+        # Static fields not touched
+        @test outlet.Ts === 0.0
+        @test outlet.ps === 0.0
+        @test outlet.u  === 0.0
+
+        # Inlet total state is not modified
+        @test inlet.Tt ≈ Tt_in
+        @test inlet.pt ≈ pt_in
+
+        # delh=0, epol=1 → outlet equals inlet (identity process)
+        outlet_id = FS()
+        appdh(outlet_id, inlet, 0.0)
+        @test outlet_id.Tt ≈ inlet.Tt   rtol=1e-5
+        @test outlet_id.ht ≈ inlet.ht   rtol=1e-5
+
+        # Expansion (negative delh) decreases temperature and pressure
+        @test outlet.Tt < inlet.Tt
+        @test outlet.pt < inlet.pt
+
+    end
+
     # EngineState
     @testset "EngineState" begin
 
