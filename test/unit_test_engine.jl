@@ -1839,5 +1839,80 @@ isGradient = false
         @test eng32b.st3.Tt === 900.0f0
         @test eng32b.st3 isa FS{Float32}
 
+        # ------------------------------------------------------------------
+        # Station-shortcut access — eng.Tt4 ≡ eng.st4.Tt
+        # ------------------------------------------------------------------
+        @testset "station shortcuts" begin
+
+            eng_sc = ES()
+
+            # Shortcut reads agree with direct nested access (zero state)
+            @test eng_sc.Tt4   === eng_sc.st4.Tt
+            @test eng_sc.pt25  === eng_sc.st25.pt
+            @test eng_sc.A9    === eng_sc.st9.A
+            @test eng_sc.mdot0 === eng_sc.st0.mdot
+
+            # Fractional-suffix stations work correctly
+            @test eng_sc.Tt19c  === eng_sc.st19c.Tt
+            @test eng_sc.pt4a   === eng_sc.st4a.pt
+            @test eng_sc.ht49c  === eng_sc.st49c.ht
+            @test eng_sc.A25c   === eng_sc.st25c.A
+
+            # Shortcut write then direct read
+            eng_sc.Tt4   = 1600.0
+            eng_sc.pt25  = 4.5e5
+            eng_sc.A9    = 0.18
+            eng_sc.mdot2 = 120.0
+            @test eng_sc.st4.Tt   ≈ 1600.0
+            @test eng_sc.st25.pt  ≈ 4.5e5
+            @test eng_sc.st9.A    ≈ 0.18
+            @test eng_sc.st2.mdot ≈ 120.0
+
+            # Direct write then shortcut read
+            eng_sc.st41.Tt = 1500.0
+            eng_sc.st45.pt = 3.0e5
+            @test eng_sc.Tt41 ≈ 1500.0
+            @test eng_sc.pt45 ≈ 3.0e5
+
+            # Shortcut write/read consistency (round-trip)
+            eng_sc.Tt49c = 900.0
+            @test eng_sc.Tt49c ≈ eng_sc.st49c.Tt ≈ 900.0
+
+            # Non-shortcut own fields still resolve correctly after override
+            eng_sc.M0 = 0.85
+            @test eng_sc.M0 ≈ 0.85
+            eng_sc.T0 = 216.65
+            @test eng_sc.T0 ≈ 216.65
+
+            # Type stability: @inferred verifies no type info is lost through shortcut.
+            # Note: @inferred requires a call expression, so we use getproperty()
+            # explicitly rather than dot-access syntax.
+            @test @inferred(Float64, getproperty(eng_sc, :Tt4))  == eng_sc.st4.Tt
+            @test @inferred(Float64, getproperty(eng_sc, :pt25)) == eng_sc.st25.pt
+            @test @inferred(Float64, getproperty(eng_sc, :A9))   == eng_sc.st9.A
+
+            # propertynames includes shortcut symbols
+            pnames = propertynames(eng_sc)
+            @test :Tt4   in pnames
+            @test :pt25c in pnames
+            @test :A9    in pnames
+            @test :mdot0 in pnames
+            @test :Tt49c in pnames
+            # own fields are also listed
+            @test :st4   in pnames
+            @test :M0    in pnames
+            @test :design in pnames
+
+            # Unknown shortcut raises an error
+            @test_throws ErrorException eng_sc.bogus_field_xyz
+
+            # Float32 shortcut access preserves element type
+            eng32_sc = ES{Float32}()
+            eng32_sc.Tt4 = 1400.0f0
+            @test eng32_sc.Tt4 === 1400.0f0
+            @test @inferred(Float32, getproperty(eng32_sc, :Tt4)) == 1400.0f0
+
+        end  # station shortcuts
+
     end  # EngineState
 end

@@ -58,6 +58,23 @@ turbofan at a single operating point.  It holds:
 | `st8`    | `FanNozzleExit`        | 8        | Fan nozzle exit / downstream       |
 | `st9`    | `OfftakeDisch`         | 9        | Offtake air discharge              |
 
+## Station-shortcut access
+
+In addition to `eng.stN` (which returns the full `FlowStation`), every
+thermodynamic quantity can be accessed via a `quantity + station_number`
+shortcut:
+
+```julia
+eng.Tt4    # ≡ eng.st4.Tt  (total temperature at combustor exit)
+eng.pt25c  # ≡ eng.st25c.pt (total pressure after inter-cooler)
+eng.A9     # ≡ eng.st9.A   (area at offtake discharge)
+eng.mdot2  # ≡ eng.st2.mdot
+```
+
+Shortcut reads and writes resolve to the same machine code as the
+equivalent explicit nested access: the `Val{symbol}` dispatch
+constant-folds at compile time.
+
 ## Constructors
 
 ```julia
@@ -136,3 +153,120 @@ end
 Return a zero-initialised `EngineState{Float64}`.
 """
 EngineState() = EngineState{Float64}()
+
+# ---------------------------------------------------------------------------
+# Station-shortcut property access — eng.Tt4 → eng.st4.Tt
+# ---------------------------------------------------------------------------
+
+"""
+    _ENGINE_OWN_FIELDS
+
+Tuple of every structural field name of `EngineState`.  Used by the
+property-access overloads to distinguish direct field access from
+station-shortcut resolution.
+"""
+const _ENGINE_OWN_FIELDS = (
+    :st0, :st18, :st19, :st19c, :st2, :st21, :st25, :st25c,
+    :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
+    :st5, :st6, :st7, :st8, :st9,
+    :M0, :T0, :p0, :a0, :design,
+)
+
+# Every FlowStation field name that is forwarded (all GasState fields + A + mdot).
+const _FS_FORWARDED_FIELDS = (_GAS_FIELDS..., :A, :mdot)
+
+# All shortcut symbols — used by propertynames() for tab-completion.
+const _STATION_SHORTCUT_NAMES = let names = Symbol[]
+    for stfld in _ENGINE_OWN_FIELDS
+        s = String(stfld)
+        startswith(s, "st") || continue
+        suffix = s[3:end]   # "st4" → "4", "st19c" → "19c"
+        for qty in _FS_FORWARDED_FIELDS
+            push!(names, Symbol(qty, suffix))
+        end
+    end
+    Tuple(names)
+end
+
+# ---------------------------------------------------------------------------
+# Per-symbol generated method specialisations
+#
+# Using pure Val{symbol} dispatch eliminates branches in getproperty /
+# setproperty!, giving the type inference engine a single concrete return
+# type per call site.  The pattern is:
+#
+#   Base.getproperty(eng, :Tt4)
+#     → _eng_getprop(eng, Val(:Tt4))     [one Val method per symbol]
+#     → getproperty(getfield(eng, :st4), :Tt)
+#     → Float64                           [fully inferred, no union]
+#
+# We generate methods for:
+#   1. Every structural own field   — _eng_getprop returns getfield(eng, fld)
+#   2. Every station shortcut       — _eng_getprop returns the nested quantity
+# Setproperty follows the same pattern.
+# ---------------------------------------------------------------------------
+
+# Fallback — fires for any symbol not matched by the generated specialisations.
+@inline _eng_getprop(::EngineState, ::Val{name}) where name =
+    error("EngineState has no property $name")
+@inline _eng_setprop!(::EngineState, ::Val{name}, _) where name =
+    error("EngineState has no property $name")
+
+let
+    # ---- own structural fields ----
+    for fld in _ENGINE_OWN_FIELDS
+        @eval @inline _eng_getprop(eng::EngineState, ::Val{$(QuoteNode(fld))}) =
+            getfield(eng, $(QuoteNode(fld)))
+        @eval @inline _eng_setprop!(eng::EngineState, ::Val{$(QuoteNode(fld))}, v) =
+            setfield!(eng, $(QuoteNode(fld)), v)
+    end
+
+    # ---- station-shortcut symbols ----
+    for stfld in _ENGINE_OWN_FIELDS
+        s = String(stfld)
+        startswith(s, "st") || continue
+        suffix = s[3:end]
+        for qty in _FS_FORWARDED_FIELDS
+            sc = Symbol(qty, suffix)
+            @eval @inline _eng_getprop(eng::EngineState, ::Val{$(QuoteNode(sc))}) =
+                getproperty(getfield(eng, $(QuoteNode(stfld))), $(QuoteNode(qty)))
+            @eval @inline _eng_setprop!(eng::EngineState, ::Val{$(QuoteNode(sc))}, v) =
+                setproperty!(getfield(eng, $(QuoteNode(stfld))), $(QuoteNode(qty)), v)
+        end
+    end
+end
+
+# ---------------------------------------------------------------------------
+# Base overloads — thin wrappers that delegate to the Val-dispatched helpers
+# ---------------------------------------------------------------------------
+
+"""
+    Base.getproperty(eng::EngineState, name::Symbol)
+
+Return the named property of `eng`.  Direct struct fields (e.g. `eng.st4`,
+`eng.M0`) and station-shortcut symbols (e.g. `eng.Tt4`, `eng.pt25c`,
+`eng.A9`) are all resolved via `_eng_getprop(eng, Val(name))`.  Each
+`Val{symbol}` specialisation has a single concrete return type, so the
+compiler can fully infer the result of any literal-symbol access.
+"""
+@inline Base.getproperty(eng::EngineState, name::Symbol) =
+    _eng_getprop(eng, Val(name))
+
+"""
+    Base.setproperty!(eng::EngineState, name::Symbol, v)
+
+Set the named property of `eng`.  Direct struct fields and station-shortcut
+symbols (e.g. `eng.Tt4 = 1600.0`) are all routed via
+`_eng_setprop!(eng, Val(name), v)`.
+"""
+@inline Base.setproperty!(eng::EngineState, name::Symbol, v) =
+    _eng_setprop!(eng, Val(name), v)
+
+"""
+    Base.propertynames(eng::EngineState, private::Bool=false)
+
+Return all accessible property names: structural fields followed by every
+station-shortcut symbol (e.g. `:Tt4`, `:pt25c`, `:A9`).
+"""
+Base.propertynames(::EngineState, private::Bool=false) =
+    (_ENGINE_OWN_FIELDS..., _STATION_SHORTCUT_NAMES...)
