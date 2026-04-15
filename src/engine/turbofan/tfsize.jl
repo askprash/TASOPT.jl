@@ -368,7 +368,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
             # ===============================================================
             #---- combustor flow 3-4   (ffb = mdot_fuel/mdot_burner)
-            ffb, lambda = gas_burn(alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tt4, hvap)
+            ffb, lambda = gas_burn(alpha, beta, gamma, nair, ifuel, Tt3, Ttf, Tt4, hvap)
             st4, dsdt, ht4, dhdt, cpt4, Rt4 = gassum(lambda, nair, Tt4)
             pt4 = pt3 * pib
             gam4 = cpt4 / (cpt4 - Rt4)

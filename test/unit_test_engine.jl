@@ -1,6 +1,7 @@
 using Zygote
 using DelimitedFiles
 using ForwardDiff
+using StaticArrays
 
 isGradient = false
 
@@ -265,8 +266,8 @@ isGradient = false
         # =========================
         # gas_burn, gas_burnd
         # =========================
-
-        n = 6
+        # n == 5: the 5 air species (N2, O2, CO2, H2O, Ar); fuel handled via ifuel
+        n_burn = 5
         alpha = [0.781, 0.209, 0.0004, 0.0, 0.00965, 0.0]
         beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
         gamma = [0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
@@ -276,12 +277,12 @@ isGradient = false
         t = 1400.0
         hvap = 0.0
 
-        f, lambda = TASOPT.engine.gas_burn(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+        f, lambda = TASOPT.engine.gas_burn(alpha, beta, gamma, n_burn, ifuel, to, tf, t, hvap)
 
         @test f == -0.45350655959892078
         @test lambda[1] == 1.4291113895654686
 
-        f, lambda, f_to, f_tf, f_t, l_to, l_tf, l_t = TASOPT.engine.gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+        f, lambda, f_to, f_tf, f_t, l_to, l_tf, l_t = TASOPT.engine.gas_burnd(alpha, beta, gamma, n_burn, ifuel, to, tf, t, hvap)
         @test f_to == 4.3531820788987320E-004
         @test f_tf == -3.2351348482849527E-004
         @test f_t == -5.1186081193040599E-004
@@ -345,6 +346,42 @@ isGradient = false
         ifuel = 13
         gamma = TASOPT.engine.gasfuel(ifuel, n)
         @test gamma[2] == -3.6283226981894474
+
+        # =========================
+        # @inferred: SVector{5,Float64} composition is type-stable through all scalar-return functions
+        # =========================
+        let
+            α5 = SVector{5,Float64}(0.781, 0.209, 0.0004, 0.0, 0.00965)
+            t0 = 300.0
+
+            # gassum: returns 6 scalars
+            @test @inferred(Tuple{Float64,Float64,Float64,Float64,Float64,Float64},
+                            TASOPT.engine.gassum(α5, 5, t0)) == TASOPT.engine.gassum(α5, 5, t0)
+
+            # gassumd: returns 7 scalars
+            @test @inferred(Tuple{Float64,Float64,Float64,Float64,Float64,Float64,Float64},
+                            TASOPT.engine.gassumd(α5, 5, t0)) == TASOPT.engine.gassumd(α5, 5, t0)
+
+            # gas_tset: returns a scalar temperature
+            s0, _, h0, _, cp0, r0 = TASOPT.engine.gassum(α5, 5, t0)
+            @test @inferred(Float64, TASOPT.engine.gas_tset(α5, 5, h0, t0)) ≈ t0  atol=1e-4
+
+            # gas_prat: returns 6 scalars
+            po, to, ho, so, cpo, ro = 101325.0, 300.0, h0, s0, cp0, r0
+            @test @inferred(Tuple{Float64,Float64,Float64,Float64,Float64,Float64},
+                            TASOPT.engine.gas_prat(α5, 5, po, to, ho, so, cpo, ro, 1.5, 0.9)) ==
+                  TASOPT.engine.gas_prat(α5, 5, po, to, ho, so, cpo, ro, 1.5, 0.9)
+
+            # gas_delh: returns 6 scalars
+            @test @inferred(Tuple{Float64,Float64,Float64,Float64,Float64,Float64},
+                            TASOPT.engine.gas_delh(α5, 5, po, to, ho, so, cpo, ro, 5000.0, 0.9)) ==
+                  TASOPT.engine.gas_delh(α5, 5, po, to, ho, so, cpo, ro, 5000.0, 0.9)
+
+            # gas_mach: returns 6 scalars
+            @test @inferred(Tuple{Float64,Float64,Float64,Float64,Float64,Float64},
+                            TASOPT.engine.gas_mach(α5, 5, po, to, ho, so, cpo, ro, 0.0, 0.8, 1.0)) ==
+                  TASOPT.engine.gas_mach(α5, 5, po, to, ho, so, cpo, ro, 0.0, 0.8, 1.0)
+        end
 
     end
 

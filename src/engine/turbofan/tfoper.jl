@@ -768,12 +768,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- burner fuel flow from Tt3-Tb difference   (ffb = m_fuel/m_burner)
             ffb, lambda,
             ffb_Tt3, ffb_Ttf, ffb_Tb,
-            lam_Tt3, lam_Ttf, lam_Tb = gas_burnd(alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tb, hvap)
+            lam_Tt3, lam_Ttf, lam_Tb = gas_burnd(alpha, beta, gamma, nair, ifuel, Tt3, Ttf, Tb, hvap)
             ffb_pl = ffb_Tt3 * Tt3_pl
             ffb_ph = ffb_Tt3 * Tt3_ph
             ffb_ml = ffb_Tt3 * Tt3_ml
             ffb_mh = ffb_Tt3 * Tt3_mh
-            for i = 1:n
+            for i = 1:nair
                   lam_pl[i] = lam_Tt3[i] * Tt3_pl
                   lam_ph[i] = lam_Tt3[i] * Tt3_ph
                   lam_ml[i] = lam_Tt3[i] * Tt3_ml

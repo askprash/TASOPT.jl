@@ -19,6 +19,7 @@ The constant-cp equivalent is
     - `t`: temperature
 """
 function gas_tset(alpha, n, hspec, tguess)
+      @assert n == 5
 
       itmax = 10
       ttol = 0.000001
@@ -61,6 +62,7 @@ Same as gas_tset, but also returns derivative
     - `t_al`: ?
 """
 function gas_tsetd(alpha, n, hspec, tguess)
+      @assert n == 5
       #-------------------------------------------------------------------
       #     Same as gas_tset, but also returns derivative
       #-------------------------------------------------------------------
@@ -117,6 +119,7 @@ Calculates all gas-mixture properties at specified temperature T, and mixing fra
     - `r`: ideal-gas constant R
 """
 function gassum(alpha, n, t)
+      @assert n == 5
       s = 0.0
       h = 0.0
       cp = 0.0
@@ -156,6 +159,7 @@ Same as gassum, but also returns cp_t
     - `cp_t`: dcp / dT
 """
 function gassumd(alpha, n, t)
+      @assert n == 5
 
       s = 0.0
       h = 0.0
@@ -222,6 +226,7 @@ The constant-cp equivalent is the usual isentropic relations, but with epol incl
     - `r`: ending gas constant (this will be the same as starting ro)
 """
 function gas_prat(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
+      @assert n == 5
 
       itmax = 10
       ttol = 0.000001
@@ -282,7 +287,7 @@ Same as gas_prat, but also returns Jacobians w.r.t. po,to,pratio,epol
     - `r`: ending gas constant (this will be the same as starting ro)
 """
 function gas_pratd(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
-
+      @assert n == 5
 
       itmax = 10
       ttol = 0.000001
@@ -414,7 +419,8 @@ The constant-cp equivalent is the usual isentropic relations, but with epol incl
 
 """
 function gas_delh(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
-   itmax = 10
+      @assert n == 5
+      itmax = 10
       ttol = 0.000001
 
 
@@ -484,6 +490,7 @@ Same as gas_delh, but also returns Jacobians w.r.t. po,to,delh
 
 """
 function gas_delhd(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
+      @assert n == 5
 
       itmax = 15
       ttol = 0.000001
@@ -591,16 +598,17 @@ Calculates mass fractions of post-combustion constituents
 
 """
 function gas_burn(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+      @assert n == 5
 
-      nm = n - 1
-      so, s_t, ho, h_t, cpo, ro = gassum(alpha, nm, to)
-      sa, s_t, ha, h_t, cpa, ra = gassum(alpha, nm, t)
-      sc, s_t, hc, h_t, cpc, rb = gassum(gamma, nm, t)
-      sf, s_t, hf, h_t, cpf, rf = gassum(beta, nm, tf)
+      so, s_t, ho, h_t, cpo, ro = gassum(alpha, n, to)
+      sa, s_t, ha, h_t, cpa, ra = gassum(alpha, n, t)
+      sc, s_t, hc, h_t, cpc, rb = gassum(gamma, n, t)
+      sf, s_t, hf, h_t, cpf, rf = gassum(beta, n, tf)
 
       #---- add on fuel contribution to hf and hc, which gassum cannot index via ifuel
+      #     fuel mass fraction in pure-fuel stream = 1 by convention
       si, s_t, hi, h_t, cpi, ri = gasfun(ifuel, tf)
-      hf = hf + (hi - hvap) * beta[n]
+      hf = hf + (hi - hvap)
 
       #sb, s_t, hb, h_t, cpb, rb = gasfun(ifuel, t)
       #hc = hc + hb * gamma[n] #Add contribution from unburnt fuel when etab < 1
@@ -644,17 +652,18 @@ Same as gas_burn, but also returns derivatives.
 
 """
 function gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+      @assert n == 5
 
-      nm = n - 1
-      so, s_t, ho, ho_to, cpo, ro = gassum(alpha, nm, to)
-      sa, s_t, ha, ha_t, cpa, ra = gassum(alpha, nm, t)
-      sc, s_t, hc, hc_t, cpc, rb = gassum(gamma, nm, t)
-      sf, s_t, hf, hf_tf, cpf, rf = gassum(beta, nm, tf)
+      so, s_t, ho, ho_to, cpo, ro = gassum(alpha, n, to)
+      sa, s_t, ha, ha_t, cpa, ra = gassum(alpha, n, t)
+      sc, s_t, hc, hc_t, cpc, rb = gassum(gamma, n, t)
+      sf, s_t, hf, hf_tf, cpf, rf = gassum(beta, n, tf)
 
       #---- add on fuel contribution to hf and hc, which gassum cannot index via ifuel
+      #     fuel mass fraction in pure-fuel stream = 1 by convention
       si, s_t, hi, hi_tf, cpi, ri = gasfun(ifuel, tf)
-      hf = hf + (hi - hvap) * beta[n]
-      hf_tf = hf_tf + hi_tf * beta[n]
+      hf = hf + (hi - hvap)
+      hf_tf = hf_tf + hi_tf
 
       #sb, s_t, hb, hb_t, cpb, rb = gasfun(ifuel, t)
       #hc = hc + hb * gamma[n] #Add contribution from unburnt fuel when etab < 1
@@ -725,6 +734,7 @@ The constant-cp equivalent is the usual isentropic relations, but with epol incl
 
 """
 function gas_mach(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
+      @assert n == 5
 
       itmax = 10
       ttol = 0.000001
@@ -775,6 +785,7 @@ Same as gas_mach, but also returns derivatives
 
 """
 function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
+      @assert n == 5
 
       itmax = 10
       ttol = 0.000001
@@ -936,6 +947,7 @@ Mguess specifies the initial guess, and also selects either the subsonic or the 
     `r       static gas constant (this will be the same as total ro)
 """
 function gas_mass(alpha, n, po, to, ho, so, cpo, ro, mflux, Mguess)
+      @assert n == 5
 
       itmax = 25
       ttol = 0.000001

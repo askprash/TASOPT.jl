@@ -1875,7 +1875,7 @@ function lambdap_calc(pare_sl, alpha_in, ifuel)
       gamma = copy(buf)
       #
 
-      ffb, lambda = gas_burn(alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tt4, hvap)
+      ffb, lambda = gas_burn(alpha, beta, gamma, nair, ifuel, Tt3, Ttf, Tt4, hvap)
 
       lambdap = zeros(nair)
 
