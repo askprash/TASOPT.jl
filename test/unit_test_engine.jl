@@ -2193,4 +2193,89 @@ isGradient = false
         end  # station shortcuts
 
     end  # EngineState
+
+    # ======================================================================
+    # dump_stations
+    # ======================================================================
+    @testset "dump_stations" begin
+        ES = TASOPT.engine.EngineState
+
+        eng = ES()
+        # Set ambient flight condition
+        eng.M0  = 0.80
+        eng.T0  = 218.8
+        eng.p0  = 23842.0
+        eng.a0  = 296.5
+
+        # Set a few stations with recognisable values
+        eng.Tt4  = 1500.0
+        eng.pt3  = 2.5e6
+        eng.mdot2 = 320.0
+        eng.A9   = 0.42
+
+        # ------------------------------------------------------------------
+        # Capture output to a buffer and verify structural invariants
+        # ------------------------------------------------------------------
+        buf = IOBuffer()
+        TASOPT.engine.dump_stations(buf, eng)
+        out = String(take!(buf))
+
+        # Header line contains ambient quantities
+        @test occursin("M0=0.8000", out)
+        @test occursin("T0=218.80K", out)
+        @test occursin("p0=23842.00Pa", out)
+        @test occursin("a0=296.50m/s", out)
+
+        # Column header row is present
+        @test occursin("Tt[K]", out)
+        @test occursin("pt[Pa]", out)
+        @test occursin("mdot[kg/s]", out)
+
+        # Every station number appears as a row prefix
+        for stnum in ("0", "2", "18", "19", "19c", "21",
+                      "25", "25c", "3", "4", "4a",
+                      "41", "45", "49", "49c",
+                      "5", "6", "7", "8", "9")
+            @test occursin(stnum, out)
+        end
+
+        # Verify the values we set appear in the output
+        @test occursin("1500", out)   # Tt4
+        @test occursin("320", out)    # mdot2
+        @test occursin("0.42", out)   # A9
+
+        # ------------------------------------------------------------------
+        # No-argument form writes to stdout (just check it doesn't throw)
+        # ------------------------------------------------------------------
+        eng2 = ES()
+        @test begin
+            redirect_stdout(devnull) do
+                TASOPT.engine.dump_stations(eng2)
+            end
+            true
+        end
+
+        # ------------------------------------------------------------------
+        # File-target invocation: write to a temp file and read it back
+        # ------------------------------------------------------------------
+        tmp = tempname()
+        open(tmp, "w") do f
+            TASOPT.engine.dump_stations(f, eng)
+        end
+        file_out = read(tmp, String)
+        @test occursin("M0=0.8000", file_out)
+        @test occursin("Tt[K]", file_out)
+        rm(tmp; force=true)
+
+        # ------------------------------------------------------------------
+        # Float32 variant works without error
+        # ------------------------------------------------------------------
+        eng32 = ES{Float32}()
+        eng32.M0 = 0.8f0
+        buf32 = IOBuffer()
+        TASOPT.engine.dump_stations(buf32, eng32)
+        out32 = String(take!(buf32))
+        @test occursin("M0=0.8000", out32)
+
+    end  # dump_stations
 end

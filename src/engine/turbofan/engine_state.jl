@@ -3,6 +3,8 @@ Engine-state container: all named flow stations, ambient flight condition,
 and a composed design-state for a TASOPT turbofan.
 """
 
+using Printf
+
 # ---------------------------------------------------------------------------
 # EngineState
 # ---------------------------------------------------------------------------
@@ -279,3 +281,78 @@ station-shortcut symbol (e.g. `:Tt4`, `:pt25c`, `:A9`).
 """
 Base.propertynames(::EngineState, private::Bool=false) =
     (_ENGINE_OWN_FIELDS..., _STATION_SHORTCUT_NAMES...)
+
+# ---------------------------------------------------------------------------
+# Station dump utility
+# ---------------------------------------------------------------------------
+
+# Physical flow-path order: (TASOPT#, short name, EngineState field symbol)
+const _STATION_DUMP_ORDER = (
+    ("0",   "Freestream",    :st0),
+    ("2",   "FanFaceFan",    :st2),
+    ("18",  "FanFaceOuter",  :st18),
+    ("19",  "FanFaceLPC",    :st19),
+    ("19c", "PreCoolerOut",  :st19c),
+    ("21",  "FanExit",       :st21),
+    ("25",  "LPCExit",       :st25),
+    ("25c", "InterCoolerOut",:st25c),
+    ("3",   "HPCExit",       :st3),
+    ("4",   "CombustorExit", :st4),
+    ("4a",  "CoolMixInlet",  :st4a),
+    ("41",  "TurbineInlet",  :st41),
+    ("45",  "HPTExit",       :st45),
+    ("49",  "LPTExit",       :st49),
+    ("49c", "RegenCoolerOut",:st49c),
+    ("5",   "CoreNozzle",    :st5),
+    ("6",   "CoreNozzleExit",:st6),
+    ("7",   "FanNozzle",     :st7),
+    ("8",   "FanNozzleExit", :st8),
+    ("9",   "OfftakeDisch",  :st9),
+)
+
+"""
+    dump_stations([io::IO,] eng::EngineState)
+
+Print a human-readable table of all twenty named flow stations in `eng`.
+Rows are stations in physical flow order; columns are total state
+(Tt, pt, ht), static state (Ts, ps, u), area (A), and mass flow (mdot).
+
+# Arguments
+- `io`: output target; defaults to `stdout`.
+- `eng`: engine state to inspect.
+
+# Example
+```julia
+dump_stations(eng)                    # prints to stdout
+dump_stations(stderr, eng)            # prints to stderr
+open("stations.txt", "w") do f
+    dump_stations(f, eng)
+end
+```
+"""
+function dump_stations(io::IO, eng::EngineState)
+    @printf(io, "Engine stations — M0=%.4f  T0=%.2fK  p0=%.2fPa  a0=%.2fm/s\n",
+            eng.M0, eng.T0, eng.p0, eng.a0)
+    println(io)
+    @printf(io, "%-4s  %-14s  %9s  %12s  %12s  %9s  %12s  %8s  %9s  %11s\n",
+            "St#", "Name",
+            "Tt[K]", "pt[Pa]", "ht[J/kg]",
+            "Ts[K]", "ps[Pa]", "u[m/s]",
+            "A[m²]", "mdot[kg/s]")
+    println(io, "─"^108)
+    for (stnum, stname, stfld) in _STATION_DUMP_ORDER
+        fs = getfield(eng, stfld)
+        @printf(io, "%-4s  %-14s  %9.2f  %12.5g  %12.5g  %9.2f  %12.5g  %8.2f  %9.5f  %11.5f\n",
+                stnum, stname,
+                fs.Tt, fs.pt, fs.ht,
+                fs.Ts, fs.ps, fs.u,
+                fs.A, fs.mdot)
+    end
+end
+
+"""
+    dump_stations(eng::EngineState)
+
+Print station table to `stdout`.  See `dump_stations(io, eng)` for full docs.
+"""
+dump_stations(eng::EngineState) = dump_stations(stdout, eng)

@@ -17,6 +17,7 @@ export DesignState
 export GasState
 export FlowStation
 export EngineState
+export dump_stations
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
