@@ -2625,4 +2625,91 @@ isGradient = false
         @test cruise_pt["BPR"]   > 0.0
 
     end  # write_sweep_toml
+
+    # ======================================================================
+    # engine_sweep_regression — tasopt-j9l.5
+    # Run the full 16-point off-design sweep and compare every station field
+    # at every mission point to the pinned baseline within 1e-12 rtol.
+    # Failures identify the label, station key, field, got/ref values, and
+    # relative difference for actionable diagnosis.
+    # ======================================================================
+    @testset "engine_sweep_regression" begin
+        import TOML
+
+        # ---- Setup ----
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+        sweep = TASOPT.engine.run_engine_sweep(ac)
+
+        baseline_path = TASOPT.engine.ENGINE_BASELINE_PATH
+        @test isfile(baseline_path)
+        baseline = TOML.parsefile(baseline_path)
+
+        n_pts = length(sweep.ip_indices)
+        baseline_pts = baseline["points"]
+        @test length(baseline_pts) == n_pts
+
+        # ---- Comparison tolerance: one part per trillion ----
+        rtol_tol = 1e-12
+
+        # Collect all failures; report in one actionable block at the end.
+        failures = String[]
+        function chk!(got, ref, ctx)
+            g, r = Float64(got), Float64(ref)
+            isapprox(g, r; rtol=rtol_tol) && return
+            rdiff = abs(g - r) / max(abs(r), 1e-300)
+            push!(failures, "  $ctx: got=$g, ref=$r, rdiff=$rdiff")
+        end
+
+        # Station field name → FlowStation property symbol mapping.
+        # Must mirror _TOML_STATION_ORDER in engine_harness.jl.
+        station_map = (
+            ("st0",   :st0),  ("st2",   :st2),  ("st18",  :st18),
+            ("st19",  :st19), ("st19c", :st19c), ("st21",  :st21),
+            ("st25",  :st25), ("st25c", :st25c), ("st3",   :st3),
+            ("st4",   :st4),  ("st4a",  :st4a),  ("st41",  :st41),
+            ("st45",  :st45), ("st49",  :st49),  ("st49c", :st49c),
+            ("st5",   :st5),  ("st6",   :st6),   ("st7",   :st7),
+            ("st8",   :st8),  ("st9",   :st9),
+        )
+        # Fields serialised by _station_to_dict (excludes hs, ss, st, alpha).
+        fs_fields = ("Tt", "ht", "pt", "cpt", "Rt", "Ts", "ps", "cps", "Rs", "u", "A", "mdot")
+
+        # ---- Compare every mission point ----
+        for k in 1:n_pts
+            bp  = baseline_pts[k]
+            lbl = bp["label"]
+            eng = sweep.engines[k]
+
+            @test sweep.ip_labels[k] == lbl  # ordering sanity check
+
+            # Top-level performance scalars
+            chk!(sweep.Fe[k],    bp["Fe_N"],       "[$lbl] Fe_N")
+            chk!(sweep.TSFC[k],  bp["TSFC_kg_Ns"], "[$lbl] TSFC_kg_Ns")
+            chk!(sweep.BPR[k],   bp["BPR"],        "[$lbl] BPR")
+            chk!(sweep.mcore[k], bp["mcore_kg_s"], "[$lbl] mcore_kg_s")
+            chk!(sweep.mdotf[k], bp["mfuel_kg_s"], "[$lbl] mfuel_kg_s")
+            chk!(sweep.alt[k],   bp["alt_m"],      "[$lbl] alt_m")
+            chk!(sweep.Mach[k],  bp["Mach"],       "[$lbl] Mach")
+            chk!(eng.M0,         bp["M0"],         "[$lbl] M0")
+            chk!(eng.T0,         bp["T0_K"],       "[$lbl] T0_K")
+            chk!(eng.p0,         bp["p0_Pa"],      "[$lbl] p0_Pa")
+            chk!(eng.a0,         bp["a0_m_s"],     "[$lbl] a0_m_s")
+
+            # Station-level fields
+            bp_stations = bp["stations"]
+            for (stkey, stsym) in station_map
+                bp_st = bp_stations[stkey]
+                fs    = getfield(eng, stsym)
+                for fld in fs_fields
+                    chk!(getproperty(fs, Symbol(fld)), bp_st[fld], "[$lbl][$stkey] $fld")
+                end
+            end
+        end
+
+        # Single pass/fail gate; emit full diff when anything failed.
+        @test isempty(failures)
+        isempty(failures) || @info "Engine sweep regression diff ($(length(failures)) failures):\n$(join(failures, "\n"))"
+
+    end  # engine_sweep_regression
 end
