@@ -2500,6 +2500,78 @@ isGradient = false
     end  # design_state_to_pare! round-trip
 
     # ======================================================================
+    # off-design engine_state_to_pare! round-trip — tasopt-j9l.50
+    # After sizing + a full off-design sweep, pare columns at off-design
+    # points contain tfoper! outputs.  Verify that:
+    #   1. pare_to_engine_state! + engine_state_to_pare! is a no-op for
+    #      every field engine_state_to_pare! writes (off-design points).
+    #   2. The typed EngineState is consistent with pare for the key
+    #      performance-relevant scalars at both FixedTt4 and FixedFe modes.
+    # ======================================================================
+    @testset "off-design engine_state_to_pare! round-trip" begin
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+        TASOPT.engine.run_engine_sweep(ac)   # updates all 16 off-design pare columns
+
+        imission = 1
+        # ipcruise1 → FixedTt4OffDes (Fe is output, Tt4 is input)
+        # ipstatic  → FixedFeOffDes  (Tt4 is output, Fe is input)
+        for ip in [ipcruise1, ipstatic]
+            pare_orig = view(ac.pare, :, ip, imission)
+
+            eng = TASOPT.engine.EngineState{Float64}()
+            TASOPT.engine.pare_to_engine_state!(eng, pare_orig)
+
+            # Write back into a fresh copy; must reproduce pare exactly.
+            pare_copy = copy(collect(pare_orig))
+            TASOPT.engine.engine_state_to_pare!(eng, pare_copy)
+
+            written_indices = [
+                ieM0, ieT0, iep0, iea0,
+                ieTt0, ieht0, iept0, iecpt0, ieRt0, ieu0,
+                ieTt18, ieht18, iept18, iecpt18, ieRt18,
+                ieTt19, ieht19, iept19, iecpt19, ieRt19,
+                ieTt2, ieht2, iept2, iecpt2, ieRt2,
+                iep2, ieT2, ieR2, iecp2, ieu2, ieA2, iemcore,
+                ieTt21, ieht21, iept21, iecpt21, ieRt21,
+                ieTt25, ieht25, iept25, iecpt25, ieRt25,
+                iep25, ieT25, ieR25, iecp25, ieu25, ieA25,
+                ieTt3, ieht3, iept3, iecpt3, ieRt3,
+                ieht4, iept4, iecpt4, ieRt4,
+                ieTt41, ieht41, iept41, iecpt41, ieRt41,
+                ieTt45, ieht45, iept45, iecpt45, ieRt45,
+                ieTt49, ieht49, iept49, iecpt49, ieRt49,
+                ieTt5, ieht5, iept5, iecpt5, ieRt5,
+                iep5, ieT5, ieR5, iecp5, ieu5, ieA5,
+                iep6, ieT6, ieR6, iecp6, ieu6, ieA6,
+                ieTt7, ieht7, iept7, iecpt7, ieRt7,
+                iep7, ieT7, ieR7, iecp7, ieu7, ieA7,
+                iep8, ieT8, ieR8, iecp8, ieu8, ieA8,
+                ieu9, ieA9,
+            ]
+            for idx in written_indices
+                @test pare_copy[idx] == collect(pare_orig)[idx]
+            end
+        end
+
+        # Consistency: typed EngineState fields must equal pare directly
+        # for both off-design modes after the sweep.
+        for ip in [ipcruise1, ipstatic]
+            pare_ip = view(ac.pare, :, ip, imission)
+            eng = TASOPT.engine.EngineState{Float64}()
+            TASOPT.engine.pare_to_engine_state!(eng, pare_ip)
+
+            @test eng.Tt4  ≈ pare_ip[ieTt4]   rtol=1e-12
+            @test eng.ht4  ≈ pare_ip[ieht4]   rtol=1e-12
+            @test eng.pt3  ≈ pare_ip[iept3]   rtol=1e-12
+            @test eng.Tt49 ≈ pare_ip[ieTt49]  rtol=1e-12
+            @test eng.A2   ≈ pare_ip[ieA2]    rtol=1e-12
+            @test eng.M0   ≈ pare_ip[ieM0]    rtol=1e-12
+            @test eng.st2.mdot ≈ pare_ip[iemcore] rtol=1e-12
+        end
+    end  # off-design engine_state_to_pare! round-trip
+
+    # ======================================================================
     # run_engine_sweep / SweepResult / write_sweep_csv
     # ======================================================================
     @testset "run_engine_sweep" begin

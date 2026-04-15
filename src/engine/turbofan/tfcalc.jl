@@ -402,6 +402,18 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         else
                 #----- off-design operation case
 
+                # ── ENTRY ────────────────────────────────────────────────────
+                # Build a typed EngineState from the current pare slice.
+                # After tfoper! returns we populate every station from local
+                # variables (including HX intermediate stations 19c and 25c
+                # that are NOT stored in pare) and project the thermodynamic
+                # state back via engine_state_to_pare!.  The off-design-
+                # specific scalars (M2, M25, Fe/Tt4, BPR) are written by the
+                # existing block that follows; the shared writes below the
+                # if/else complete the pare projection.
+                eng_offdes = EngineState{Float64}()
+                pare_to_engine_state!(eng_offdes, pare)
+
                 #----- fixed parameters
                 A2 = pare[ieA2]
                 A25 = pare[ieA25]
@@ -526,6 +538,86 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                         Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
                         Δp_PreC, Δp_InterC, Δp_Regen)
 
+                # ── EXIT: populate EngineState with off-design results ────────
+                # Mirror the sizing exit block (lines 290–385).  Station 19c
+                # (PreCoolerOut) and 25c (InterCoolerOut) are NOT in pare but
+                # ARE returned by tfoper! — the typed state captures them here.
+                # For st4: Tt4 is INPUT for FixedTt4OffDes and OUTPUT for
+                # FixedFeOffDes; capture the current value in both cases.
+                eng_offdes.st0.Tt  = Tt0;   eng_offdes.st0.ht  = ht0
+                eng_offdes.st0.pt  = pt0;   eng_offdes.st0.cpt = cpt0;   eng_offdes.st0.Rt = Rt0
+                eng_offdes.st0.u   = u0
+
+                eng_offdes.st18.Tt  = Tt18; eng_offdes.st18.ht  = ht18
+                eng_offdes.st18.pt  = pt18; eng_offdes.st18.cpt = cpt18; eng_offdes.st18.Rt = Rt18
+
+                eng_offdes.st19.Tt  = Tt19; eng_offdes.st19.ht  = ht19
+                eng_offdes.st19.pt  = pt19; eng_offdes.st19.cpt = cpt19; eng_offdes.st19.Rt = Rt19
+
+                # st19c (PreCoolerOut) — returned by tfoper! but NOT in pare
+                eng_offdes.st19c.Tt  = Tt19c; eng_offdes.st19c.ht  = ht19c
+                eng_offdes.st19c.pt  = pt19c; eng_offdes.st19c.cpt = cpt19c; eng_offdes.st19c.Rt = Rt19c
+
+                eng_offdes.st2.Tt  = Tt2;  eng_offdes.st2.ht  = ht2
+                eng_offdes.st2.pt  = pt2;  eng_offdes.st2.cpt = cpt2;  eng_offdes.st2.Rt = Rt2
+                eng_offdes.st2.Ts  = T2;   eng_offdes.st2.ps  = p2
+                eng_offdes.st2.Rs  = R2;   eng_offdes.st2.cps = cp2;   eng_offdes.st2.u  = u2
+                eng_offdes.st2.A   = A2;   eng_offdes.st2.mdot = mcore
+
+                eng_offdes.st21.Tt  = Tt21; eng_offdes.st21.ht  = ht21
+                eng_offdes.st21.pt  = pt21; eng_offdes.st21.cpt = cpt21; eng_offdes.st21.Rt = Rt21
+
+                eng_offdes.st25.Tt  = Tt25; eng_offdes.st25.ht  = ht25
+                eng_offdes.st25.pt  = pt25; eng_offdes.st25.cpt = cpt25; eng_offdes.st25.Rt = Rt25
+                eng_offdes.st25.Ts  = T25;  eng_offdes.st25.ps  = p25
+                eng_offdes.st25.Rs  = R25;  eng_offdes.st25.cps = cp25;  eng_offdes.st25.u  = u25
+                eng_offdes.st25.A   = A25
+
+                # st25c (InterCoolerOut) — returned by tfoper! but NOT in pare
+                eng_offdes.st25c.Tt  = Tt25c; eng_offdes.st25c.ht  = ht25c
+                eng_offdes.st25c.pt  = pt25c; eng_offdes.st25c.cpt = cpt25c; eng_offdes.st25c.Rt = Rt25c
+
+                eng_offdes.st3.Tt  = Tt3;  eng_offdes.st3.ht  = ht3
+                eng_offdes.st3.pt  = pt3;  eng_offdes.st3.cpt = cpt3;  eng_offdes.st3.Rt = Rt3
+
+                eng_offdes.st4.Tt  = Tt4;  eng_offdes.st4.ht  = ht4
+                eng_offdes.st4.pt  = pt4;  eng_offdes.st4.cpt = cpt4;  eng_offdes.st4.Rt = Rt4
+
+                eng_offdes.st41.Tt  = Tt41; eng_offdes.st41.ht  = ht41
+                eng_offdes.st41.pt  = pt41; eng_offdes.st41.cpt = cpt41; eng_offdes.st41.Rt = Rt41
+
+                eng_offdes.st45.Tt  = Tt45; eng_offdes.st45.ht  = ht45
+                eng_offdes.st45.pt  = pt45; eng_offdes.st45.cpt = cpt45; eng_offdes.st45.Rt = Rt45
+
+                eng_offdes.st49.Tt  = Tt49; eng_offdes.st49.ht  = ht49
+                eng_offdes.st49.pt  = pt49; eng_offdes.st49.cpt = cpt49; eng_offdes.st49.Rt = Rt49
+
+                eng_offdes.st5.Tt  = Tt5;  eng_offdes.st5.ht  = ht5
+                eng_offdes.st5.pt  = pt5;  eng_offdes.st5.cpt = cpt5;  eng_offdes.st5.Rt = Rt5
+                eng_offdes.st5.Ts  = T5;   eng_offdes.st5.ps  = p5
+                eng_offdes.st5.Rs  = R5;   eng_offdes.st5.cps = cp5;   eng_offdes.st5.u  = u5
+                eng_offdes.st5.A   = A5
+
+                eng_offdes.st6.Ts  = T6;   eng_offdes.st6.ps  = p6
+                eng_offdes.st6.Rs  = R6;   eng_offdes.st6.cps = cp6;   eng_offdes.st6.u  = u6
+                eng_offdes.st6.A   = A6
+
+                eng_offdes.st7.Tt  = Tt7;  eng_offdes.st7.ht  = ht7
+                eng_offdes.st7.pt  = pt7;  eng_offdes.st7.cpt = cpt7;  eng_offdes.st7.Rt = Rt7
+                eng_offdes.st7.Ts  = T7;   eng_offdes.st7.ps  = p7
+                eng_offdes.st7.Rs  = R7;   eng_offdes.st7.cps = cp7;   eng_offdes.st7.u  = u7
+                eng_offdes.st7.A   = A7
+
+                eng_offdes.st8.Ts  = T8;   eng_offdes.st8.ps  = p8
+                eng_offdes.st8.Rs  = R8;   eng_offdes.st8.cps = cp8;   eng_offdes.st8.u  = u8
+                eng_offdes.st8.A   = A8
+
+                eng_offdes.st9.u   = u9;   eng_offdes.st9.A   = A9
+
+                # Project thermodynamic state back to pare.  Writes ambient
+                # scalars and station fields; does NOT write M2/M25/BPR/Fe/Tt4
+                # (handled below) or design-point scalars (read-only for off-des).
+                engine_state_to_pare!(eng_offdes, pare)
 
                 if (Lprint)
                         println("exited TFOPER", Lconv)
