@@ -1559,4 +1559,163 @@ isGradient = false
         @test length(GS().alpha) == 5
         @test length(GS{Float32}().alpha) == 5
     end
+
+    # ======================================================================
+    # FlowStation
+    # ======================================================================
+    @testset "FlowStation" begin
+        using StaticArrays
+        FS = TASOPT.engine.FlowStation
+        GS = TASOPT.engine.GasState
+
+        # ------------------------------------------------------------------
+        # Default constructor — FlowStation() → FlowStation{Float64}
+        # ------------------------------------------------------------------
+        fs = FS()
+        @test fs isa FS{Float64}
+        @test fs.A    === 0.0
+        @test fs.mdot === 0.0
+
+        # Embedded gas is a properly zeroed GasState
+        @test fs.gas isa GS{Float64}
+        @test fs.gas.Tt === 0.0
+        @test fs.gas.pt === 0.0
+        @test fs.gas.u  === 0.0
+
+        # ------------------------------------------------------------------
+        # Typed constructors
+        # ------------------------------------------------------------------
+        fs64 = FS{Float64}()
+        @test fs64 isa FS{Float64}
+        @test fs64.A === 0.0
+
+        fs32 = FS{Float32}()
+        @test fs32 isa FS{Float32}
+        @test fs32.A    === 0.0f0
+        @test fs32.mdot === 0.0f0
+        @test fs32.gas isa GS{Float32}
+
+        # Constructor with explicit A and mdot keyword args
+        fs_area = FS{Float64}(; A=0.5, mdot=10.0)
+        @test fs_area.A    ≈ 0.5
+        @test fs_area.mdot ≈ 10.0
+        @test fs_area.gas.Tt === 0.0   # gas still zeroed
+
+        # ------------------------------------------------------------------
+        # Constructor with explicit total state + species
+        # ------------------------------------------------------------------
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        fs_total  = FS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha;
+                                A=0.3, mdot=50.0)
+
+        @test fs_total.Tt    ≈ 288.15
+        @test fs_total.ht    ≈ 2.885e5
+        @test fs_total.pt    ≈ 101325.0
+        @test fs_total.cpt   ≈ 1005.0
+        @test fs_total.Rt    ≈ 287.058
+        @test fs_total.alpha ≈ air_alpha
+        @test fs_total.A     ≈ 0.3
+        @test fs_total.mdot  ≈ 50.0
+
+        # Static fields default to zero even with explicit total state
+        @test fs_total.Ts === 0.0
+        @test fs_total.ps === 0.0
+        @test fs_total.u  === 0.0
+
+        # ------------------------------------------------------------------
+        # Property forwarding — reads
+        # ------------------------------------------------------------------
+        fs2 = FS{Float64}(; A=1.0, mdot=20.0)
+        fs2.gas.Tt  = 800.0
+        fs2.gas.pt  = 2.0e6
+        fs2.gas.u   = 150.0
+
+        # Forwarded reads match direct nested access
+        @test fs2.Tt  === fs2.gas.Tt
+        @test fs2.pt  === fs2.gas.pt
+        @test fs2.u   === fs2.gas.u
+
+        # Own-field reads still work
+        @test fs2.A    ≈ 1.0
+        @test fs2.mdot ≈ 20.0
+
+        # gas field itself is accessible
+        @test fs2.gas isa GS{Float64}
+
+        # ------------------------------------------------------------------
+        # Property forwarding — writes via setproperty!
+        # ------------------------------------------------------------------
+        fs3 = FS()
+        fs3.Tt  = 500.0
+        fs3.ht  = 5.0e5
+        fs3.pt  = 1.0e6
+        fs3.cpt = 1050.0
+        fs3.Rt  = 287.0
+        fs3.Ts  = 460.0
+        fs3.ps  = 0.9e6
+        fs3.hs  = 4.8e5
+        fs3.ss  = 2300.0
+        fs3.cps = 1040.0
+        fs3.Rs  = 287.0
+        fs3.u   = 200.0
+        fs3.alpha = air_alpha
+
+        # All forwarded writes are visible via the gas field
+        @test fs3.gas.Tt  ≈ 500.0
+        @test fs3.gas.ht  ≈ 5.0e5
+        @test fs3.gas.pt  ≈ 1.0e6
+        @test fs3.gas.Ts  ≈ 460.0
+        @test fs3.gas.u   ≈ 200.0
+        @test fs3.gas.alpha ≈ air_alpha
+
+        # Also visible via the forwarded reader
+        @test fs3.Tt ≈ 500.0
+        @test fs3.u  ≈ 200.0
+
+        # Own-field writes
+        fs3.A    = 0.8
+        fs3.mdot = 30.0
+        @test fs3.A    ≈ 0.8
+        @test fs3.mdot ≈ 30.0
+
+        # ------------------------------------------------------------------
+        # @inferred: forwarded field access must not lose type information
+        # ------------------------------------------------------------------
+        fs4 = FS()
+        @test @inferred(Float64, getproperty(fs4, :Tt))  == fs4.Tt
+        @test @inferred(Float64, getproperty(fs4, :pt))  == fs4.pt
+        @test @inferred(Float64, getproperty(fs4, :u))   == fs4.u
+        @test @inferred(Float64, getproperty(fs4, :A))   == fs4.A
+        @test @inferred(Float64, getproperty(fs4, :mdot))== fs4.mdot
+
+        # ------------------------------------------------------------------
+        # propertynames includes both own and forwarded names
+        # ------------------------------------------------------------------
+        pnames = propertynames(FS())
+        for name in (:gas, :A, :mdot, :Tt, :ht, :pt, :cpt, :Rt,
+                     :Ts, :ps, :hs, :ss, :cps, :Rs, :u, :alpha)
+            @test name in pnames
+        end
+
+        # ------------------------------------------------------------------
+        # Inline storage: FlowStation embedded in another struct
+        # ------------------------------------------------------------------
+        struct WrapFS
+            station::FS{Float64}
+            id::Int
+        end
+        wfs = WrapFS(FS(), 3)
+        @test wfs.station isa FS{Float64}
+        @test wfs.id == 3
+
+        # ------------------------------------------------------------------
+        # Float32 forwarding works end-to-end
+        # ------------------------------------------------------------------
+        fs32b = FS{Float32}()
+        fs32b.Tt = 300.0f0
+        fs32b.pt = 1.0f5
+        @test fs32b.Tt === 300.0f0
+        @test fs32b.pt === 1.0f5
+        @test @inferred(Float32, getproperty(fs32b, :Tt)) == fs32b.Tt
+    end
 end
