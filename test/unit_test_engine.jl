@@ -1718,4 +1718,126 @@ isGradient = false
         @test fs32b.pt === 1.0f5
         @test @inferred(Float32, getproperty(fs32b, :Tt)) == fs32b.Tt
     end
+
+    # EngineState
+    @testset "EngineState" begin
+
+        ES = TASOPT.engine.EngineState
+        FS = TASOPT.engine.FlowStation
+        DS = TASOPT.engine.DesignState
+
+        # ------------------------------------------------------------------
+        # Default constructor — EngineState() → EngineState{Float64}
+        # ------------------------------------------------------------------
+        eng = ES()
+        @test eng isa ES{Float64}
+
+        # ------------------------------------------------------------------
+        # Typed constructor — EngineState{Float32}()
+        # ------------------------------------------------------------------
+        eng32 = ES{Float32}()
+        @test eng32 isa ES{Float32}
+        @test eng32.M0 === 0.0f0
+        @test eng32.st4 isa FS{Float32}
+        @test eng32.design isa DS{Float32}
+
+        # ------------------------------------------------------------------
+        # All 20 station fields are FlowStation{Float64} and fully zeroed
+        # ------------------------------------------------------------------
+        station_fields = (:st0, :st18, :st19, :st19c, :st2, :st21,
+                          :st25, :st25c, :st3, :st4, :st4a, :st41,
+                          :st45, :st49, :st49c, :st5, :st6, :st7,
+                          :st8, :st9)
+        @test length(station_fields) == 20
+        for fname in station_fields
+            fs = getproperty(eng, fname)
+            @test fs isa FS{Float64}
+            @test fs.Tt  === 0.0
+            @test fs.pt  === 0.0
+            @test fs.A   === 0.0
+            @test fs.mdot === 0.0
+        end
+
+        # ------------------------------------------------------------------
+        # Ambient scalars all zero by default
+        # ------------------------------------------------------------------
+        @test eng.M0 === 0.0
+        @test eng.T0 === 0.0
+        @test eng.p0 === 0.0
+        @test eng.a0 === 0.0
+
+        # ------------------------------------------------------------------
+        # Design field is a zero-initialised DesignState
+        # ------------------------------------------------------------------
+        @test eng.design isa DS{Float64}
+        @test eng.design.pifD  === 0.0
+        @test eng.design.pilcD === 0.0
+        @test eng.design.A2    === 0.0
+
+        # ------------------------------------------------------------------
+        # Setting and reading station fields
+        # ------------------------------------------------------------------
+        eng.st4.Tt  = 1800.0
+        eng.st4.pt  = 2.5e6
+        eng.st4.mdot = 40.0
+        @test eng.st4.Tt   ≈ 1800.0
+        @test eng.st4.pt   ≈ 2.5e6
+        @test eng.st4.mdot ≈ 40.0
+
+        # Another station is unaffected
+        @test eng.st3.Tt === 0.0
+
+        # ------------------------------------------------------------------
+        # Setting ambient scalars
+        # ------------------------------------------------------------------
+        eng2 = ES()
+        eng2.M0 = 0.85
+        eng2.T0 = 216.65
+        eng2.p0 = 22632.0
+        eng2.a0 = 295.07
+        @test eng2.M0 ≈ 0.85
+        @test eng2.T0 ≈ 216.65
+        @test eng2.p0 ≈ 22632.0
+        @test eng2.a0 ≈ 295.07
+
+        # ------------------------------------------------------------------
+        # Setting design-state fields
+        # ------------------------------------------------------------------
+        eng2.design.pifD  = 1.6
+        eng2.design.pihcD = 10.0
+        eng2.design.A2    = 0.5
+        @test eng2.design.pifD  ≈ 1.6
+        @test eng2.design.pihcD ≈ 10.0
+        @test eng2.design.A2    ≈ 0.5
+
+        # ------------------------------------------------------------------
+        # Each station is an independent FlowStation (mutations don't alias)
+        # ------------------------------------------------------------------
+        eng3 = ES()
+        eng3.st4.Tt  = 1600.0
+        eng3.st41.Tt = 1550.0
+        @test eng3.st4.Tt  ≈ 1600.0
+        @test eng3.st41.Tt ≈ 1550.0
+        @test eng3.st45.Tt === 0.0   # neighbouring station unaffected
+
+        # ------------------------------------------------------------------
+        # Inline storage: EngineState embedded in another struct
+        # ------------------------------------------------------------------
+        struct WrapES
+            eng::ES{Float64}
+            id::Int
+        end
+        wes = WrapES(ES(), 7)
+        @test wes.eng isa ES{Float64}
+        @test wes.id == 7
+
+        # ------------------------------------------------------------------
+        # Float32 stations are properly typed
+        # ------------------------------------------------------------------
+        eng32b = ES{Float32}()
+        eng32b.st3.Tt = 900.0f0
+        @test eng32b.st3.Tt === 900.0f0
+        @test eng32b.st3 isa FS{Float32}
+
+    end  # EngineState
 end
