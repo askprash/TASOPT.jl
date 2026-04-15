@@ -18,6 +18,7 @@ export GasState
 export FlowStation
 export EngineState
 export dump_stations
+export pare_to_engine_state!, run_engine_design_point
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
@@ -30,6 +31,7 @@ export calculate_fuel_cell_with_ducted_fan!, ductedfanweight!
 export check_engine_convergence_failure
 
 import ..TASOPT: __TASOPTindices__, __TASOPTroot__, StructuralAlloy, unpack_ac, compare_strings
+import ..TASOPT.atmosphere: atmos
 
 include(__TASOPTindices__)
 include(joinpath(__TASOPTroot__,"utils/constants.jl"))
@@ -53,6 +55,7 @@ include("turbofan/tfoper.jl")
 include("turbofan/tfcalc.jl")
 include("turbofan/tfweight.jl")
 include("turbofan/tfwrap.jl")
+include("turbofan/engine_harness.jl")
 include("turbofan/tfweightwrap.jl")
 include("hxfun.jl")
 include("simple_engine/constant_TSFC_engine.jl")

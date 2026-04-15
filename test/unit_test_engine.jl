@@ -2315,4 +2315,104 @@ isGradient = false
         @test occursin("M0=0.8000", out32)
 
     end  # dump_stations
+
+    # ======================================================================
+    # run_engine_design_point / pare_to_engine_state!
+    # ======================================================================
+    @testset "run_engine_design_point" begin
+        # ------------------------------------------------------------------
+        # Run the harness on a fully sized aircraft.
+        # size_aircraft! must be called first so that pare[ieFe] carries a
+        # meaningful design thrust for the engine sizing.
+        # ------------------------------------------------------------------
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+        eng = TASOPT.engine.run_engine_design_point(ac)
+
+        # ---- Ambient scalars are populated and physically plausible ----
+        @test eng.M0 > 0.0          # cruise Mach
+        @test eng.T0 > 200.0        # stratosphere T, K
+        @test eng.p0 > 1e4          # cruise pressure, Pa
+        @test eng.a0 > 280.0        # speed of sound, m/s
+
+        # ---- Total temperature rises through compression / combustor ----
+        # Tt2 ≈ Tt0: adiabatic inlet preserves stagnation temperature.
+        # Tt25 > Tt2 (or Tt19): LPC adds work.
+        @test eng.Tt2  ≈ eng.Tt0  rtol = 1e-6   # isentropic inlet
+        @test eng.Tt25 > eng.Tt19   # LPC heating
+        @test eng.Tt3  > eng.Tt25   # HPC heating
+        @test eng.Tt4  > eng.Tt3    # combustor
+
+        # ---- Total temperature falls monotonically through expansion ----
+        @test eng.Tt41 < eng.Tt4    # turbine inlet (after cooling dilution)
+        @test eng.Tt45 < eng.Tt41   # HPT exit
+        @test eng.Tt49 < eng.Tt45   # LPT exit
+
+        # ---- Total pressure: compressor side rises, turbine side falls ----
+        @test eng.Tt3 > eng.Tt2     # same as temperature but pressure check
+        @test eng.pt3 > eng.pt2     # HPC raises pressure
+        @test eng.pt45 < eng.pt41   # HPT drops pressure
+        @test eng.pt49 < eng.pt45   # LPT drops pressure
+
+        # ---- Nozzle: static pressure equals ambient at design ----
+        #  (ps_exit >= p0 for under-expanded or ideally expanded nozzles)
+        @test eng.ps5 >= 0.9 * eng.p0
+        @test eng.ps7 >= 0.9 * eng.p0
+
+        # ---- Station areas and mass flow are positive ----
+        @test eng.A2    > 0.0
+        @test eng.A25   > 0.0
+        @test eng.A5    > 0.0
+        @test eng.A7    > 0.0
+        @test eng.st2.mdot > 0.0    # core mass flow
+
+        # ------------------------------------------------------------------
+        # pare_to_engine_state! round-trip: after a run, reading pare
+        # into a fresh EngineState must reproduce the same values.
+        # ------------------------------------------------------------------
+        eng2 = TASOPT.engine.EngineState{Float64}()
+        TASOPT.engine.pare_to_engine_state!(eng2, view(ac.pare, :, ipcruise1, 1))
+
+        @test eng2.Tt4  ≈ eng.Tt4   rtol = 1e-12
+        @test eng2.pt3  ≈ eng.pt3   rtol = 1e-12
+        @test eng2.Tt49 ≈ eng.Tt49  rtol = 1e-12
+        @test eng2.A2   ≈ eng.A2    rtol = 1e-12
+        @test eng2.M0   ≈ eng.M0    rtol = 1e-12
+
+        # ------------------------------------------------------------------
+        # Consistency with pare: EngineState values must equal pare directly.
+        # This verifies the mapping is correct, not just round-trip stable.
+        # ------------------------------------------------------------------
+        pare_ip = view(ac.pare, :, ipcruise1, 1)
+
+        @test eng.Tt4  ≈ pare_ip[ieTt4]   rtol = 1e-12
+        @test eng.ht4  ≈ pare_ip[ieht4]   rtol = 1e-12
+        @test eng.pt4  ≈ pare_ip[iept4]   rtol = 1e-12
+        @test eng.Tt3  ≈ pare_ip[ieTt3]   rtol = 1e-12
+        @test eng.pt3  ≈ pare_ip[iept3]   rtol = 1e-12
+        @test eng.Tt49 ≈ pare_ip[ieTt49]  rtol = 1e-12
+        @test eng.pt49 ≈ pare_ip[iept49]  rtol = 1e-12
+        @test eng.Ts2  ≈ pare_ip[ieT2]    rtol = 1e-12
+        @test eng.ps2  ≈ pare_ip[iep2]    rtol = 1e-12
+        @test eng.A2   ≈ pare_ip[ieA2]    rtol = 1e-12
+        @test eng.st2.mdot ≈ pare_ip[iemcore] rtol = 1e-12
+
+        # ------------------------------------------------------------------
+        # Station 6 and 8 (nozzle exits): static-only in pare, total zero.
+        # Verify static fields are non-zero and total fields remain zero.
+        # ------------------------------------------------------------------
+        @test eng.ps6  > 0.0
+        @test eng.Ts6  > 0.0
+        @test eng.Tt6  == 0.0    # total NOT in pare → zero
+        @test eng.ps8  > 0.0
+        @test eng.Ts8  > 0.0
+        @test eng.Tt8  == 0.0    # total NOT in pare → zero
+
+        # ------------------------------------------------------------------
+        # Stations 19c, 25c, 4a, 49c: not in pare → all zero.
+        # ------------------------------------------------------------------
+        @test eng.Tt19c == 0.0
+        @test eng.Tt25c == 0.0
+        @test eng.Tt49c == 0.0
+    end  # run_engine_design_point
 end
