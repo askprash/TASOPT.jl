@@ -1782,6 +1782,94 @@ isGradient = false
 
     end
 
+    # set_static_from_M!
+    # ======================================================================
+    @testset "set_static_from_M!" begin
+        using StaticArrays
+        FS        = TASOPT.engine.FlowStation
+        gas_mach  = TASOPT.engine.gas_mach
+        set_tt    = TASOPT.engine.set_total_from_Tt!
+        set_mach  = TASOPT.engine.set_static_from_M!
+
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+
+        # Build a fully initialised total state
+        fs = FS()
+        fs.alpha = air_alpha
+        fs.Tt    = 800.0
+        fs.pt    = 2.0e5
+        set_tt(fs)   # populate ht, st, cpt, Rt
+
+        # ------------------------------------------------------------------
+        # Return value is the station itself (chaining)
+        # ------------------------------------------------------------------
+        ret = set_mach(fs, 0.6)
+        @test ret === fs
+
+        # ------------------------------------------------------------------
+        # Results match direct gas_mach call
+        # ------------------------------------------------------------------
+        ps_ref, Ts_ref, hs_ref, ss_ref, cps_ref, Rs_ref =
+            gas_mach(air_alpha, 5, fs.pt, fs.Tt, fs.ht, fs.st, fs.cpt, fs.Rt,
+                     0.0, 0.6, 1.0)
+
+        @test fs.Ts  ≈ Ts_ref
+        @test fs.ps  ≈ ps_ref
+        @test fs.hs  ≈ hs_ref
+        @test fs.ss  ≈ ss_ref
+        @test fs.cps ≈ cps_ref
+        @test fs.Rs  ≈ Rs_ref
+
+        # ------------------------------------------------------------------
+        # Energy conservation: hs + ½u² ≈ ht
+        # ------------------------------------------------------------------
+        @test fs.hs + 0.5 * fs.u^2 ≈ fs.ht   rtol=1e-6
+
+        # ------------------------------------------------------------------
+        # Isentropic invariant (epol=1.0): ps = pt * exp((ss - st) / Rt)
+        # st = s[Tt] and ss = s[Ts] differ because T changes; the invariant
+        # is that thermodynamic entropy is conserved, encoded by gas_mach as:
+        #   p = po * exp(epol * (s - so) / ro)
+        # ------------------------------------------------------------------
+        @test fs.ps ≈ fs.pt * exp((fs.ss - fs.st) / fs.Rt)   rtol=1e-6
+
+        # ------------------------------------------------------------------
+        # M=0 special case: static state equals total state, u=0
+        # ------------------------------------------------------------------
+        fs0 = FS()
+        fs0.alpha = air_alpha
+        fs0.Tt = 800.0; fs0.pt = 2.0e5
+        set_tt(fs0)
+        set_mach(fs0, 0.0)
+        @test fs0.Ts ≈ fs0.Tt   rtol=1e-6
+        @test fs0.ps ≈ fs0.pt   rtol=1e-6
+        @test fs0.hs ≈ fs0.ht   rtol=1e-6
+        @test fs0.u  === 0.0
+
+        # ------------------------------------------------------------------
+        # Total state fields are not modified
+        # ------------------------------------------------------------------
+        @test fs.Tt    ≈ 800.0
+        @test fs.pt    ≈ 2.0e5
+        @test fs.alpha == air_alpha
+
+        # ------------------------------------------------------------------
+        # Monotonicity: higher M → lower Ts and lower ps
+        # ------------------------------------------------------------------
+        fs_lo = FS()
+        fs_hi = FS()
+        for fsm in (fs_lo, fs_hi)
+            fsm.alpha = air_alpha; fsm.Tt = 800.0; fsm.pt = 2.0e5
+            set_tt(fsm)
+        end
+        set_mach(fs_lo, 0.4)
+        set_mach(fs_hi, 0.8)
+        @test fs_lo.Ts > fs_hi.Ts
+        @test fs_lo.ps > fs_hi.ps
+        @test fs_lo.u  < fs_hi.u
+
+    end
+
     # EngineState
     @testset "EngineState" begin
 
