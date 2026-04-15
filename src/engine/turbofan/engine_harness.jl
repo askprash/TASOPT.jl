@@ -479,3 +479,190 @@ function write_sweep_csv(path::AbstractString, result::SweepResult)
     end
     return nothing
 end
+
+# ---------------------------------------------------------------------------
+# write_sweep_toml — diffable full-fidelity station baseline
+# ---------------------------------------------------------------------------
+
+import TOML
+
+# Stations serialised in physical flow-path order (mirrors _STATION_DUMP_ORDER).
+const _TOML_STATION_ORDER = (
+    ("0",   "Freestream",     :st0),
+    ("2",   "FanFaceFan",     :st2),
+    ("18",  "FanFaceOuter",   :st18),
+    ("19",  "FanFaceLPC",     :st19),
+    ("19c", "PreCoolerOut",   :st19c),
+    ("21",  "FanExit",        :st21),
+    ("25",  "LPCExit",        :st25),
+    ("25c", "InterCoolerOut", :st25c),
+    ("3",   "HPCExit",        :st3),
+    ("4",   "CombustorExit",  :st4),
+    ("4a",  "CoolMixInlet",   :st4a),
+    ("41",  "TurbineInlet",   :st41),
+    ("45",  "HPTExit",        :st45),
+    ("49",  "LPTExit",        :st49),
+    ("49c", "RegenCoolerOut", :st49c),
+    ("5",   "CoreNozzle",     :st5),
+    ("6",   "CoreNozzleExit", :st6),
+    ("7",   "FanNozzle",      :st7),
+    ("8",   "FanNozzleExit",  :st8),
+    ("9",   "OfftakeDisch",   :st9),
+)
+
+"""
+    _station_to_dict(fs::FlowStation) -> Dict{String,Float64}
+
+Serialise the populated scalar fields of a `FlowStation` to a plain
+`Dict{String,Float64}`.  Fields not written by `pare_to_engine_state!`
+(hs, ss, st, alpha) are excluded to keep the baseline compact and to
+avoid noisy diffs on zero-valued entries.
+"""
+function _station_to_dict(fs::FlowStation)
+    Dict{String,Float64}(
+        "Tt"   => Float64(fs.Tt),
+        "ht"   => Float64(fs.ht),
+        "pt"   => Float64(fs.pt),
+        "cpt"  => Float64(fs.cpt),
+        "Rt"   => Float64(fs.Rt),
+        "Ts"   => Float64(fs.Ts),
+        "ps"   => Float64(fs.ps),
+        "cps"  => Float64(fs.cps),
+        "Rs"   => Float64(fs.Rs),
+        "u"    => Float64(fs.u),
+        "A"    => Float64(fs.A),
+        "mdot" => Float64(fs.mdot),
+    )
+end
+
+"""
+    write_sweep_toml(io::IO, result::SweepResult)
+    write_sweep_toml(path::AbstractString, result::SweepResult)
+
+Write a [`SweepResult`](@ref) to TOML format suitable for use as a
+regression baseline fixture.
+
+The output is structured as an array of `[[points]]` tables, one per
+mission point.  Each table contains:
+- Metadata: `ip`, `label`, `alt_m`, `Mach`.
+- Engine performance: `Fe_N`, `TSFC_kg_Ns`, `BPR`, `mcore_kg_s`,
+  `mfuel_kg_s`, `M0`, `T0_K`, `p0_Pa`, `a0_m_s`.
+- Station subtables (e.g. `[points.stations.st0]`) with twelve scalar
+  fields: `Tt`, `ht`, `pt`, `cpt`, `Rt`, `Ts`, `ps`, `cps`, `Rs`,
+  `u`, `A`, `mdot`.  Stations 19c, 25c, 4a, 49c are all-zero for the
+  default turbofan (no heat exchangers / cooling-mix path in pare).
+
+The TOML format is line-oriented and deterministic, making it suitable
+for `git diff` review when baseline values change.
+
+## Usage
+```julia
+TASOPT.engine.write_sweep_toml("baseline.toml", sweep)
+```
+"""
+function write_sweep_toml(io::IO, result::SweepResult)
+    n = length(result.ip_indices)
+    points = Vector{Dict{String,Any}}(undef, n)
+    for k in 1:n
+        eng = result.engines[k]
+        stations = Dict{String,Any}()
+        for (_, _, stfld) in _TOML_STATION_ORDER
+            stations[String(stfld)] = _station_to_dict(getfield(eng, stfld))
+        end
+        points[k] = Dict{String,Any}(
+            "ip"          => result.ip_indices[k],
+            "label"       => result.ip_labels[k],
+            "alt_m"       => Float64(result.alt[k]),
+            "Mach"        => Float64(result.Mach[k]),
+            "Fe_N"        => Float64(result.Fe[k]),
+            "TSFC_kg_Ns"  => Float64(result.TSFC[k]),
+            "BPR"         => Float64(result.BPR[k]),
+            "mcore_kg_s"  => Float64(result.mcore[k]),
+            "mfuel_kg_s"  => Float64(result.mdotf[k]),
+            "M0"          => Float64(eng.M0),
+            "T0_K"        => Float64(eng.T0),
+            "p0_Pa"       => Float64(eng.p0),
+            "a0_m_s"      => Float64(eng.a0),
+            "stations"    => stations,
+        )
+    end
+    data = Dict{String,Any}(
+        "metadata" => Dict{String,Any}(
+            "n_points" => n,
+            "aircraft" => "default",
+            "description" => "Engine sweep baseline — default TASOPT aircraft.",
+        ),
+        "points" => points,
+    )
+    TOML.print(io, data)
+    return nothing
+end
+
+function write_sweep_toml(path::AbstractString, result::SweepResult)
+    open(path, "w") do io
+        write_sweep_toml(io, result)
+    end
+    return nothing
+end
+
+# ---------------------------------------------------------------------------
+# regenerate_engine_baseline
+# ---------------------------------------------------------------------------
+
+"""
+    const ENGINE_BASELINE_PATH
+
+Default path for the engine-sweep regression baseline fixture.
+Points to `test/fixtures/engine_sweep_baseline.toml` relative to the
+repository root.
+"""
+const ENGINE_BASELINE_PATH = joinpath(
+    @__DIR__, "..", "..", "..", "test", "fixtures", "engine_sweep_baseline.toml")
+
+"""
+    regenerate_engine_baseline(ac; path=ENGINE_BASELINE_PATH)
+
+**Auditable action** — regenerates the engine-sweep regression baseline
+from a sized aircraft object and writes it to `path`.
+
+Run the full off-design sweep on `ac` (which must already be sized with
+`size_aircraft!`) and serialise the result to TOML via `write_sweep_toml`.
+
+## ⚠  Warning
+
+Regenerating the baseline changes the numerical reference used by the
+engine regression test (`tasopt-j9l.5`).  Only call this function when a
+physics or model change is intentional and the new values have been
+verified.  Commit the updated baseline with an explanatory git message —
+reviewers will see the numerical diff in the pull request.
+
+## Usage
+```julia
+using TASOPT
+ac = TASOPT.load_default_model()
+TASOPT.size_aircraft!(ac; printiter=false)
+
+# Regenerate to the default test-fixture path
+TASOPT.engine.regenerate_engine_baseline(ac)
+
+# Or write to a custom path for inspection first
+TASOPT.engine.regenerate_engine_baseline(ac; path="/tmp/my_baseline.toml")
+```
+"""
+function regenerate_engine_baseline(ac; path::AbstractString=ENGINE_BASELINE_PATH)
+    @warn """
+    *** REGENERATING ENGINE SWEEP BASELINE ***
+    Output path: $(abspath(path))
+
+    This rewrites the numerical reference for engine regression tests.
+    Only proceed when the change is intentional and has been verified.
+    Commit the updated baseline file with an explanatory git message so
+    reviewers can audit the numerical diff.
+    """
+    mkpath(dirname(abspath(path)))
+    sweep = run_engine_sweep(ac)
+    write_sweep_toml(path, sweep)
+    n = length(sweep.ip_indices)
+    @info "Baseline written: $(abspath(path))  ($n mission points)"
+    return abspath(path)
+end

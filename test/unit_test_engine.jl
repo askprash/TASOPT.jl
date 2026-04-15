@@ -2525,4 +2525,104 @@ isGradient = false
         @test first_data[2] == "cruise1"            # human label
 
     end  # run_engine_sweep
+
+    # ======================================================================
+    # write_sweep_toml / regenerate_engine_baseline / baseline fixture
+    # ======================================================================
+    @testset "write_sweep_toml" begin
+        import TOML
+
+        # ------------------------------------------------------------------
+        # Setup: sized aircraft + 2-point cruise sweep (fast setup).
+        # ------------------------------------------------------------------
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+        sweep_cr2 = TASOPT.engine.run_engine_sweep(ac; ip_range=ipcruise1:ipcruise2)
+
+        # ------------------------------------------------------------------
+        # write_sweep_toml writes valid, parseable TOML.
+        # ------------------------------------------------------------------
+        buf = IOBuffer()
+        TASOPT.engine.write_sweep_toml(buf, sweep_cr2)
+        toml_str = String(take!(buf))
+        @test !isempty(toml_str)
+
+        parsed = TOML.parse(toml_str)
+
+        # Top-level keys
+        @test haskey(parsed, "metadata")
+        @test haskey(parsed, "points")
+        @test parsed["metadata"]["n_points"] == 2
+        @test parsed["metadata"]["aircraft"] == "default"
+
+        # Exactly 2 mission-point entries
+        pts = parsed["points"]
+        @test length(pts) == 2
+
+        # First point metadata
+        p1 = pts[1]
+        @test p1["ip"]    == ipcruise1
+        @test p1["label"] == "cruise1"
+        @test p1["Fe_N"]  > 0.0
+        @test p1["TSFC_kg_Ns"] > 0.0
+        @test p1["BPR"]   > 0.0
+
+        # Station subtables present for all 20 named stations
+        @test haskey(p1, "stations")
+        stations_p1 = p1["stations"]
+        for stname in ("st0", "st2", "st18", "st19", "st19c",
+                        "st21", "st25", "st25c", "st3", "st4", "st4a",
+                        "st41", "st45", "st49", "st49c",
+                        "st5", "st6", "st7", "st8", "st9")
+            @test haskey(stations_p1, stname)
+        end
+
+        # Each station dict has all 12 expected scalar fields
+        expected_fields = ("Tt", "ht", "pt", "cpt", "Rt",
+                           "Ts", "ps", "cps", "Rs", "u", "A", "mdot")
+        for f in expected_fields
+            @test haskey(stations_p1["st0"],  f)
+            @test haskey(stations_p1["st2"],  f)
+            @test haskey(stations_p1["st4"],  f)
+        end
+
+        # Key thermodynamic values at cruise1 are positive
+        @test stations_p1["st4"]["Tt"]  > 0.0   # combustor exit Tt4
+        @test stations_p1["st3"]["pt"]  > 0.0   # HPC exit total pressure
+        @test stations_p1["st2"]["mdot"] > 0.0  # core mass flow
+
+        # Stations not populated from pare have zero total temperature
+        @test stations_p1["st19c"]["Tt"] == 0.0
+        @test stations_p1["st25c"]["Tt"] == 0.0
+        @test stations_p1["st4a"]["Tt"]  == 0.0
+        @test stations_p1["st49c"]["Tt"] == 0.0
+
+        # ------------------------------------------------------------------
+        # Baseline fixture exists and has the right structure.
+        # The file was committed in tasopt-j9l.4.  If this test fails,
+        # run: julia --project=. test/generate_engine_baseline.jl
+        # ------------------------------------------------------------------
+        baseline_path = TASOPT.engine.ENGINE_BASELINE_PATH
+        # If this fails, regenerate with: julia --project=. test/generate_engine_baseline.jl
+        @test isfile(baseline_path)
+
+        baseline = TOML.parsefile(baseline_path)
+        @test haskey(baseline, "metadata")
+        @test haskey(baseline, "points")
+        @test baseline["metadata"]["n_points"] == 16
+
+        # All 16 mission points present
+        @test length(baseline["points"]) == 16
+
+        # First point is static (ip == ipstatic == 1)
+        @test baseline["points"][1]["ip"] == ipstatic
+        @test baseline["points"][1]["label"] == "static"
+
+        # Cruise1 point exists with positive thrust
+        cruise_pt = baseline["points"][ipcruise1 - ipstatic + 1]
+        @test cruise_pt["label"] == "cruise1"
+        @test cruise_pt["Fe_N"]  > 0.0
+        @test cruise_pt["BPR"]   > 0.0
+
+    end  # write_sweep_toml
 end
