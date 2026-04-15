@@ -12,7 +12,7 @@ using StaticArrays
 # Declared as a constant so the compiler can specialise the `in` check
 # to a constant fold at call sites.
 const _GAS_FIELDS = (
-    :Tt, :ht, :pt, :cpt, :Rt,           # total thermodynamic state
+    :Tt, :ht, :pt, :cpt, :Rt, :st,      # total thermodynamic state
     :Ts, :ps, :hs, :ss, :cps, :Rs, :u,  # static thermodynamic state
     :alpha,                               # species composition
 )

@@ -172,8 +172,17 @@ const _ENGINE_OWN_FIELDS = (
     :M0, :T0, :p0, :a0, :design,
 )
 
-# Every FlowStation field name that is forwarded (all GasState fields + A + mdot).
-const _FS_FORWARDED_FIELDS = (_GAS_FIELDS..., :A, :mdot)
+# FlowStation fields forwarded as EngineState station-shortcut symbols.
+# NOTE: :st (total entropy complement) is deliberately excluded — the symbol
+# prefix "st" is reserved for station fields (st0, st18, st2, …), so generating
+# shortcuts like Symbol(:st, "4") == :st4 would silently shadow the structural
+# station field.  Access station entropy via the explicit path: eng.st4.st
+const _FS_FORWARDED_FIELDS = (
+    :Tt, :ht, :pt, :cpt, :Rt,           # total thermo  (:st excluded — see note above)
+    :Ts, :ps, :hs, :ss, :cps, :Rs, :u,  # static thermo
+    :alpha,                               # composition
+    :A, :mdot,                           # station mechanics
+)
 
 # All shortcut symbols — used by propertynames() for tab-completion.
 const _STATION_SHORTCUT_NAMES = let names = Symbol[]

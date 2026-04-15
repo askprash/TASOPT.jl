@@ -49,6 +49,7 @@ deferred to post-Phase-2 cleanup (tracked in tasopt-5wg).
 | `pt`   | Pa          | Total pressure                                      |
 | `cpt`  | J/(kg·K)    | Specific heat at stagnation temperature (= dh/dT)   |
 | `Rt`   | J/(kg·K)    | Gas constant at stagnation conditions               |
+| `st`   | J/(kg·K)    | Entropy-complement function s[Tt] at stagnation     |
 
 ### Static state
 | Field  | Unit        | Description                                         |
@@ -75,6 +76,7 @@ mutable struct GasState{T<:AbstractFloat}
     pt  ::T   # total pressure                               [Pa]
     cpt ::T   # specific heat at stagnation temperature      [J/(kg·K)]
     Rt  ::T   # gas constant at stagnation conditions        [J/(kg·K)]
+    st  ::T   # entropy-complement s[Tt] at stagnation       [J/(kg·K)]
 
     # -----------------------------------------------------------------------
     # Static thermodynamic state
@@ -107,7 +109,7 @@ function GasState{T}() where {T<:AbstractFloat}
     z  = zero(T)
     za = @SVector zeros(T, 5)
     GasState{T}(
-        z, z, z, z, z,        # Tt, ht, pt, cpt, Rt
+        z, z, z, z, z, z,     # Tt, ht, pt, cpt, Rt, st
         z, z, z, z, z, z, z,  # Ts, ps, hs, ss, cps, Rs, u
         za,                    # alpha
     )
@@ -134,6 +136,7 @@ function GasState{T}(Tt::T, ht::T, pt::T, cpt::T, Rt::T,
     z = zero(T)
     GasState{T}(
         Tt, ht, pt, cpt, Rt,  # total state
+        z,                     # st (entropy-complement at stagnation, not yet computed)
         z, z, z, z, z, z, z,  # static state (zeroed)
         alpha,
     )

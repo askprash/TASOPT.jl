@@ -17,6 +17,7 @@ export DesignState
 export GasState
 export FlowStation
 export EngineState
+export set_total_from_Tt!
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!
@@ -38,6 +39,7 @@ include("turbofan/flow_station.jl")
 include("turbofan/engine_state.jl")
 include("gasfun.jl")
 include("gascalc.jl")
+include("turbofan/thermo_wrappers.jl")
 # include("tfan.jl")
 include("turbomachinery/tfmap.jl")
 include("turbomachinery/maps.jl")

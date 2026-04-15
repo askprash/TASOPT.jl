@@ -1448,6 +1448,7 @@ isGradient = false
         @test gs.pt  === 0.0
         @test gs.cpt === 0.0
         @test gs.Rt  === 0.0
+        @test gs.st  === 0.0
 
         @test gs.Ts  === 0.0
         @test gs.ps  === 0.0
@@ -1490,6 +1491,8 @@ isGradient = false
         @test gs_total.cpt ≈ 1005.0
         @test gs_total.Rt  ≈ 287.058
 
+        # st (total entropy complement) defaults to zero (not yet computed)
+        @test gs_total.st  === 0.0
         # Static fields default to zero
         @test gs_total.Ts  === 0.0
         @test gs_total.ps  === 0.0
@@ -1505,12 +1508,14 @@ isGradient = false
         gs.pt  = 2.0e6
         gs.cpt = 1100.0
         gs.Rt  = 287.058
+        gs.st  = 2350.0
 
         @test gs.Tt  ≈ 800.0
         @test gs.ht  ≈ 8.5e5
         @test gs.pt  ≈ 2.0e6
         @test gs.cpt ≈ 1100.0
         @test gs.Rt  ≈ 287.058
+        @test gs.st  ≈ 2350.0
 
         gs.Ts  = 720.0
         gs.ps  = 1.6e6
@@ -1717,6 +1722,64 @@ isGradient = false
         @test fs32b.Tt === 300.0f0
         @test fs32b.pt === 1.0f5
         @test @inferred(Float32, getproperty(fs32b, :Tt)) == fs32b.Tt
+
+        # ------------------------------------------------------------------
+        # st field is forwarded (GasState.st → FlowStation.st)
+        # ------------------------------------------------------------------
+        fs_st = FS()
+        @test fs_st.st === 0.0
+        fs_st.st = 2400.0
+        @test fs_st.gas.st ≈ 2400.0
+        @test fs_st.st ≈ 2400.0
+    end
+
+    # ======================================================================
+    # set_total_from_Tt!
+    # ======================================================================
+    @testset "set_total_from_Tt!" begin
+        using StaticArrays
+        FS     = TASOPT.engine.FlowStation
+        gassum = TASOPT.engine.gassum
+        set_tt = TASOPT.engine.set_total_from_Tt!
+
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        Tt_test   = 800.0
+
+        # Build a station with known Tt and alpha; pt is arbitrary (not touched)
+        fs = FS()
+        fs.alpha = air_alpha
+        fs.Tt    = Tt_test
+        fs.pt    = 2.0e6
+
+        # Call the wrapper
+        ret = set_tt(fs)
+
+        # Return value is the station itself (for chaining)
+        @test ret === fs
+
+        # Compare against direct gassum call
+        s_ref, _, h_ref, _, cp_ref, r_ref = gassum(air_alpha, 5, Tt_test)
+
+        @test fs.ht  ≈ h_ref
+        @test fs.st  ≈ s_ref
+        @test fs.cpt ≈ cp_ref
+        @test fs.Rt  ≈ r_ref
+
+        # Fields NOT updated by set_total_from_Tt!
+        @test fs.Tt  ≈ Tt_test   # unchanged
+        @test fs.pt  ≈ 2.0e6     # unchanged
+        @test fs.Ts  === 0.0     # static not touched
+        @test fs.ps  === 0.0
+        @test fs.u   === 0.0
+
+        # Monotonicity: higher Tt → higher ht and higher st (entropy increases with T)
+        fs2 = FS()
+        fs2.alpha = air_alpha
+        fs2.Tt    = 1600.0
+        set_tt(fs2)
+        @test fs2.ht > fs.ht
+        @test fs2.st > fs.st
+
     end
 
     # EngineState
