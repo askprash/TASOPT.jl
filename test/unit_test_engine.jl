@@ -1292,5 +1292,271 @@ isGradient = false
         TASOPT.engine.fractional_engine_weight!(ac)
         @test ac.parg[igWeng] ≈ feng * MTOW rtol = 1e-10
 
-    end 
+    end
+
+    @testset "DesignState" begin
+        DS = TASOPT.engine.DesignState
+
+        # ------------------------------------------------------------------
+        # Zero-initialised Float64 constructor (default)
+        # ------------------------------------------------------------------
+        ds = DS()
+        @test ds isa DS{Float64}
+
+        # All scalar fields are zero
+        for fname in (:pifD, :pilcD, :pihcD, :pihtD, :piltD,
+                      :mbfD, :mblcD, :mbhcD, :mbhtD, :mbltD,
+                      :NbfD, :NblcD, :NbhcD, :NbhtD, :NbltD,
+                      :A2, :A25, :A5, :A7,
+                      :fc, :ruc, :M4a)
+            @test getfield(ds, fname) == 0.0
+        end
+
+        # Vector fields are length-4 zero SVectors
+        @test length(ds.epsrow) == 4
+        @test length(ds.Tmrow) == 4
+        @test all(==(0.0), ds.epsrow)
+        @test all(==(0.0), ds.Tmrow)
+
+        # ------------------------------------------------------------------
+        # Explicit Float64 typed constructor
+        # ------------------------------------------------------------------
+        ds64 = DS{Float64}()
+        @test ds64 isa DS{Float64}
+        @test ds64.pifD === 0.0
+
+        # ------------------------------------------------------------------
+        # Float32 typed constructor
+        # ------------------------------------------------------------------
+        ds32 = DS{Float32}()
+        @test ds32 isa DS{Float32}
+        @test ds32.pifD === 0.0f0
+        @test ds32.epsrow isa StaticArrays.SVector{4,Float32}
+        @test all(==(0.0f0), ds32.epsrow)
+
+        # ------------------------------------------------------------------
+        # Mutation: map scalars round-trip
+        # ------------------------------------------------------------------
+        ds.pifD  = 1.6
+        ds.pilcD = 3.0
+        ds.pihcD = 12.0
+        ds.pihtD = 4.5
+        ds.piltD = 2.0
+
+        @test ds.pifD  == 1.6
+        @test ds.pilcD == 3.0
+        @test ds.pihcD == 12.0
+        @test ds.pihtD == 4.5
+        @test ds.piltD == 2.0
+
+        ds.mbfD  = 210.0
+        ds.mblcD = 55.0
+        ds.mbhcD = 50.0
+        ds.mbhtD = 12.0
+        ds.mbltD = 45.0
+
+        @test ds.mbfD  == 210.0
+        @test ds.mblcD == 55.0
+        @test ds.mbhcD == 50.0
+        @test ds.mbhtD == 12.0
+        @test ds.mbltD == 45.0
+
+        ds.NbfD  = 1.0
+        ds.NblcD = 1.0
+        ds.NbhcD = 1.0
+        ds.NbhtD = 1.0
+        ds.NbltD = 1.0
+
+        @test ds.NbfD == 1.0
+
+        # ------------------------------------------------------------------
+        # Mutation: component areas round-trip
+        # ------------------------------------------------------------------
+        ds.A2  = 3.14
+        ds.A25 = 0.52
+        ds.A5  = 0.18
+        ds.A7  = 1.20
+
+        @test ds.A2  == 3.14
+        @test ds.A25 == 0.52
+        @test ds.A5  == 0.18
+        @test ds.A7  == 1.20
+
+        # ------------------------------------------------------------------
+        # Mutation: cooling fields round-trip
+        # ------------------------------------------------------------------
+        using StaticArrays
+        eps_val = SA[0.05, 0.04, 0.03, 0.02]
+        tm_val  = SA[1200.0, 1150.0, 1100.0, 1050.0]
+
+        ds.epsrow = eps_val
+        ds.Tmrow  = tm_val
+        ds.fc     = sum(eps_val)
+        ds.ruc    = 0.95
+        ds.M4a    = 0.10
+
+        @test ds.epsrow[1] ≈ 0.05
+        @test ds.epsrow[4] ≈ 0.02
+        @test ds.Tmrow[1]  ≈ 1200.0
+        @test ds.Tmrow[4]  ≈ 1050.0
+        @test ds.fc        ≈ 0.14
+        @test ds.ruc       ≈ 0.95
+        @test ds.M4a       ≈ 0.10
+
+        # ------------------------------------------------------------------
+        # ncrowx = 4: vector dimensions match legacy constant
+        # ------------------------------------------------------------------
+        # The legacy index.inc defines ncrowx = ieTmet1 - ieepsc1 = 192 - 188 = 4
+        @test length(ds.epsrow) == 4
+        @test length(ds.Tmrow)  == 4
+
+        # ------------------------------------------------------------------
+        # @inferred: field access should not allocate or lose type info
+        # ------------------------------------------------------------------
+        @test @inferred(Float64, getproperty(ds, :pifD)) == ds.pifD
+        @test @inferred(Float64, getproperty(ds, :A2))  == ds.A2
+        @test @inferred(Float64, getproperty(ds, :ruc)) == ds.ruc
+        @test @inferred(Float64, getproperty(ds, :M4a)) == ds.M4a
+
+        # ------------------------------------------------------------------
+        # Inline storage: DesignState embedded in another struct should not
+        # force heap allocation of the DesignState itself
+        # ------------------------------------------------------------------
+        struct WrapDS
+            ds::DS{Float64}
+            tag::Int
+        end
+        w = WrapDS(DS(), 42)
+        @test w.ds isa DS{Float64}
+        @test w.tag == 42
+    end
+
+    # ======================================================================
+    @testset "GasState" begin
+        using StaticArrays
+        GS = TASOPT.engine.GasState
+
+        # ------------------------------------------------------------------
+        # Default constructor — GasState() → GasState{Float64}
+        # ------------------------------------------------------------------
+        gs = GS()
+        @test gs isa GS{Float64}
+
+        # Scalar fields zero-initialised
+        @test gs.Tt  === 0.0
+        @test gs.ht  === 0.0
+        @test gs.pt  === 0.0
+        @test gs.cpt === 0.0
+        @test gs.Rt  === 0.0
+
+        @test gs.Ts  === 0.0
+        @test gs.ps  === 0.0
+        @test gs.hs  === 0.0
+        @test gs.ss  === 0.0
+        @test gs.cps === 0.0
+        @test gs.Rs  === 0.0
+        @test gs.u   === 0.0
+
+        # Species composition is length-5 zero SVector
+        @test length(gs.alpha) == 5
+        @test gs.alpha isa StaticArrays.SVector{5,Float64}
+        @test all(==(0.0), gs.alpha)
+
+        # ------------------------------------------------------------------
+        # Explicit Float64 typed constructor
+        # ------------------------------------------------------------------
+        gs64 = GS{Float64}()
+        @test gs64 isa GS{Float64}
+        @test gs64.Tt === 0.0
+
+        # ------------------------------------------------------------------
+        # Float32 typed constructor
+        # ------------------------------------------------------------------
+        gs32 = GS{Float32}()
+        @test gs32 isa GS{Float32}
+        @test gs32.Tt === 0.0f0
+        @test gs32.alpha isa StaticArrays.SVector{5,Float32}
+        @test all(==(0.0f0), gs32.alpha)
+
+        # ------------------------------------------------------------------
+        # Constructor with explicit total-state fields and species
+        # ------------------------------------------------------------------
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]   # standard air
+        gs_total  = GS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha)
+
+        @test gs_total.Tt  ≈ 288.15
+        @test gs_total.ht  ≈ 2.885e5
+        @test gs_total.pt  ≈ 101325.0
+        @test gs_total.cpt ≈ 1005.0
+        @test gs_total.Rt  ≈ 287.058
+
+        # Static fields default to zero
+        @test gs_total.Ts  === 0.0
+        @test gs_total.ps  === 0.0
+        @test gs_total.u   === 0.0
+
+        @test gs_total.alpha ≈ air_alpha
+
+        # ------------------------------------------------------------------
+        # Mutation: round-trip on every field
+        # ------------------------------------------------------------------
+        gs.Tt  = 800.0
+        gs.ht  = 8.5e5
+        gs.pt  = 2.0e6
+        gs.cpt = 1100.0
+        gs.Rt  = 287.058
+
+        @test gs.Tt  ≈ 800.0
+        @test gs.ht  ≈ 8.5e5
+        @test gs.pt  ≈ 2.0e6
+        @test gs.cpt ≈ 1100.0
+        @test gs.Rt  ≈ 287.058
+
+        gs.Ts  = 720.0
+        gs.ps  = 1.6e6
+        gs.hs  = 7.9e5
+        gs.ss  = 2400.0
+        gs.cps = 1090.0
+        gs.Rs  = 287.058
+        gs.u   = 150.0
+
+        @test gs.Ts  ≈ 720.0
+        @test gs.ps  ≈ 1.6e6
+        @test gs.hs  ≈ 7.9e5
+        @test gs.ss  ≈ 2400.0
+        @test gs.cps ≈ 1090.0
+        @test gs.Rs  ≈ 287.058
+        @test gs.u   ≈ 150.0
+
+        gs.alpha = air_alpha
+        @test gs.alpha[1] ≈ 0.7532
+        @test gs.alpha[5] ≈ 0.0127
+        @test sum(gs.alpha) ≈ sum(air_alpha)
+
+        # ------------------------------------------------------------------
+        # @inferred: field access must not lose type info
+        # ------------------------------------------------------------------
+        gs2 = GS()
+        @test @inferred(Float64, getproperty(gs2, :Tt)) == gs2.Tt
+        @test @inferred(Float64, getproperty(gs2, :pt)) == gs2.pt
+        @test @inferred(Float64, getproperty(gs2, :u))  == gs2.u
+
+        # ------------------------------------------------------------------
+        # Inline storage: GasState embedded in another struct
+        # ------------------------------------------------------------------
+        struct WrapGS
+            state::GS{Float64}
+            id::Int
+        end
+        wg = WrapGS(GS(), 7)
+        @test wg.state isa GS{Float64}
+        @test wg.id == 7
+
+        # ------------------------------------------------------------------
+        # OQ-5 invariant: alpha always has exactly 5 species
+        # (n == 5 is a compile-time guarantee via SVector length)
+        # ------------------------------------------------------------------
+        @test length(GS().alpha) == 5
+        @test length(GS{Float32}().alpha) == 5
+    end
 end
