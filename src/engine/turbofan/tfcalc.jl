@@ -415,7 +415,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 A2 = pare[ieA2]
                 A25 = pare[ieA25]
                 A5 = pare[ieA5]
-                A7 = pare[ieA7]
+                A7 = eng.st7.A   # fan nozzle throat area — read from typed state (set at entry by pare_to_engine_state!)
 
                 NbfD = pare[ieNbfD]
                 NblcD = pare[ieNblcD]
@@ -744,11 +744,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iecpt5] = cpt5
         pare[ieRt5] = Rt5
 
-        pare[ieTt7] = Tt7
-        pare[ieht7] = ht7
-        pare[iept7] = pt7
-        pare[iecpt7] = cpt7
-        pare[ieRt7] = Rt7
+        # st7 total state (Tt7/ht7/pt7/cpt7/Rt7) removed: written by engine_state_to_pare!
+        # via st7.Tt/ht/pt/cpt/Rt in both sizing and off-design EXIT blocks above.
 
         # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
 
@@ -776,22 +773,12 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iecp6] = cp6
         pare[ieu6] = u6
 
-        pare[iep7] = p7
-        pare[ieT7] = T7
-        pare[ieR7] = R7
-        pare[iecp7] = cp7
-        pare[ieu7] = u7
-
-        pare[iep8] = p8
-        pare[ieT8] = T8
-        pare[ieR8] = R8
-        pare[iecp8] = cp8
-        pare[ieu8] = u8
+        # st7 static state (p7/T7/R7/cp7/u7) removed: written by engine_state_to_pare!
+        # st8 static state (p8/T8/R8/cp8/u8) and A8 removed: written by engine_state_to_pare!
 
         pare[ieu9] = u9
 
         pare[ieA6] = A6
-        pare[ieA8] = A8
         pare[ieA9] = A9
 
         pare[ieepf] = epf
