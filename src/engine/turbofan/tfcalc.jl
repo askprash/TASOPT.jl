@@ -687,32 +687,12 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iepilc] = pilc
         pare[iepihc] = pihc
 
-        # st0/st18/st19 are now written by engine_state_to_pare! in both sizing
-        # and off-design EXIT blocks above; the individual writes here are removed.
-
-        pare[ieTt2] = Tt2
-        pare[ieht2] = ht2
-        pare[iept2] = pt2
-        pare[iecpt2] = cpt2
-        pare[ieRt2] = Rt2
-
-        pare[ieTt21] = Tt21
-        pare[ieht21] = ht21
-        pare[iept21] = pt21
-        pare[iecpt21] = cpt21
-        pare[ieRt21] = Rt21
-
-        pare[ieTt25] = Tt25
-        pare[ieht25] = ht25
-        pare[iept25] = pt25
-        pare[iecpt25] = cpt25
-        pare[ieRt25] = Rt25
-
-        pare[ieTt3] = Tt3
-        pare[ieht3] = ht3
-        pare[iept3] = pt3
-        pare[iecpt3] = cpt3
-        pare[ieRt3] = Rt3
+        # st0/st18/st19 total state removed: written by engine_state_to_pare! in both
+        # sizing and off-design EXIT blocks above.
+        # st2 total (Tt2/ht2/pt2/cpt2/Rt2) removed: written by engine_state_to_pare!
+        # st21 total (Tt21/ht21/pt21/cpt21/Rt21) removed: written by engine_state_to_pare!
+        # st25 total (Tt25/ht25/pt25/cpt25/Rt25) removed: written by engine_state_to_pare!
+        # st3 total (Tt3/ht3/pt3/cpt3/Rt3) removed: written by engine_state_to_pare!
 
         #cc   pare[ieTt4 ] = Tt4
         pare[ieht4] = ht4
@@ -749,17 +729,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
 
         # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
 
-        pare[iep2] = p2
-        pare[ieT2] = T2
-        pare[ieR2] = R2
-        pare[iecp2] = cp2
-        pare[ieu2] = u2
-
-        pare[iep25] = p25
-        pare[ieT25] = T25
-        pare[ieR25] = R25
-        pare[iecp25] = cp25
-        pare[ieu25] = u25
+        # st2 static (p2/T2/R2/cp2/u2) removed: written by engine_state_to_pare!
+        # st25 static (p25/T25/R25/cp25/u25) removed: written by engine_state_to_pare!
 
         pare[iep5] = p5
         pare[ieT5] = T5
