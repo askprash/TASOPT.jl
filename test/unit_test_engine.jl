@@ -2415,4 +2415,114 @@ isGradient = false
         @test eng.Tt25c == 0.0
         @test eng.Tt49c == 0.0
     end  # run_engine_design_point
+
+    # ======================================================================
+    # run_engine_sweep / SweepResult / write_sweep_csv
+    # ======================================================================
+    @testset "run_engine_sweep" begin
+        # ------------------------------------------------------------------
+        # Setup: use the same sized aircraft from the design-point test.
+        # ------------------------------------------------------------------
+        ac = TASOPT.load_default_model()
+        size_aircraft!(ac; printiter=false)
+
+        # ------------------------------------------------------------------
+        # Sweep all regular mission points (ipstatic:ipdescentn = 1:16).
+        # After sizing, every pare column is already converged, so the sweep
+        # should reproduce those converged values.
+        # ------------------------------------------------------------------
+        sweep = TASOPT.engine.run_engine_sweep(ac)
+
+        # ---- Structural invariants ----
+        n_pts = ipdescentn - ipstatic + 1   # should be 16
+        @test length(sweep.ip_indices) == n_pts
+        @test length(sweep.ip_labels)  == n_pts
+        @test length(sweep.engines)    == n_pts
+        @test length(sweep.Fe)         == n_pts
+        @test length(sweep.TSFC)       == n_pts
+        @test length(sweep.BPR)        == n_pts
+        @test length(sweep.mcore)      == n_pts
+        @test length(sweep.mdotf)      == n_pts
+
+        # First and last ip indices match ipstatic and ipdescentn
+        @test sweep.ip_indices[1]   == ipstatic
+        @test sweep.ip_indices[end] == ipdescentn
+
+        # ---- All performance scalars are positive (physical) ----
+        @test all(x -> x > 0.0, sweep.Fe)
+        @test all(x -> x > 0.0, sweep.TSFC)
+        @test all(x -> x > 0.0, sweep.BPR)
+        @test all(x -> x > 0.0, sweep.mcore)
+        @test all(x -> x > 0.0, sweep.mdotf)
+
+        # ---- Mach and altitude are populated for all points ----
+        @test all(x -> x >= 0.0, sweep.Mach)
+        @test all(x -> x >= 0.0, sweep.alt)
+
+        # ---- Engine states match pare at every mission point ----
+        # cruise1 index within the sweep vector
+        k_cr = ipcruise1 - ipstatic + 1
+        eng_cr = sweep.engines[k_cr]
+        pare_cr = view(ac.pare, :, ipcruise1, 1)
+
+        @test eng_cr.Tt4  ≈ pare_cr[ieTt4]   rtol = 1e-12
+        @test eng_cr.pt3  ≈ pare_cr[iept3]   rtol = 1e-12
+        @test eng_cr.Tt49 ≈ pare_cr[ieTt49]  rtol = 1e-12
+        @test sweep.BPR[k_cr] ≈ pare_cr[ieBPR]    rtol = 1e-12
+        @test sweep.Fe[k_cr]  ≈ pare_cr[ieFe]     rtol = 1e-12
+        @test sweep.TSFC[k_cr] ≈ pare_cr[ieTSFC]  rtol = 1e-12
+        @test sweep.mcore[k_cr] ≈ pare_cr[iemcore] rtol = 1e-12
+        @test sweep.mdotf[k_cr] ≈ pare_cr[iemfuel] rtol = 1e-12
+
+        # Check a climb point too (ipclimb1 uses FixedTt4OffDes mode)
+        k_cl = ipclimb1 - ipstatic + 1
+        eng_cl = sweep.engines[k_cl]
+        pare_cl = view(ac.pare, :, ipclimb1, 1)
+
+        @test eng_cl.Tt4  ≈ pare_cl[ieTt4]   rtol = 1e-12
+        @test eng_cl.pt3  ≈ pare_cl[iept3]   rtol = 1e-12
+
+        # ---- Thermodynamic invariants on cruise point ----
+        # Total temperature must rise through compressor, fall through turbine
+        @test eng_cr.Tt25 > eng_cr.Tt19   # LPC adds work
+        @test eng_cr.Tt3  > eng_cr.Tt25   # HPC adds work
+        @test eng_cr.Tt4  > eng_cr.Tt3    # combustor
+        @test eng_cr.Tt41 < eng_cr.Tt4    # turbine inlet (cooling dilution)
+        @test eng_cr.Tt45 < eng_cr.Tt41   # HPT
+        @test eng_cr.Tt49 < eng_cr.Tt45   # LPT
+
+        # ---- Custom ip_range: only the two cruise points ----
+        sweep_cr2 = TASOPT.engine.run_engine_sweep(ac;
+                        ip_range = ipcruise1:ipcruise2)
+        @test length(sweep_cr2.ip_indices) == 2
+        @test sweep_cr2.ip_indices[1] == ipcruise1
+        @test sweep_cr2.ip_indices[2] == ipcruise2
+        @test all(x -> x > 0.0, sweep_cr2.Fe)
+
+        # ---- CSV serialisation round-trip ----
+        buf = IOBuffer()
+        TASOPT.engine.write_sweep_csv(buf, sweep_cr2)
+        csv_str = String(take!(buf))
+
+        # Header row must contain expected column names
+        header_line = split(csv_str, "\n")[1]
+        @test occursin("ip",        header_line)
+        @test occursin("label",     header_line)
+        @test occursin("Fe_N",      header_line)
+        @test occursin("TSFC_kg_Ns",  header_line)
+        @test occursin("BPR",         header_line)
+        @test occursin("mfuel_kg_s",  header_line)
+        @test occursin("Tt4_K",     header_line)
+        @test occursin("pt3_Pa",    header_line)
+
+        # Exactly 3 lines (header + 2 data rows + possible trailing newline)
+        data_lines = filter(l -> !isempty(strip(l)), split(csv_str, "\n"))
+        @test length(data_lines) == 3   # header + 2 cruise points
+
+        # First data row label is "cruise1"
+        first_data = split(data_lines[2], ",")
+        @test first_data[1] == string(ipcruise1)   # ip index
+        @test first_data[2] == "cruise1"            # human label
+
+    end  # run_engine_sweep
 end

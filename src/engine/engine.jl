@@ -19,6 +19,7 @@ export FlowStation
 export EngineState
 export dump_stations
 export pare_to_engine_state!, run_engine_design_point
+export SweepResult, run_engine_sweep, write_sweep_csv
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!

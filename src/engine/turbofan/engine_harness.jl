@@ -1,14 +1,18 @@
 """
-engine_harness.jl — Engine-standalone single-point runner.
+engine_harness.jl — Engine-standalone runners (single-point and multi-point sweep).
 
-Provides `run_engine_design_point`, which accepts an aircraft object (or a
-path to an input TOML file), initialises the design-point ambient conditions,
-and runs the turbofan design-point sizing routine (`tfsize!` via `tfwrap!`)
-for one mission point — **without** iterating the full aircraft
-structural/aerodynamic weight-convergence loop.
-
-Also provides `pare_to_engine_state!`, the public mapping function that reads
-a single `pare` column into a typed `EngineState`.
+Provides:
+- `pare_to_engine_state!`: public mapping from a `pare` column to a typed
+  `EngineState`.
+- `run_engine_design_point`: single-point design sizing runner — accepts an
+  aircraft object, initialises ambient conditions, runs `tfsize!` via
+  `tfwrap!`, and returns an `EngineState`.
+- `SweepResult`: tabular container aggregating per-mission-point engine states
+  and performance scalars.
+- `run_engine_sweep`: multi-point off-design runner — iterates the engine
+  across a range of mission points on an already-sized aircraft and returns a
+  `SweepResult`.
+- `write_sweep_csv`: serialise a `SweepResult` to CSV.
 """
 
 # ---------------------------------------------------------------------------
@@ -272,4 +276,206 @@ function run_engine_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     eng = EngineState{Float64}()
     pare_to_engine_state!(eng, view(ac.pare, :, ip, imission))
     return eng
+end
+
+# ---------------------------------------------------------------------------
+# SweepResult
+# ---------------------------------------------------------------------------
+
+"""
+    SweepResult{T<:AbstractFloat}
+
+Tabular container for the output of [`run_engine_sweep`](@ref).  Holds one
+[`EngineState`](@ref) per mission point together with the key engine
+performance scalars extracted from `pare`.
+
+## Fields
+
+| Field       | Size  | Unit    | Description                              |
+|:------------|:------|:--------|:-----------------------------------------|
+| `ip_indices`| `n`   | —       | Mission-point indices (`ip` values)       |
+| `ip_labels` | `n`   | —       | Human-readable labels (e.g. `"cruise1"`) |
+| `alt`       | `n`   | m       | Altitude at each point                   |
+| `Mach`      | `n`   | —       | Mach number at each point                |
+| `engines`   | `n`   | —       | `EngineState` per point                  |
+| `Fe`        | `n`   | N       | Net thrust per engine                    |
+| `TSFC`      | `n`   | kg/N/s  | Thrust-specific fuel consumption         |
+| `BPR`       | `n`   | —       | Bypass ratio                             |
+| `mcore`     | `n`   | kg/s    | Core mass flow rate (per engine)         |
+| `mdotf`     | `n`   | kg/s    | Fuel mass flow rate (total, all engines; from `pare[iemfuel]`) |
+"""
+struct SweepResult{T<:AbstractFloat}
+    ip_indices ::Vector{Int}
+    ip_labels  ::Vector{String}
+    alt        ::Vector{T}
+    Mach       ::Vector{T}
+    engines    ::Vector{EngineState{T}}
+    Fe         ::Vector{T}
+    TSFC       ::Vector{T}
+    BPR        ::Vector{T}
+    mcore      ::Vector{T}
+    mdotf      ::Vector{T}
+end
+
+# ---------------------------------------------------------------------------
+# run_engine_sweep
+# ---------------------------------------------------------------------------
+
+"""
+    run_engine_sweep(ac; imission=1, ip_range=ipstatic:ipdescentn,
+                    initializes_engine=false) -> SweepResult{Float64}
+
+Run the turbofan off-design performance routine across every mission point in
+`ip_range` and return the aggregated results as a [`SweepResult`](@ref).
+
+The aircraft must already be sized with `size_aircraft!` (or equivalent)
+before calling this function.  In particular:
+- `pare[ieFe, ip, imission]` must hold the required thrust at each mission
+  point (set by `size_aircraft!` ↔ `fly_mission!`).
+- Ambient conditions in `pare` (T0, p0, a0, M0, …) must be populated.
+
+For climb and ground-roll points (`ipstatic:ipclimbn`) the engine is operated
+at maximum turbine-inlet temperature (`CalcMode.FixedTt4OffDes`); for all
+other points it operates at the thrust target (`CalcMode.FixedFeOffDes`).
+
+## Arguments
+- `ac`: a sized `aircraft` object.
+- `imission::Int`: mission index (default `1`).
+- `ip_range`: iterable of mission-point indices (default `ipstatic:ipdescentn`,
+  i.e., all 16 regular mission points).
+- `initializes_engine::Bool`: passed to `tfwrap!` for each point.
+  Default `false` — use the converged `pare` state as the initial guess.
+  Pass `true` to reinitialise the Newton iteration from scratch at every point
+  (slower, but independent of the current `pare` state).
+
+## Returns
+A [`SweepResult{Float64}`](@ref) with one entry per mission point in
+`ip_range`.
+
+## Example
+```julia
+using TASOPT
+ac = TASOPT.load_default_model()
+size_aircraft!(ac; printiter=false)
+sweep = TASOPT.engine.run_engine_sweep(ac)
+TASOPT.engine.write_sweep_csv("engine_sweep.csv", sweep)
+```
+"""
+function run_engine_sweep(ac;
+                          imission::Int        = 1,
+                          ip_range             = ipstatic:ipdescentn,
+                          initializes_engine::Bool = false)
+
+    T   = Float64
+    ips = collect(Int, ip_range)
+    n   = length(ips)
+
+    # Allocate output vectors
+    labels  = Vector{String}(undef, n)
+    alt_vec = zeros(T, n)
+    M_vec   = zeros(T, n)
+    engs    = [EngineState{T}() for _ in 1:n]
+    Fe_vec  = zeros(T, n)
+    TSFC_v  = zeros(T, n)
+    BPR_v   = zeros(T, n)
+    mc_v    = zeros(T, n)
+    mf_v    = zeros(T, n)
+
+    for (k, ip) in enumerate(ips)
+        # Human-readable label from the index-constant table in index.inc
+        labels[k] = (ip <= length(ip_labels)) ? ip_labels[ip] : string(ip)
+
+        # Altitude and Mach from para (populated by size_aircraft! / fly_mission!)
+        alt_vec[k] = ac.para[iaalt,  ip, imission]
+        M_vec[k]   = ac.para[iaMach, ip, imission]
+
+        # Run engine off-design at this mission point
+        tfwrap!(ac, "off_design", imission, ip, initializes_engine)
+
+        # Map converged pare column → typed EngineState
+        pare_to_engine_state!(engs[k], view(ac.pare, :, ip, imission))
+
+        # Extract key performance scalars from pare
+        Fe_vec[k] = ac.pare[ieFe,    ip, imission]
+        TSFC_v[k] = ac.pare[ieTSFC,  ip, imission]
+        BPR_v[k]  = ac.pare[ieBPR,   ip, imission]
+        mc_v[k]   = ac.pare[iemcore, ip, imission]
+        mf_v[k]   = ac.pare[iemfuel, ip, imission]
+    end
+
+    return SweepResult{T}(ips, labels, alt_vec, M_vec, engs,
+                          Fe_vec, TSFC_v, BPR_v, mc_v, mf_v)
+end
+
+# ---------------------------------------------------------------------------
+# write_sweep_csv
+# ---------------------------------------------------------------------------
+
+"""
+    write_sweep_csv(io::IO, result::SweepResult)
+    write_sweep_csv(path::AbstractString, result::SweepResult)
+
+Write a [`SweepResult`](@ref) to CSV format.
+
+Each row corresponds to one mission point.  Columns:
+- Metadata: `ip`, `label`, `alt_m`, `Mach`
+- Engine performance: `Fe_N`, `TSFC_kg_Ns`, `BPR`, `mcore_kg_s`, `mfuel_kg_s`
+- Station totals at key stations (0, 2, 3, 4, 41, 45, 49, 5, 7):
+  `Tt<N>_K`, `pt<N>_Pa`, `ht<N>_J_kg`
+- Station exit velocities at nozzle stations 5 and 7:
+  `u5_m_s`, `u7_m_s`
+
+The `path` overload opens the file, writes, and closes it.
+"""
+function write_sweep_csv(io::IO, result::SweepResult)
+    # ----- Header -----
+    header_parts = [
+        "ip", "label", "alt_m", "Mach",
+        "Fe_N", "TSFC_kg_Ns", "BPR", "mcore_kg_s", "mfuel_kg_s",
+    ]
+    # Station columns: Tt and pt at stations 0, 2, 3, 4, 41, 45, 49, 5, 7
+    _sweep_stations = (("0",  :st0),  ("2",  :st2),  ("3",  :st3),
+                       ("4",  :st4),  ("41", :st41), ("45", :st45),
+                       ("49", :st49), ("5",  :st5),  ("7",  :st7))
+    for (sname, _) in _sweep_stations
+        push!(header_parts, "Tt$(sname)_K", "pt$(sname)_Pa", "ht$(sname)_J_kg")
+    end
+    push!(header_parts, "u5_m_s", "u7_m_s")
+    println(io, join(header_parts, ","))
+
+    # ----- Rows -----
+    n = length(result.ip_indices)
+    for k in 1:n
+        eng = result.engines[k]
+        row = [
+            string(result.ip_indices[k]),
+            result.ip_labels[k],
+            @sprintf("%.2f", result.alt[k]),
+            @sprintf("%.6g", result.Mach[k]),
+            @sprintf("%.6g", result.Fe[k]),
+            @sprintf("%.6g", result.TSFC[k]),
+            @sprintf("%.6g", result.BPR[k]),
+            @sprintf("%.6g", result.mcore[k]),
+            @sprintf("%.6g", result.mdotf[k]),
+        ]
+        for (_, stfield) in _sweep_stations
+            fs = getfield(eng, stfield)
+            push!(row,
+                  @sprintf("%.6g", fs.Tt),
+                  @sprintf("%.6g", fs.pt),
+                  @sprintf("%.6g", fs.ht))
+        end
+        push!(row,
+              @sprintf("%.6g", eng.st5.u),
+              @sprintf("%.6g", eng.st7.u))
+        println(io, join(row, ","))
+    end
+    return nothing
+end
+
+function write_sweep_csv(path::AbstractString, result::SweepResult)
+    open(path, "w") do io
+        write_sweep_csv(io, result)
+    end
+    return nothing
 end
