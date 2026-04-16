@@ -2955,6 +2955,255 @@ isGradient = false
     #   - expected subplot count
     #   - savefig to a temp file succeeds without throwing
     # ======================================================================
+    # ======================================================================
+    # Inlet component — tasopt-j9l.28
+    # Verify structural invariants and outlet-state physics for
+    #   inlet_diffuser!  and  inlet_bli_mixing!
+    #
+    # Property-based tests:
+    #   - diffuser conserves total enthalpy/temperature; pt18 = pid * pt0
+    #   - BLI=0: no pressure loss; Tt unchanged
+    #   - BLI>0 (fan-only): st2.pt < st18.pt; st19.pt = st18.pt; adiabatic
+    #   - BLI>0 (all cores): st2.pt == st19.pt; both reduced
+    # Round-trip:
+    #   - sbfan from inlet_bli_mixing! agrees with the inlined tfoper.jl formula
+    # ======================================================================
+    @testset "Inlet" begin
+        using StaticArrays
+
+        FS               = TASOPT.engine.FlowStation
+        Inl              = TASOPT.engine.Inlet
+        set_tt!          = TASOPT.engine.set_total_from_Tt!
+        inlet_diffuser!  = TASOPT.engine.inlet_diffuser!
+        inlet_bli!       = TASOPT.engine.inlet_bli_mixing!
+        gassum           = TASOPT.engine.gassum
+        gas_tset         = TASOPT.engine.gas_tset
+
+        # Standard 5-species air composition
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair = 5
+
+        # ------------------------------------------------------------------
+        # Build realistic freestream station for cruise (M0=0.8, T0=219.43K)
+        # Replicates the tfsize! test freestream.
+        # ------------------------------------------------------------------
+        M0_val  = 0.8
+        T0_val  = 219.43067572699252
+        p0_val  = 23922.608843328788
+        a0_val  = 296.85578884697560
+        u0_val  = M0_val * a0_val
+
+        # Stagnation temperature via gas_tset
+        s0_c, _, hs0_c, _, cps0_c, Rs0_c = gassum(air_alpha, nair, T0_val)
+        hspec_c  = hs0_c + 0.5 * u0_val^2
+        gam0_c   = cps0_c / (cps0_c - Rs0_c)
+        Tguess_c = T0_val * (1.0 + 0.5 * (gam0_c - 1.0) * M0_val^2)
+        Tt0_c    = gas_tset(air_alpha, nair, hspec_c, Tguess_c)
+
+        # Total pressure via isentropic relation
+        st0_ent, _, ht0_c, _, cpt0_c, Rt0_c = gassum(air_alpha, nair, Tt0_c)
+        pt0_c = p0_val * exp((st0_ent - s0_c) / Rt0_c)
+        at0_c = sqrt(Tt0_c * Rt0_c * cpt0_c / (cpt0_c - Rt0_c))
+
+        # Build FlowStation for st0 using set_total_from_Tt! for entropy
+        st0 = FS{Float64}()
+        st0.alpha = air_alpha
+        st0.Tt    = Tt0_c
+        st0.pt    = pt0_c
+        set_tt!(st0)   # fills ht, st, cpt, Rt from Tt and alpha
+
+        # Sanity-check: total temperature above ambient
+        @test st0.Tt > T0_val
+        @test st0.pt > p0_val
+
+        # ------------------------------------------------------------------
+        # 1. Inlet struct and constructors
+        # ------------------------------------------------------------------
+        # Full typed constructor
+        inl_full = Inl{Float64}(0.998, 0.0, 0.0, false)
+        @test inl_full isa Inl{Float64}
+        @test inl_full.pid              === 0.998
+        @test inl_full.Kinl             === 0.0
+        @test inl_full.Phiinl           === 0.0
+        @test inl_full.eng_has_BLI_cores === false
+
+        # Convenience constructor (no BLI)
+        inl_clean = Inl(0.997)
+        @test inl_clean isa Inl{Float64}
+        @test inl_clean.pid              === 0.997
+        @test inl_clean.Kinl             === 0.0
+        @test inl_clean.Phiinl           === 0.0
+        @test inl_clean.eng_has_BLI_cores === false
+
+        # Convenience constructor with BLI keyword args
+        inl_bli = Inl(0.995; Kinl=5000.0, Phiinl=1000.0, eng_has_BLI_cores=true)
+        @test inl_bli.Kinl              ≈ 5000.0
+        @test inl_bli.Phiinl            ≈ 1000.0
+        @test inl_bli.eng_has_BLI_cores === true
+
+        # Mutation (mutable struct)
+        inl_mut = Inl(0.99)
+        inl_mut.pid = 0.95
+        @test inl_mut.pid === 0.95
+
+        # ------------------------------------------------------------------
+        # 2. inlet_diffuser! — adiabatic duct invariants
+        # ------------------------------------------------------------------
+        pid_val = 0.998
+        inl_d   = Inl(pid_val)
+        st18    = FS{Float64}()
+
+        ret = inlet_diffuser!(st18, st0, inl_d)
+
+        # Returns the mutated station
+        @test ret === st18
+
+        # Adiabatic: all total-state fields (except pt) unchanged
+        @test st18.Tt    === st0.Tt
+        @test st18.ht    === st0.ht
+        @test st18.cpt   === st0.cpt
+        @test st18.Rt    === st0.Rt
+        @test st18.st    === st0.st
+        @test st18.alpha === st0.alpha
+
+        # Pressure recovery: exact floating-point product
+        @test st18.pt === st0.pt * pid_val
+
+        # pid = 1.0: no pressure drop at all
+        st18_id = FS{Float64}()
+        inlet_diffuser!(st18_id, st0, Inl(1.0))
+        @test st18_id.pt === st0.pt
+
+        # Monotonicity: lower pid ↔ lower pt18
+        pt18_95 = let st18_lo = FS{Float64}()
+            inlet_diffuser!(st18_lo, st0, Inl(0.95)); st18_lo.pt
+        end
+        pt18_99 = let st18_hi = FS{Float64}()
+            inlet_diffuser!(st18_hi, st0, Inl(0.99)); st18_hi.pt
+        end
+        @test pt18_95 < pt18_99 < st0.pt
+
+        # ------------------------------------------------------------------
+        # 3. inlet_bli_mixing! — zero BLI (Kinl = 0): no pressure loss
+        # ------------------------------------------------------------------
+        # Shared Tref/pref for corrected-flow normalisation
+        Tref_val = 288.2
+        pref_val = 101325.0
+        mf_val   = 1.0
+        ml_val   = 1.0
+        M2_val   = 0.6
+
+        inl_nobli = Inl(pid_val)   # Kinl = 0 by default
+        TASOPT.engine.inlet_diffuser!(st18, st0, inl_nobli)  # refresh st18
+        st2  = FS{Float64}()
+        st19 = FS{Float64}()
+
+        res_nobli = inlet_bli!(st2, st19, st18, st0, inl_nobli,
+                               mf_val, ml_val, M2_val,
+                               at0_c, gam0_c, Tref_val, pref_val)
+
+        # No BLI: outlets equal inlet face
+        @test st2.pt  === st18.pt
+        @test st19.pt === st18.pt
+
+        # Adiabatic: temperatures unchanged
+        @test st2.Tt  === st18.Tt
+        @test st19.Tt === st18.Tt
+
+        # Entropy boosts are zero
+        @test res_nobli.sbfan  === 0.0
+        @test res_nobli.sbcore === 0.0
+
+        # ------------------------------------------------------------------
+        # 4. inlet_bli_mixing! — BLI fan-only (eng_has_BLI_cores = false)
+        # ------------------------------------------------------------------
+        Kinl_val = 50_000.0   # [W] representative cruise BLI power
+        inl_bli2 = Inl(pid_val; Kinl=Kinl_val, eng_has_BLI_cores=false)
+        TASOPT.engine.inlet_diffuser!(st18, st0, inl_bli2)
+        st2_b  = FS{Float64}()
+        st19_b = FS{Float64}()
+
+        res_b = inlet_bli!(st2_b, st19_b, st18, st0, inl_bli2,
+                           mf_val, ml_val, M2_val,
+                           at0_c, gam0_c, Tref_val, pref_val)
+
+        # Fan face pressure drops
+        @test st2_b.pt < st18.pt
+
+        # Core stream unaffected (eng_has_BLI_cores = false)
+        @test st19_b.pt === st18.pt
+
+        # Adiabatic: temperatures unchanged
+        @test st2_b.Tt  === st18.Tt
+        @test st19_b.Tt === st18.Tt
+
+        # Entropy boost signs
+        @test res_b.sbfan  > 0.0
+        @test res_b.sbcore === 0.0
+
+        # Pressure consistent with returned entropy boost
+        @test st2_b.pt ≈ st18.pt * exp(-res_b.sbfan)   rtol=1e-15
+
+        # ------------------------------------------------------------------
+        # 5. inlet_bli_mixing! — BLI all streams (eng_has_BLI_cores = true)
+        # ------------------------------------------------------------------
+        inl_blic = Inl(pid_val; Kinl=Kinl_val, eng_has_BLI_cores=true)
+        TASOPT.engine.inlet_diffuser!(st18, st0, inl_blic)
+        st2_c  = FS{Float64}()
+        st19_c = FS{Float64}()
+
+        res_c = inlet_bli!(st2_c, st19_c, st18, st0, inl_blic,
+                           mf_val, ml_val, M2_val,
+                           at0_c, gam0_c, Tref_val, pref_val)
+
+        # Both streams see the same entropy boost
+        @test res_c.sbfan   === res_c.sbcore
+        @test res_c.sbfan   > 0.0
+
+        # Pressures consistent with entropy boosts
+        @test st2_c.pt  ≈ st18.pt * exp(-res_c.sbfan)   rtol=1e-15
+        @test st19_c.pt ≈ st18.pt * exp(-res_c.sbcore)  rtol=1e-15
+        @test st2_c.pt  ≈ st19_c.pt                     rtol=1e-15
+
+        # ------------------------------------------------------------------
+        # 6. BLI monotonicity: larger Kinl → larger entropy boost
+        # ------------------------------------------------------------------
+        sbfan_lo = let st2_l=FS{Float64}(), st19_l=FS{Float64}(), st18_l=FS{Float64}()
+            TASOPT.engine.inlet_diffuser!(st18_l, st0, Inl(pid_val; Kinl=10_000.0))
+            r = inlet_bli!(st2_l, st19_l, st18_l, st0, Inl(pid_val; Kinl=10_000.0),
+                           mf_val, ml_val, M2_val,
+                           at0_c, gam0_c, Tref_val, pref_val)
+            r.sbfan
+        end
+        sbfan_hi = let st2_h=FS{Float64}(), st19_h=FS{Float64}(), st18_h=FS{Float64}()
+            TASOPT.engine.inlet_diffuser!(st18_h, st0, Inl(pid_val; Kinl=100_000.0))
+            r = inlet_bli!(st2_h, st19_h, st18_h, st0, Inl(pid_val; Kinl=100_000.0),
+                           mf_val, ml_val, M2_val,
+                           at0_c, gam0_c, Tref_val, pref_val)
+            r.sbfan
+        end
+        @test sbfan_lo < sbfan_hi
+
+        # ------------------------------------------------------------------
+        # 7. Round-trip: compare sbfan against inlined tfoper.jl formula
+        #
+        # The tfoper.jl formula (non-BLI_cores, u0 ≠ 0):
+        #   a2sq = at0^2 / (1 + 0.5*(gam0-1)*M2^2)
+        #   mmix = mf * sqrt(Tref/Tt0) * pt0/pref
+        #   sbfan_ref = Kinl * gam0 / (mmix * a2sq)
+        #   pt2_ref   = pt18 * exp(-sbfan_ref)
+        # ------------------------------------------------------------------
+        TASOPT.engine.inlet_diffuser!(st18, st0, Inl(pid_val; Kinl=Kinl_val))
+        a2sq_ref  = at0_c^2 / (1.0 + 0.5 * (gam0_c - 1.0) * M2_val^2)
+        mmix_ref  = mf_val * sqrt(Tref_val / st0.Tt) * (st0.pt / pref_val)
+        sbfan_ref = Kinl_val * gam0_c / (mmix_ref * a2sq_ref)
+        pt2_ref   = st18.pt * exp(-sbfan_ref)
+
+        @test res_b.sbfan ≈ sbfan_ref  rtol=1e-14
+        @test st2_b.pt    ≈ pt2_ref    rtol=1e-14
+
+    end  # Inlet
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()

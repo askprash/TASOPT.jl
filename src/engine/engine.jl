@@ -17,6 +17,7 @@ export DesignState
 export GasState
 export FlowStation
 export EngineState
+export Inlet, inlet_diffuser!, inlet_bli_mixing!
 export dump_stations
 export pare_to_engine_state!, engine_state_to_pare!, design_state_to_pare!, run_engine_design_point
 export SweepResult, run_engine_sweep, write_sweep_csv
@@ -42,6 +43,7 @@ include("turbofan/design_state.jl")
 include("turbofan/gas_state.jl")
 include("turbofan/flow_station.jl")
 include("turbofan/engine_state.jl")
+include("turbofan/inlet.jl")
 include("gasfun.jl")
 include("gascalc.jl")
 include("turbofan/thermo_wrappers.jl")
