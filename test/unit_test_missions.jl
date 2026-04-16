@@ -59,6 +59,18 @@ end
         @test eng_ip.TSFC ≈ ac.pare[ieTSFC, ip, im] rtol=tol
         @test eng_ip.Fe   ≈ ac.pare[ieFe,   ip, im] rtol=tol
     end
+
+    # ---- freestream p0 at ipcruisen (read via typed state in _mission_iteration!) ----
+    eng_cn = ac.missions[im].points[ipcruisen].engine
+    @test eng_cn.p0 ≈ ac.pare[iep0, ipcruisen, im] rtol=tol
+    # mfuel at covered call sites
+    @test ac.missions[im].points[ipcruisen].engine.mfuel ≈ ac.pare[iemfuel, ipcruisen, im] rtol=tol
+    for ip in ipclimb1:ipclimbn
+        @test ac.missions[im].points[ip].engine.mfuel ≈ ac.pare[iemfuel, ip, im] rtol=tol
+    end
+    for ip in ipdescent1:ipdescentn
+        @test ac.missions[im].points[ip].engine.mfuel ≈ ac.pare[iemfuel, ip, im] rtol=tol
+    end
 end
 
 @testset "MissionPoint and Mission constructors" begin

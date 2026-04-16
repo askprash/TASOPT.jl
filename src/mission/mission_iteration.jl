@@ -20,7 +20,8 @@ They are updated and returned in the same para[iagamV,ip] array.
 """
 function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #Unpack aircraft
-      parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission) 
+      parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
+      mission = ac.missions[imission]  # typed per-mission state (Mission{Float64})
 
       ifirst = true
 
@@ -346,10 +347,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   aircraft_drag!(ac, imission, ip, computes_wing_direct)
 
                   eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-                  pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
+                  pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
 
-            Ftotal = pare[ieFe, ip] * parg[igneng]
-            TSFC = pare[ieTSFC, ip]
+            Ftotal = mission.points[ip].engine.Fe * parg[igneng]
+            TSFC = mission.points[ip].engine.TSFC
             DoL = para[iaCD, ip] / para[iaCL, ip]
 
             # Calculate improved flight angle
@@ -365,7 +366,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             # Store integrands for range and weight integration using a predictor-corrector scheme
             FoW[ip] = Ftotal / (BW * cosg) - DoL
 
-            mfuel = pare[iemfuel, ip]
+            mfuel = mission.points[ip].engine.mfuel
             FFC[ip] = mfuel * gee / (W * V * cosg)
 
             Vgi[ip] = 1.0 / (V * cosg)
@@ -459,11 +460,13 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Wpay = parg[igWpay]
             
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-            pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
+            pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
 
       end
 
       # set cruise-climb climb angle, from fuel burn rate and atmospheric dp/dz
+      # NOTE: reads from pare here since the engine call above is conditional (calculate_cruise);
+      #       typed state for ipcruise1 is guaranteed fresh only when calculate_cruise=true.
       TSFC = pare[ieTSFC, ip]
       V = pare[ieu0, ip]
       p0 = pare[iep0, ip]
@@ -545,11 +548,11 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[ieFe, ip] = Ftotal / parg[igneng]
 
       eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-      pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
-      TSFC = pare[ieTSFC, ip]
+      pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
+      TSFC = mission.points[ip].engine.TSFC
 
       V = pare[ieu0, ip]
-      p0 = pare[iep0, ip]
+      p0 = mission.points[ip].engine.p0
       ρ0 = pare[ierho0, ip]
       DoL = para[iaCD, ip] / para[iaCL, ip]
 
@@ -560,7 +563,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       FoW[ip] = Ftotal / (BW * cosg) - DoL
 
-      mfuel = pare[iemfuel, ip]
+      mfuel = mission.points[ip].engine.mfuel
       FFC[ip] = mfuel * gee / (W * V * cosg) 
 
       Vgi[ip] = 1.0 / (V * cosg)
@@ -730,11 +733,11 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             end
 
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-            pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
+            pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
 
             # store effective thrust, effective TSFC
-            F = pare[ieFe, ip] * parg[igneng]
-            TSFC = pare[ieTSFC, ip]
+            F = mission.points[ip].engine.Fe * parg[igneng]
+            TSFC = mission.points[ip].engine.TSFC
 
             # store integrands for Range and Weight integration
             FoW[ip] = F / (BW * cosg) - DoL
@@ -742,7 +745,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Vgi[ip] = 1.0 / (V * cosg)
 
             # if F < 0, then TSFC is not valid, so calculate mdot_fuel directly
-            mfuel = pare[iemfuel, ip]
+            mfuel = mission.points[ip].engine.mfuel
             FFC[ip] = mfuel * gee / (W * V * cosg)
 
             if (ip > ipdescent1)
