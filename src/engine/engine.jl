@@ -21,6 +21,7 @@ export Inlet, inlet_diffuser!, inlet_bli_mixing!
 export Combustor, combustor_exit!
 export Compressor, compressor_efficiency, compressor_exit!, compressor_Nb_residual
 export Shaft, hp_shaft_work, lp_shaft_work, shaft_speed_residual
+export Splitter, bypass_ratio
 export TurbineMap, Turbine, turbine_efficiency, turbine_exit!, turbine_mb_residual
 export dump_stations
 export pare_to_engine_state!, engine_state_to_pare!, design_state_to_pare!, run_engine_design_point
@@ -58,6 +59,7 @@ include("turbofan/turbine.jl")
 include("turbofan/combustor.jl")
 include("turbofan/shaft.jl")
 include("turbofan/compressor.jl")
+include("turbofan/splitter.jl")
 include("turbofan/tfcool.jl")
 include("turbofan/tfsize.jl")
 include("thrust_from_ROC.jl")

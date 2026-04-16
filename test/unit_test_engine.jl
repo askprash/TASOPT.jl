@@ -4175,6 +4175,139 @@ isGradient = false
 
     end  # Shaft
 
+    @testset "Splitter" begin
+
+        Splitter_t    = TASOPT.engine.Splitter
+        bypass_ratio_t = TASOPT.engine.bypass_ratio
+
+        splitter = Splitter_t()
+
+        # ── 1. Struct construction ────────────────────────────────────────────
+
+        @test splitter isa Splitter_t
+
+        # ── 2. Formula verification ───────────────────────────────────────────
+
+        # Representative cruise conditions
+        mf    = 1.08          # corrected fan mass flow [—]
+        ml    = 0.20          # corrected LPC mass flow [—]
+        pt2   = 29_800.0      # fan-inlet total pressure  [Pa]
+        pt19c = 29_600.0      # LPC-inlet total pressure  [Pa]
+        Tt2   = 236.0         # fan-inlet total temperature  [K]
+        Tt19c = 236.4         # LPC-inlet total temperature  [K]
+
+        BPR, BPR_mf, BPR_ml, BPR_pt2, BPR_pt19c =
+            bypass_ratio_t(splitter, mf, ml, pt2, pt19c, Tt2, Tt19c)
+
+        BPR_ref = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
+
+        @test BPR       ≈ BPR_ref              rtol=1e-14
+        @test BPR_mf    ≈  BPR_ref / mf        rtol=1e-14
+        @test BPR_ml    ≈ -BPR_ref / ml        rtol=1e-14
+        @test BPR_pt2   ≈  BPR_ref / pt2       rtol=1e-14
+        @test BPR_pt19c ≈ -BPR_ref / pt19c     rtol=1e-14
+
+        # ── 3. BPR must be positive for physically valid inputs ───────────────
+
+        @test BPR > 0.0
+
+        # ── 4. Euler's theorem: BPR is homogeneous of degree 1 in (mf/ml) ────
+        #    Scaling mf and ml by the same factor leaves BPR unchanged.
+
+        scale = 1.3
+        BPR_scaled, _, _, _, _ =
+            bypass_ratio_t(splitter, scale * mf, scale * ml, pt2, pt19c, Tt2, Tt19c)
+        @test BPR_scaled ≈ BPR rtol=1e-14
+
+        # ── 5. Monotonicity ───────────────────────────────────────────────────
+        #    BPR increases with mf, decreases with ml, increases with pt2,
+        #    decreases with pt19c.
+
+        BPR_hi_mf, _, _, _, _ =
+            bypass_ratio_t(splitter, 1.1 * mf, ml, pt2, pt19c, Tt2, Tt19c)
+        @test BPR_hi_mf > BPR
+
+        BPR_hi_ml, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, 1.1 * ml, pt2, pt19c, Tt2, Tt19c)
+        @test BPR_hi_ml < BPR
+
+        BPR_hi_pt2, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, 1.05 * pt2, pt19c, Tt2, Tt19c)
+        @test BPR_hi_pt2 > BPR
+
+        BPR_hi_pt19c, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, pt2, 1.05 * pt19c, Tt2, Tt19c)
+        @test BPR_hi_pt19c < BPR
+
+        # ── 6. Finite-difference derivative self-consistency ──────────────────
+
+        δ = 1e-6
+
+        BPR_p, _, _, _, _ =
+            bypass_ratio_t(splitter, mf + δ, ml, pt2, pt19c, Tt2, Tt19c)
+        BPR_m, _, _, _, _ =
+            bypass_ratio_t(splitter, mf - δ, ml, pt2, pt19c, Tt2, Tt19c)
+        @test BPR_mf ≈ (BPR_p - BPR_m) / (2δ) rtol=1e-8
+
+        BPR_p2, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml + δ, pt2, pt19c, Tt2, Tt19c)
+        BPR_m2, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml - δ, pt2, pt19c, Tt2, Tt19c)
+        @test BPR_ml ≈ (BPR_p2 - BPR_m2) / (2δ) rtol=1e-8
+
+        δp = pt2 * 1e-6
+        BPR_pp, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, pt2 + δp, pt19c, Tt2, Tt19c)
+        BPR_mp, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, pt2 - δp, pt19c, Tt2, Tt19c)
+        @test BPR_pt2 ≈ (BPR_pp - BPR_mp) / (2δp) rtol=1e-8
+
+        δp19 = pt19c * 1e-6
+        BPR_pp19, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, pt2, pt19c + δp19, Tt2, Tt19c)
+        BPR_mp19, _, _, _, _ =
+            bypass_ratio_t(splitter, mf, ml, pt2, pt19c - δp19, Tt2, Tt19c)
+        @test BPR_pt19c ≈ (BPR_pp19 - BPR_mp19) / (2δp19) rtol=1e-8
+
+        # ── 7. Chain-rule expansion matches original inline formula ───────────
+        #    Verify that the full BPR_mf assembled via chain rule matches the
+        #    inline formula from tfoper.jl, using hypothetical upstream sensitivities.
+
+        pt2_mf = 50.0;  pt19c_mf = -20.0
+        pt2_ml = -30.0; pt19c_ml =  15.0
+        pt2_Mi =  80.0; pt19c_Mi = -60.0
+
+        BPR_mf_full  = BPR_mf  + BPR_pt2 * pt2_mf  + BPR_pt19c * pt19c_mf
+        BPR_ml_full  = BPR_ml  + BPR_pt2 * pt2_ml  + BPR_pt19c * pt19c_ml
+        BPR_Mi_full  =           BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
+
+        # Inline reference (from tfoper.jl original)
+        BPR_mf_inline = 1.0 / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c +
+                         BPR / pt2 * pt2_mf - BPR / pt19c * pt19c_mf
+        BPR_ml_inline = -BPR / ml +
+                         BPR / pt2 * pt2_ml - BPR / pt19c * pt19c_ml
+        BPR_Mi_inline  = BPR / pt2 * pt2_Mi - BPR / pt19c * pt19c_Mi
+
+        @test BPR_mf_full ≈ BPR_mf_inline  rtol=1e-14
+        @test BPR_ml_full ≈ BPR_ml_inline  rtol=1e-14
+        @test BPR_Mi_full ≈ BPR_Mi_inline  rtol=1e-14
+
+        # ── 8. Float32 dispatch (type stability) ──────────────────────────────
+
+        BPR32, BPR_mf32, BPR_ml32, BPR_pt2_32, BPR_pt19c_32 =
+            bypass_ratio_t(splitter,
+                Float32(mf), Float32(ml),
+                Float32(pt2), Float32(pt19c),
+                Float32(Tt2), Float32(Tt19c))
+        @test BPR32       isa Float32
+        @test BPR_mf32    isa Float32
+        @test BPR_ml32    isa Float32
+        @test BPR_pt2_32  isa Float32
+        @test BPR_pt19c_32 isa Float32
+        @test BPR32 ≈ Float32(BPR) rtol=1e-5
+
+    end  # Splitter
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()

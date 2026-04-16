@@ -250,6 +250,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       shaft_hp = Shaft(epsh, T(1.0))
       shaft_lp = Shaft(epsl, Gearf)
 
+      #---- splitter component instance (used by bypass_ratio)
+      splitter = Splitter()
+
       # from "airfrac.inc"
       # air fractions  
       #        N2      O2      CO2    H2O      Ar       fuel
@@ -1346,16 +1349,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             # ===============================================================
             #---- HPT and LPT work
 
-            #---- bypass ratio
-            BPR = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
-            BPR_mf = 1.0 / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c +
-                     BPR / pt2 * pt2_mf -
-                     BPR / pt19c * pt19c_mf
-            BPR_ml = -BPR / ml +
-                     BPR / pt2 * pt2_ml -
-                     BPR / pt19c * pt19c_ml
-            BPR_Mi = BPR / pt2 * pt2_Mi -
-                     BPR / pt19c * pt19c_Mi
+            #---- bypass ratio  (splitter = Splitter() constructed above Newton loop)
+            BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt19c =
+                bypass_ratio(splitter, mf, ml, pt2, pt19c, Tt2, Tt19c)
+            BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt19c * pt19c_mf
+            BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt19c * pt19c_ml
+            BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
 
             #---- HPT work  (shaft_hp = Shaft(epsh, 1.0) constructed above Newton loop)
             dhht, dhfac, dhfac_fo, dhfac_ff =
@@ -2512,12 +2511,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         u6_Mi = (ht5_Mi - h6_Mi) / u6tmp
                   end
 
-                  BPR = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
-                  BPR_mf = 1.0 / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c +
-                           BPR / pt2 * pt2_mf - BPR / pt19c * pt19c_mf
-                  BPR_ml = -BPR / ml +
-                           BPR / pt2 * pt2_ml - BPR / pt19c * pt19c_ml
-                  BPR_Mi = BPR / pt2 * pt2_Mi - BPR / pt19c * pt19c_Mi
+                  BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt19c =
+                      bypass_ratio(splitter, mf, ml, pt2, pt19c, Tt2, Tt19c)
+                  BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt19c * pt19c_mf
+                  BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt19c * pt19c_ml
+                  BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
 
                   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                   #----- overall thrust
