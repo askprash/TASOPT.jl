@@ -84,8 +84,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         dTstrk = pare[iedTstrk]
         StA = pare[ieStA]
         Mtexit = pare[ieMtexit]
-        M4a = pare[ieM4a]
-        ruc = pare[ieruc]
+        M4a = eng.design.M4a   # tasopt-j9l.54: frozen design input via DesignState
+        ruc = eng.design.ruc   # tasopt-j9l.54: frozen design input via DesignState
         efilm = pare[ieefilm]
         tfilm = pare[ietfilm]
         epsl = pare[ieepsl]
@@ -739,9 +739,10 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         #   engine_state_to_pare! from eng.design.epsrow (set in EXIT blocks).
         # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode;
         #   pare[iefc] is NOT touched in FixedCoolingFlowRatio mode (retains
-        #   initialization value), so we keep an explicit write here.
+        #   initialization value).  Route through eng.design.fc (set in EXIT
+        #   block at line 656 as (1 - mofft/mcore)*sum(epsrow)) — tasopt-j9l.54.
         if opt_cooling == CoolingOpt.FixedTmetal
-                pare[iefc] = (1.0 - fo) * sum(epsrow)
+                pare[iefc] = eng.design.fc
         end
 
         # pare[ieTSFC] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.TSFC

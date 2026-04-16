@@ -70,7 +70,8 @@ Only fields that the legacy `pare` array actually stores are written:
 - **Mass flow** (mdot): station 2 (`mcore`, the core mass flow).
 - **Ambient scalars**: `M0`, `T0`, `p0`, `a0`.
 - **Cooling design state**: `design.epsrow` (per-row cooling bypass ratios),
-  `design.Tmrow` (blade metal temperatures), `design.fc` (total cooling fraction).
+  `design.Tmrow` (blade metal temperatures), `design.fc` (total cooling fraction),
+  `design.ruc` (cooling-flow velocity ratio), `design.M4a` (start-of-mixing Mach).
 
 Fields **not** in `pare` — total state for stations 19c, 25c, 4a, 49c; static
 enthalpy `hs` and entropy complement `ss` at all stations — remain at their
@@ -196,16 +197,21 @@ function pare_to_engine_state!(eng::EngineState, pare)
 
     # -----------------------------------------------------------------------
     # Cooling design state — always populated so tfcalc! can read from typed
-    # state rather than indexing pare[ieepsc1..4] directly.
+    # state rather than indexing pare[ieepsc1..4] / pare[ieruc] / pare[ieM4a]
+    # directly.
     # epsrow[i] = ṁ_cool,i / ṁ_core (cooling bypass ratio for blade row i)
     # Tmrow[i]  = blade metal temperature [K] for blade row i
     # fc        = total cooling mass-flow fraction (normalised by design core)
+    # ruc       = cooling-flow velocity ratio u_coolant/u_mainstream at st 4a
+    # M4a       = prescribed Mach number at start-of-mixing station 4a
     # -----------------------------------------------------------------------
     eng.design.epsrow = SVector{4,Float64}(
         pare[ieepsc1], pare[ieepsc2], pare[ieepsc3], pare[ieepsc4])
     eng.design.Tmrow  = SVector{4,Float64}(
         pare[ieTmet1], pare[ieTmet2], pare[ieTmet3], pare[ieTmet4])
     eng.design.fc     = pare[iefc]
+    eng.design.ruc    = pare[ieruc]
+    eng.design.M4a    = pare[ieM4a]
 
     # -----------------------------------------------------------------------
     # Design map anchors — design-point PRs, corrected flows, corrected speeds
@@ -473,6 +479,8 @@ subsequently read by `tfoper!` for every off-design point.
 
 The cooling arrays (`epsrow`, `Tmrow`, `fc`) are written by
 `engine_state_to_pare!` via the `EngineState.design` fields, not here.
+The cooling mixing constants (`ruc`, `M4a`) ARE written here as frozen
+design inputs (tasopt-j9l.54).
 """
 function design_state_to_pare!(ds::DesignState, pare)
     # Flow areas
@@ -480,6 +488,10 @@ function design_state_to_pare!(ds::DesignState, pare)
     pare[ieA25] = ds.A25
     pare[ieA5]  = ds.A5
     pare[ieA7]  = ds.A7
+
+    # Cooling mixing constants (tasopt-j9l.54)
+    pare[ieruc] = ds.ruc
+    pare[ieM4a] = ds.M4a
 
     # Design-point corrected spool speeds
     pare[ieNbfD]  = ds.NbfD

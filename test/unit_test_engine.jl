@@ -2416,6 +2416,16 @@ isGradient = false
         @test eng.Tt49c == 0.0
 
         # ------------------------------------------------------------------
+        # Cooling mixing constants (tasopt-j9l.54): ruc and M4a are frozen
+        # design inputs read via DesignState, not bare pare reads.
+        # Verify they match pare and are physically sensible.
+        # ------------------------------------------------------------------
+        @test eng.design.ruc ≈ pare_ip[ieruc] rtol = 1e-12
+        @test eng.design.M4a ≈ pare_ip[ieM4a] rtol = 1e-12
+        @test eng.design.ruc > 0.0    # velocity ratio is positive
+        @test eng.design.M4a > 0.0    # Mach number is positive
+
+        # ------------------------------------------------------------------
         # Overall propulsion efficiencies (tasopt-j9l.63.2)
         # Verify bounds and the eta_overall definition:
         #   eta_overall = Fe * u0 / (mdotf_per_engine * hfuel)
@@ -2507,6 +2517,9 @@ isGradient = false
         ds.pifD  = pare_orig[iepifD]; ds.pilcD = pare_orig[iepilcD]
         ds.pihcD = pare_orig[iepihcD]; ds.pihtD = pare_orig[iepihtD]
         ds.piltD = pare_orig[iepiltD]
+        # tasopt-j9l.54: cooling mixing constants
+        ds.ruc   = pare_orig[ieruc]
+        ds.M4a   = pare_orig[ieM4a]
 
         pare_copy = copy(collect(pare_orig))
         TASOPT.engine.design_state_to_pare!(ds, pare_copy)
@@ -2514,7 +2527,8 @@ isGradient = false
         for idx in [ieA2, ieA25, ieA5, ieA7,
                     ieNbfD, ieNblcD, ieNbhcD, ieNbhtD, ieNbltD,
                     iembfD, iemblcD, iembhcD, iembhtD, iembltD,
-                    iepifD, iepilcD, iepihcD, iepihtD, iepiltD]
+                    iepifD, iepilcD, iepihcD, iepihtD, iepiltD,
+                    ieruc, ieM4a]
             @test pare_copy[idx] == collect(pare_orig)[idx]
         end
     end  # design_state_to_pare! round-trip
