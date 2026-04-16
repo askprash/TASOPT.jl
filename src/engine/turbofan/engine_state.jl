@@ -120,6 +120,17 @@ mutable struct EngineState{T<:AbstractFloat}
     a0 ::T   # freestream speed of sound           [m/s]
 
     # -----------------------------------------------------------------------
+    # Engine-level performance outputs
+    # Written by tfcalc! EXIT blocks and flushed to pare via
+    # engine_state_to_pare!.  Read back from pare via pare_to_engine_state!.
+    # -----------------------------------------------------------------------
+    TSFC  ::T   # thrust-specific fuel consumption [kg/N/s]
+    Fe    ::T   # net thrust per engine            [N]
+    Fsp   ::T   # specific thrust                  [N/(kg/s)]
+    BPR   ::T   # bypass ratio                     [—]
+    mfuel ::T   # total fuel mass flow (all engines) [kg/s]
+
+    # -----------------------------------------------------------------------
     # Frozen design-point state (set by tfsize!, read by tfoper!)
     # -----------------------------------------------------------------------
     design ::DesignState{T}
@@ -145,6 +156,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
         z, z, z, z,                     # M0, T0, p0, a0
+        z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
         DesignState{T}(),               # design
     )
 end
@@ -171,7 +183,9 @@ const _ENGINE_OWN_FIELDS = (
     :st0, :st18, :st19, :st19c, :st2, :st21, :st25, :st25c,
     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
     :st5, :st6, :st7, :st8, :st9,
-    :M0, :T0, :p0, :a0, :design,
+    :M0, :T0, :p0, :a0,
+    :TSFC, :Fe, :Fsp, :BPR, :mfuel,
+    :design,
 )
 
 # FlowStation fields forwarded as EngineState station-shortcut symbols.

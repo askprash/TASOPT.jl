@@ -379,16 +379,25 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_design.design.ruc   = ruc
                 eng_design.design.M4a   = M4a
 
+                # Performance rollup scalars (tasopt-j9l.52)
+                # BPR is an INPUT to tfsize! (unchanged from entry).
+                # Fe is an INPUT to tfsize! (design thrust target).
+                # TSFC/Fsp are computed outputs returned by tfsize!.
+                eng_design.TSFC  = TSFC
+                eng_design.Fe    = Fe
+                eng_design.Fsp   = Fsp
+                eng_design.BPR   = BPR
+                eng_design.mfuel = ff * mcore * neng
+
                 # ── PROJECT design scalars back to pare ──────────────────────
                 # design_state_to_pare! writes frozen design-point scalars.
-                # engine_state_to_pare! writes ambient scalars and all station
-                # thermodynamics; the shared ambient+inlet writes below the
-                # if/else (st0/st18/st19/u0) are now redundant and removed.
+                # engine_state_to_pare! writes ambient scalars, station
+                # thermodynamics, and performance rollup scalars; the shared
+                # ambient+inlet writes below the if/else (st0/st18/st19/u0)
+                # are now redundant and removed.
                 design_state_to_pare!(eng_design.design, pare)
                 engine_state_to_pare!(eng_design, pare)
-
-                #Fuel mass flow rate
-                pare[iemfuel] = ff * mcore * neng
+                # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
                 HTRf = parg[igHTRf]
                 HTRlc = parg[igHTRlc]
@@ -620,9 +629,19 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_offdes.design.Tmrow  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
                 eng_offdes.design.fc     = (1.0 - mofft / mcore) * sum(epsrow)
 
+                # Performance rollup scalars (tasopt-j9l.52)
+                # BPR is computed from off-design corrected flows (not the design-point input).
+                # Fe is the per-engine net thrust (OUTPUT in FixedTt4; INPUT retained in FixedFe).
+                eng_offdes.BPR   = mbf / mblc * sqrt(Tt19c / Tt2) * pt2 / pt19c
+                eng_offdes.Fe    = Fe
+                eng_offdes.TSFC  = TSFC
+                eng_offdes.Fsp   = Fsp
+                eng_offdes.mfuel = ff * mcore * neng
+
                 # Project thermodynamic state back to pare.  Writes ambient
-                # scalars and station fields; does NOT write M2/M25/BPR/Fe/Tt4
-                # (handled below) or design-point scalars (read-only for off-des).
+                # scalars, station fields, and performance rollup scalars.
+                # Does NOT write M2/M25/Tt4 (handled below) or design-point
+                # scalars (read-only for off-des).
                 engine_state_to_pare!(eng_offdes, pare)
 
                 if (Lprint)
@@ -643,13 +662,21 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 pare[ieM2] = M2
                 pare[ieM25] = M25
 
+                # Fe: mode-dependent (tasopt-j9l.52).
+                # FixedTt4OffDes: Fe is a COMPUTED OUTPUT → write bare (engine_state_to_pare!
+                #   does NOT write ieFe; see its docstring for the Tt4/Fe analogy).
+                # FixedFeOffDes:  Fe is an INPUT (required thrust from mission optimization)
+                #   → do NOT overwrite pare[ieFe]; writing Fe_returned (which may differ by
+                #   Newton-convergence tolerance) would corrupt the required-thrust value.
+                # pare[ieBPR] removed (tasopt-j9l.52): always computed output, written by
+                #   engine_state_to_pare! via eng.BPR for both FixedTt4 and FixedFe.
                 if opt_calc_call == CalcMode.FixedTt4OffDes
                         pare[ieFe] = Fe
                 elseif opt_calc_call == CalcMode.FixedFeOffDes
+                        # Tt4 is a COMPUTED OUTPUT in FixedFeOffDes mode; engine_state_to_pare!
+                        # does NOT write ieTt4 (Tt4 is a sizing INPUT in the general case).
                         pare[ieTt4] = Tt4
                 end
-
-                pare[ieBPR] = mbf / mblc * sqrt(Tt19c / Tt2) * pt2 / pt19c
 
                 # println("exited TFOPER call")
 
@@ -670,11 +697,11 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 pare[iefc] = (1.0 - fo) * sum(epsrow)
         end
 
-        pare[ieTSFC] = TSFC
-        pare[ieFsp] = Fsp
+        # pare[ieTSFC] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.TSFC
+        # pare[ieFsp]  removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.Fsp
+        # pare[iemcore] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.st2.mdot
         pare[iehfuel] = hfuel
         pare[ieff] = ff
-        pare[iemcore] = mcore
         pare[iemofft] = mofft
         pare[iePofft] = Pofft
         pare[iePhiinl] = Phiinl
@@ -693,29 +720,34 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[iepilc] = pilc
         pare[iepihc] = pihc
 
-        # st0/st18/st19 total state removed: written by engine_state_to_pare! in both
-        # sizing and off-design EXIT blocks above.
-        # st2 total (Tt2/ht2/pt2/cpt2/Rt2) removed: written by engine_state_to_pare!
-        # st21 total (Tt21/ht21/pt21/cpt21/Rt21) removed: written by engine_state_to_pare!
-        # st25 total (Tt25/ht25/pt25/cpt25/Rt25) removed: written by engine_state_to_pare!
-        # st3 total (Tt3/ht3/pt3/cpt3/Rt3) removed: written by engine_state_to_pare!
-        # st4 derived total (ht4/pt4/cpt4/Rt4) removed: written by engine_state_to_pare!
-        #   Tt4 is an INPUT in sizing; written directly at line ~640 only in FixedFeOffDes mode.
-        # st41 total (Tt41/ht41/pt41/cpt41/Rt41) removed: written by engine_state_to_pare!
-
-        # st45 total (Tt45/ht45/pt45/cpt45/Rt45) removed: written by engine_state_to_pare!
-        # st49 total (Tt49/ht49/pt49/cpt49/Rt49) removed: written by engine_state_to_pare!
+        # Stations and performance scalars written by engine_state_to_pare! (tasopt-j9l.16-52):
+        # st0/st18/st19 total state: written via eng.st0/st18/st19
+        # st2 total (Tt2/ht2/pt2/cpt2/Rt2): written via eng.st2
+        # st21 total (Tt21/ht21/pt21/cpt21/Rt21): written via eng.st21
+        # st25 total (Tt25/ht25/pt25/cpt25/Rt25): written via eng.st25
+        # st3 total (Tt3/ht3/pt3/cpt3/Rt3): written via eng.st3
+        # st4 derived total (ht4/pt4/cpt4/Rt4): written via eng.st4
+        #   Tt4 is an INPUT in sizing; written directly above only in FixedFeOffDes mode.
+        # st41 total (Tt41/ht41/pt41/cpt41/Rt41): written via eng.st41
+        # st45 total (Tt45/ht45/pt45/cpt45/Rt45): written via eng.st45
+        # st49 total (Tt49/ht49/pt49/cpt49/Rt49): written via eng.st49
         # st49c is NOT in pare (no ie* indices defined); remains in eng.st49c only.
-        # st5 total (Tt5/ht5/pt5/cpt5/Rt5) removed: written by engine_state_to_pare!
-        # st5 static (p5/T5/R5/cp5/u5) and A5 removed: written by engine_state_to_pare!
-        # st6 static (p6/T6/R6/cp6/u6) and A6 removed: written by engine_state_to_pare!
-        # st7 total (Tt7/ht7/pt7/cpt7/Rt7) removed: written by engine_state_to_pare!
-        # st7 static (p7/T7/R7/cp7/u7) and A7 removed: written by engine_state_to_pare!
-        # st8 static (p8/T8/R8/cp8/u8) and A8 removed: written by engine_state_to_pare!
-        # st9 (u9/A9) removed: written by engine_state_to_pare!
-        # st2 static (p2/T2/R2/cp2/u2) removed: written by engine_state_to_pare!
-        # st25 static (p25/T25/R25/cp25/u25) removed: written by engine_state_to_pare!
-        # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
+        # st5 total (Tt5/ht5/pt5/cpt5/Rt5): written via eng.st5
+        # st5 static (p5/T5/R5/cp5/u5) and A5: written via eng.st5
+        # st6 static (p6/T6/R6/cp6/u6) and A6: written via eng.st6
+        # st7 total (Tt7/ht7/pt7/cpt7/Rt7): written via eng.st7
+        # st7 static (p7/T7/R7/cp7/u7) and A7: written via eng.st7
+        # st8 static (p8/T8/R8/cp8/u8) and A8: written via eng.st8
+        # st9 (u9/A9): written via eng.st9
+        # st2 static (p2/T2/R2/cp2/u2): written via eng.st2
+        # st25 static (p25/T25/R25/cp25/u25): written via eng.st25
+        # ieu0: written via eng.st0.u
+        # ieTSFC/ieFsp: written via eng.TSFC/eng.Fsp (tasopt-j9l.52)
+        # ieFe: conditional bare write above (FixedTt4OffDes only); FixedFeOffDes retains
+        #   the required thrust from mission optimization (tasopt-j9l.52)
+        # ieBPR: written via eng.BPR (tasopt-j9l.52)
+        # iemcore: written via eng.st2.mdot (tasopt-j9l.52)
+        # iemfuel: written via eng.mfuel (tasopt-j9l.52)
 
         pare[ieepf] = epf
         pare[ieeplc] = eplc
@@ -729,8 +761,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[ieetaht] = etaht
         pare[ieetalt] = etalt
 
-        #Fuel mass flow rate
-        pare[iemfuel] = ff * mcore * neng
+        # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
         if (M5 <= 0.999999)
                 ichoke5 = 0

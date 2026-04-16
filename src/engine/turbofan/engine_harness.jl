@@ -207,6 +207,15 @@ function pare_to_engine_state!(eng::EngineState, pare)
         pare[ieTmet1], pare[ieTmet2], pare[ieTmet3], pare[ieTmet4])
     eng.design.fc     = pare[iefc]
 
+    # -----------------------------------------------------------------------
+    # Performance rollup scalars (tasopt-j9l.52)
+    # -----------------------------------------------------------------------
+    eng.TSFC  = pare[ieTSFC]
+    eng.Fe    = pare[ieFe]
+    eng.Fsp   = pare[ieFsp]
+    eng.BPR   = pare[ieBPR]
+    eng.mfuel = pare[iemfuel]
+
     return eng
 end
 
@@ -230,6 +239,8 @@ coverage as `pare_to_engine_state!`):
 - **Area** (A): stations 2, 25, 5, 6, 7, 8, 9.
 - **Mass flow** (mdot): station 2 (`mcore`).
 - **Station 9**: Tt, pt, u, A.
+- **Performance rollup**: `TSFC`, `Fsp`, `BPR`, `mfuel`.  `Fe` is NOT written here
+  (it is mode-dependent: a conditional bare write handles FixedTt4OffDes output).
 
 Fields not in `pare` (stations 19c, 25c, 4a, 49c; `hs`, `ss`) are not written.
 """
@@ -321,6 +332,21 @@ function engine_state_to_pare!(eng::EngineState, pare)
         pare[ieepsc1+icrow-1] = eng.design.epsrow[icrow]
         pare[ieTmet1+icrow-1] = eng.design.Tmrow[icrow]
     end
+
+    # Performance rollup scalars (tasopt-j9l.52)
+    # NOTE: pare[ieFe] is intentionally NOT written here.
+    # Fe is a MODE-DEPENDENT input/output:
+    #   - CalcMode.Sizing:          Fe = INPUT (design thrust target)
+    #   - CalcMode.FixedTt4OffDes:  Fe = OUTPUT (computed thrust)
+    #   - CalcMode.FixedFeOffDes:   Fe = INPUT (required thrust from mission optimization)
+    # Writing Fe unconditionally would corrupt the required thrust in FixedFeOffDes
+    # mode (Newton convergence gives Fe_returned ≠ Fe_required at floating-point level).
+    # The conditional bare write `if FixedTt4OffDes: pare[ieFe] = Fe` handles the
+    # off-design output case, exactly mirroring the ieTt4 pattern for FixedFeOffDes.
+    pare[ieTSFC]  = eng.TSFC
+    pare[ieFsp]   = eng.Fsp
+    pare[ieBPR]   = eng.BPR
+    pare[iemfuel] = eng.mfuel
 
     return eng
 end
