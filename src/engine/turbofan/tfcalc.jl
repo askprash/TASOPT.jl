@@ -396,6 +396,23 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_design.etaht = etaht
                 eng_design.etalt = etalt
 
+                # Overall propulsion efficiencies (tasopt-j9l.63.2)
+                # eta_overall  = Fe_per_engine * u0 / (mdotf_per_engine * hfuel)
+                # eta_prop     = 2 / (2 + Fsp)   [mixed-jet: u_jet = u0*(1+Fsp)]
+                # eta_thermal  = eta_overall / eta_prop
+                # Guard: zero at ground-idle (Fe ≤ 0 or Fsp ≤ 0).
+                if Fe > 0.0 && Fsp > 0.0
+                    _eta_overall = Fe * u0 / (ff * mcore * hfuel)
+                    _eta_prop    = 2.0 / (2.0 + Fsp)
+                    eng_design.eta_overall = _eta_overall
+                    eng_design.eta_prop    = _eta_prop
+                    eng_design.eta_thermal = _eta_overall / _eta_prop
+                else
+                    eng_design.eta_overall = 0.0
+                    eng_design.eta_prop    = 0.0
+                    eng_design.eta_thermal = 0.0
+                end
+
                 # ── PROJECT design scalars back to pare ──────────────────────
                 # design_state_to_pare! writes frozen design-point scalars.
                 # engine_state_to_pare! writes ambient scalars, station
@@ -653,6 +670,20 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_offdes.etahc = etahc
                 eng_offdes.etaht = etaht
                 eng_offdes.etalt = etalt
+
+                # Overall propulsion efficiencies (tasopt-j9l.63.2)
+                # Guard: zero at ground-idle (Fe ≤ 0 or Fsp ≤ 0).
+                if Fe > 0.0 && Fsp > 0.0
+                    _eta_overall = Fe * u0 / (ff * mcore * hfuel)
+                    _eta_prop    = 2.0 / (2.0 + Fsp)
+                    eng_offdes.eta_overall = _eta_overall
+                    eng_offdes.eta_prop    = _eta_prop
+                    eng_offdes.eta_thermal = _eta_overall / _eta_prop
+                else
+                    eng_offdes.eta_overall = 0.0
+                    eng_offdes.eta_prop    = 0.0
+                    eng_offdes.eta_thermal = 0.0
+                end
 
                 # Project thermodynamic state back to pare.  Writes ambient
                 # scalars, station fields, and performance rollup scalars.

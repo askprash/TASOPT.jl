@@ -141,6 +141,22 @@ mutable struct EngineState{T<:AbstractFloat}
     etalt ::T   # LPT adiabatic efficiency           [—]
 
     # -----------------------------------------------------------------------
+    # Overall propulsion efficiencies (tasopt-j9l.63.2)
+    # Derived quantities — no pare backing; set to zero by pare_to_engine_state!.
+    # Written by tfcalc! EXIT blocks only; engine_state_to_pare! is a no-op.
+    #
+    # Definitions (standard propulsion, Cumpsty Ch.1, Hill & Peterson Ch.5):
+    #   eta_overall  = Fe * u0 / (mdotf_per_engine * hfuel)
+    #   eta_prop     = 2 / (2 + Fsp)      [mixed-jet momentum: u_jet = u0*(1+Fsp)]
+    #   eta_thermal  = eta_overall / eta_prop
+    #
+    # All three are zero at ground-idle (Fe ≤ 0 or Fsp ≤ 0).
+    # -----------------------------------------------------------------------
+    eta_thermal ::T   # thermal efficiency    [—]
+    eta_prop    ::T   # propulsive efficiency [—]
+    eta_overall ::T   # overall efficiency    [—]
+
+    # -----------------------------------------------------------------------
     # Frozen design-point state (set by tfsize!, read by tfoper!)
     # -----------------------------------------------------------------------
     design ::DesignState{T}
@@ -168,6 +184,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         z, z, z, z,                     # M0, T0, p0, a0
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
         z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
+        z, z, z,                        # eta_thermal, eta_prop, eta_overall
         DesignState{T}(),               # design
     )
 end
@@ -197,6 +214,7 @@ const _ENGINE_OWN_FIELDS = (
     :M0, :T0, :p0, :a0,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
     :etaf, :etalc, :etahc, :etaht, :etalt,
+    :eta_thermal, :eta_prop, :eta_overall,
     :design,
 )
 

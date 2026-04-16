@@ -2414,6 +2414,26 @@ isGradient = false
         @test eng.Tt19c == 0.0
         @test eng.Tt25c == 0.0
         @test eng.Tt49c == 0.0
+
+        # ------------------------------------------------------------------
+        # Overall propulsion efficiencies (tasopt-j9l.63.2)
+        # Verify bounds and the eta_overall definition:
+        #   eta_overall = Fe * u0 / (mdotf_per_engine * hfuel)
+        # where mdotf_per_engine = eng.mfuel / neng.
+        # ------------------------------------------------------------------
+        neng  = ac.parg[TASOPT.igneng]
+        hfuel = ac.pare[TASOPT.iehfuel, ipcruise1, 1]
+
+        @test 0.0 < eng.eta_overall < 1.0
+        @test 0.0 < eng.eta_prop    < 1.0
+        @test 0.0 < eng.eta_thermal < 1.0
+
+        # Definition check: eta_overall == Fe * u0 / (mfuel/neng * hfuel)
+        eta_overall_ref = eng.Fe * eng.st0.u / (eng.mfuel / neng * hfuel)
+        @test eng.eta_overall ≈ eta_overall_ref rtol = 1e-10
+
+        # eta_thermal = eta_overall / eta_prop
+        @test eng.eta_thermal ≈ eng.eta_overall / eng.eta_prop rtol = 1e-12
     end  # run_engine_design_point
 
     # ======================================================================

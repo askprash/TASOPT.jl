@@ -259,6 +259,31 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.etaht = pare[ieetaht]
     eng.etalt = pare[ieetalt]
 
+    # -----------------------------------------------------------------------
+    # Overall propulsion efficiencies (tasopt-j9l.63.2)
+    # No pare backing — derived from scalar pare fields that ARE stored.
+    # Formula: eta_overall = gee * u0 / (TSFC * hfuel)   [≡ Fe*u0/(mdotf*hfuel)]
+    #          eta_prop    = 2 / (2 + Fsp)               [mixed-jet momentum]
+    #          eta_thermal = eta_overall / eta_prop
+    # Guard: zero at ground-idle where TSFC ≤ 0 or Fsp ≤ 0.
+    # -----------------------------------------------------------------------
+    let _TSFC  = pare[ieTSFC],
+        _Fsp   = pare[ieFsp],
+        _u0    = pare[ieu0],
+        _hfuel = pare[iehfuel]
+        if _TSFC > 0 && _Fsp > 0
+            _eta_ov      = gee * _u0 / (_TSFC * _hfuel)
+            _eta_pr      = 2 / (2 + _Fsp)
+            eng.eta_overall = _eta_ov
+            eng.eta_prop    = _eta_pr
+            eng.eta_thermal = _eta_ov / _eta_pr
+        else
+            eng.eta_overall = zero(eltype(pare))
+            eng.eta_prop    = zero(eltype(pare))
+            eng.eta_thermal = zero(eltype(pare))
+        end
+    end
+
     return eng
 end
 
@@ -397,6 +422,9 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieetahc] = eng.etahc
     pare[ieetaht] = eng.etaht
     pare[ieetalt] = eng.etalt
+
+    # Overall propulsion efficiencies (tasopt-j9l.63.2)
+    # No pare backing — intentionally not written to pare.
 
     return eng
 end
