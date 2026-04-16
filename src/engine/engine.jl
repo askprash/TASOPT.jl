@@ -18,6 +18,7 @@ export GasState
 export FlowStation
 export EngineState
 export Inlet, inlet_diffuser!, inlet_bli_mixing!
+export Combustor, combustor_exit!
 export TurbineMap, Turbine, turbine_efficiency, turbine_exit!, turbine_mb_residual
 export dump_stations
 export pare_to_engine_state!, engine_state_to_pare!, design_state_to_pare!, run_engine_design_point
@@ -52,6 +53,7 @@ include("turbofan/thermo_wrappers.jl")
 include("turbomachinery/tfmap.jl")
 include("turbomachinery/maps.jl")
 include("turbofan/turbine.jl")
+include("turbofan/combustor.jl")
 include("turbofan/tfcool.jl")
 include("turbofan/tfsize.jl")
 include("thrust_from_ROC.jl")

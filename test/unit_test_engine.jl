@@ -3469,6 +3469,176 @@ isGradient = false
 
     end  # turbine_mb_residual
 
+    @testset "Combustor" begin
+
+        Comb      = TASOPT.engine.Combustor
+        comb_exit = TASOPT.engine.combustor_exit!
+        FS        = TASOPT.engine.FlowStation
+        set_tt!   = TASOPT.engine.set_total_from_Tt!
+        gassumd   = TASOPT.engine.gassumd
+        gas_burnd = TASOPT.engine.gas_burnd
+        gasfuel   = TASOPT.engine.gasfuel
+
+        # Standard TASOPT 5-species air composition stored in FlowStation.alpha
+        # (species 1-5: N2, O2, CO2, H2O, Ar; fuel slot is NOT stored here)
+        air_alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        n    = 5    # nair — number of air species passed to gas_burnd
+        nair = 5
+
+        # Representative HPC-exit state (station 3)
+        Tt3  = 900.0    # K  — compressor discharge temperature
+        pt3  = 4.0e6   # Pa — compressor discharge pressure
+
+        st3  = FS{Float64}()
+        st3.alpha = air_alpha
+        st3.Tt    = Tt3
+        st3.pt    = pt3
+        set_tt!(st3)   # fills ht, st, cpt, Rt from Tt3 and alpha
+
+        # Combustor design parameters (Jet-A, etab=0.98, pib=0.94)
+        ifuel = 24       # C14H30 — Jet-A surrogate
+        hvap  = 0.0      # J/kg — liquid fuel, no vaporisation enthalpy
+        Ttf   = 300.0    # K  — fuel inlet temperature
+        etab  = 0.98     # combustion efficiency
+        pib   = 0.94     # burner pressure ratio
+
+        burner = Comb(pib, etab, Ttf, ifuel, hvap)
+
+        # Target burner-exit total temperature
+        Tb = 1600.0   # K
+
+        # ------------------------------------------------------------------
+        # 1. Struct / constructor invariants
+        # ------------------------------------------------------------------
+        @test burner.pib   ≈ pib
+        @test burner.etab  ≈ etab
+        @test burner.Ttf   ≈ Ttf
+        @test burner.ifuel == ifuel
+        @test burner.hvap  ≈ hvap
+
+        # ------------------------------------------------------------------
+        # 2. combustor_exit! — outlet FlowStation (mutated)
+        # ------------------------------------------------------------------
+        st4  = FS{Float64}()
+        # alpha field is SVector{5} — initialise with the 5-element air vector
+        st4.alpha = SVector{5,Float64}(air_alpha...)   # will be overwritten by lambda
+
+        ffb, lambda,
+        ffb_Tt3, ffb_Ttf, ffb_Tb,
+        lam_Tt3, lam_Ttf, lam_Tb = comb_exit(st4, st3, burner, air_alpha, Tb)
+
+        # Pressure recovery: pt4 = pib × pt3
+        @test st4.pt ≈ pib * pt3
+
+        # Target temperature reached
+        @test st4.Tt ≈ Tb
+
+        # Thermodynamic state consistent with exit composition
+        s_ref, _, h_ref, _, cp_ref, R_ref = gassumd(lambda, nair, Tb)
+        @test st4.st  ≈ s_ref  rtol=1e-12
+        @test st4.ht  ≈ h_ref  rtol=1e-12
+        @test st4.cpt ≈ cp_ref rtol=1e-12
+        @test st4.Rt  ≈ R_ref  rtol=1e-12
+
+        # Exit composition stored in FlowStation matches returned lambda
+        @test st4.alpha ≈ lambda
+
+        # Fuel fraction is positive (combustion consumes fuel)
+        @test ffb > 0.0
+
+        # ------------------------------------------------------------------
+        # 3. Round-trip against gas_burnd directly
+        # ------------------------------------------------------------------
+        # gas_burnd takes n=nair=5; gamma is 5-element matching the air species
+        gamma_raw = gasfuel(ifuel, 6)   # gasfuel always uses 6-species layout
+        # Apply etab to air species (1:nair=1:5); combustor.jl does the same
+        gamma_ref = zeros(5)
+        for i in 1:nair
+            gamma_ref[i] = etab * gamma_raw[i]
+        end
+        # Note: gamma[6] = 1-etab for unburnt fuel, but gas_burnd only sees n=5 entries
+
+        beta_ref = zeros(5)   # pure-fuel stream (fuel enthalpy added via gasfun in gas_burnd)
+
+        ffb_ref, lam_ref,
+        ffb_Tt3_ref, ffb_Ttf_ref, ffb_Tb_ref,
+        lam_Tt3_ref, lam_Ttf_ref, lam_Tb_ref = gas_burnd(
+            air_alpha, beta_ref, gamma_ref, nair, ifuel, Tt3, Ttf, Tb, hvap,
+        )
+
+        @test ffb    ≈ ffb_ref       rtol=1e-12
+        @test lambda ≈ lam_ref       rtol=1e-12
+        @test ffb_Tt3 ≈ ffb_Tt3_ref  rtol=1e-12
+        @test ffb_Ttf ≈ ffb_Ttf_ref  rtol=1e-12
+        @test ffb_Tb  ≈ ffb_Tb_ref   rtol=1e-12
+        for i in 1:nair
+            @test lam_Tt3[i] ≈ lam_Tt3_ref[i]  rtol=1e-12
+            @test lam_Ttf[i] ≈ lam_Ttf_ref[i]  rtol=1e-12
+            @test lam_Tb[i]  ≈ lam_Tb_ref[i]   rtol=1e-12
+        end
+
+        # ------------------------------------------------------------------
+        # 4. pib = 1 → no pressure loss (identity for pressure recovery)
+        # ------------------------------------------------------------------
+        burner_lossless = Comb(1.0, etab, Ttf, ifuel, hvap)
+        st4_lossless = FS{Float64}(); st4_lossless.alpha = SVector{5,Float64}(air_alpha...)
+        ffb_ll, _, = comb_exit(st4_lossless, st3, burner_lossless, air_alpha, Tb)
+        @test st4_lossless.pt ≈ pt3
+        @test st4_lossless.Tt ≈ Tb
+        # composition / fuel fraction should match (pib doesn't affect chemistry)
+        @test ffb_ll ≈ ffb  rtol=1e-12
+
+        # ------------------------------------------------------------------
+        # 5. Fuel fraction monotonicity: higher Tb → more fuel needed
+        # ------------------------------------------------------------------
+        Tb_lo = 1400.0
+        Tb_hi = 1800.0
+        st4_lo = FS{Float64}(); st4_lo.alpha = SVector{5,Float64}(air_alpha...)
+        st4_hi = FS{Float64}(); st4_hi.alpha = SVector{5,Float64}(air_alpha...)
+        ffb_lo, = comb_exit(st4_lo, st3, burner, air_alpha, Tb_lo)
+        ffb_hi, = comb_exit(st4_hi, st3, burner, air_alpha, Tb_hi)
+        @test ffb_lo < ffb < ffb_hi
+
+        # ------------------------------------------------------------------
+        # 6. Partial combustion (etab < 1) vs full combustion (etab = 1)
+        # ------------------------------------------------------------------
+        # With etab < 1 the reaction fractions gamma are scaled down.  The
+        # exact direction of change for individual species depends on both
+        # the scaled gamma and the changed fuel fraction ffb (which also
+        # shifts with etab).  The robust invariant is that the two cases
+        # produce distinct compositions.
+        etab_partial = 0.90
+        burner_partial = Comb(pib, etab_partial, Ttf, ifuel, hvap)
+        st4_part = FS{Float64}(); st4_part.alpha = SVector{5,Float64}(air_alpha...)
+        ffb_part, lam_part, = comb_exit(st4_part, st3, burner_partial, air_alpha, Tb)
+
+        burner_full = Comb(pib, 1.0, Ttf, ifuel, hvap)
+        st4_full = FS{Float64}(); st4_full.alpha = SVector{5,Float64}(air_alpha...)
+        ffb_full, lam_full, = comb_exit(st4_full, st3, burner_full, air_alpha, Tb)
+
+        # Different etab → different fuel fractions and different compositions
+        @test ffb_part != ffb_full
+        @test lam_part != lam_full
+        # Both fuel fractions must be positive (combustion requires fuel)
+        @test ffb_part > 0.0
+        @test ffb_full > 0.0
+
+        # ------------------------------------------------------------------
+        # 7. Combustor{Float32} struct construction (type parameter)
+        # ------------------------------------------------------------------
+        # gas_burnd calls gasfun which requires Float64 tables, so
+        # combustor_exit! with Float32 is not supported.  Here we verify
+        # only that Combustor{Float32} can be constructed and stores Float32.
+        burner32 = Comb{Float32}(Float32(pib), Float32(etab), Float32(Ttf), ifuel, Float32(hvap))
+        @test burner32 isa Comb{Float32}
+        @test burner32.pib  isa Float32
+        @test burner32.etab isa Float32
+        @test burner32.Ttf  isa Float32
+        @test burner32.hvap isa Float32
+        @test burner32.ifuel == ifuel
+
+    end  # Combustor
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
