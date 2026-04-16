@@ -703,17 +703,9 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         #   Tt4 is an INPUT in sizing; written directly at line ~640 only in FixedFeOffDes mode.
         # st41 total (Tt41/ht41/pt41/cpt41/Rt41) removed: written by engine_state_to_pare!
 
-        pare[ieTt45] = Tt45
-        pare[ieht45] = ht45
-        pare[iept45] = pt45
-        pare[iecpt45] = cpt45
-        pare[ieRt45] = Rt45
-
-        pare[ieTt49] = Tt49
-        pare[ieht49] = ht49
-        pare[iept49] = pt49
-        pare[iecpt49] = cpt49
-        pare[ieRt49] = Rt49
+        # st45 total (Tt45/ht45/pt45/cpt45/Rt45) removed: written by engine_state_to_pare!
+        # st49 total (Tt49/ht49/pt49/cpt49/Rt49) removed: written by engine_state_to_pare!
+        # st49c is NOT in pare (no ie* indices defined); remains in eng.st49c only.
 
         pare[ieTt5] = Tt5
         pare[ieht5] = ht5
