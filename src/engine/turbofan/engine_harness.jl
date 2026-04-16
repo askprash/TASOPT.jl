@@ -208,6 +208,30 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.design.fc     = pare[iefc]
 
     # -----------------------------------------------------------------------
+    # Design map anchors — design-point PRs, corrected flows, corrected speeds
+    # (tasopt-j9l.23): populated so off-design tfcalc! reads from typed state
+    # rather than indexing pare[iepifD..iepiltD] / pare[iembfD..iembltD] /
+    # pare[ieNbfD..ieNbltD] directly.
+    # -----------------------------------------------------------------------
+    eng.design.pifD  = pare[iepifD]
+    eng.design.pilcD = pare[iepilcD]
+    eng.design.pihcD = pare[iepihcD]
+    eng.design.pihtD = pare[iepihtD]
+    eng.design.piltD = pare[iepiltD]
+
+    eng.design.mbfD  = pare[iembfD]
+    eng.design.mblcD = pare[iemblcD]
+    eng.design.mbhcD = pare[iembhcD]
+    eng.design.mbhtD = pare[iembhtD]
+    eng.design.mbltD = pare[iembltD]
+
+    eng.design.NbfD  = pare[ieNbfD]
+    eng.design.NblcD = pare[ieNblcD]
+    eng.design.NbhcD = pare[ieNbhcD]
+    eng.design.NbhtD = pare[ieNbhtD]
+    eng.design.NbltD = pare[ieNbltD]
+
+    # -----------------------------------------------------------------------
     # Performance rollup scalars (tasopt-j9l.52)
     # -----------------------------------------------------------------------
     eng.TSFC  = pare[ieTSFC]

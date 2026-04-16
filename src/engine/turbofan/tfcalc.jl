@@ -426,23 +426,25 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 A5 = pare[ieA5]
                 A7 = eng.st7.A   # fan nozzle throat area — read from typed state (set at entry by pare_to_engine_state!)
 
-                NbfD = pare[ieNbfD]
-                NblcD = pare[ieNblcD]
-                NbhcD = pare[ieNbhcD]
-                NbhtD = pare[ieNbhtD]
-                NbltD = pare[ieNbltD]
+                # tasopt-j9l.23: read map anchors from typed DesignState
+                # (populated by pare_to_engine_state! at harness entry)
+                NbfD  = eng_offdes.design.NbfD
+                NblcD = eng_offdes.design.NblcD
+                NbhcD = eng_offdes.design.NbhcD
+                NbhtD = eng_offdes.design.NbhtD
+                NbltD = eng_offdes.design.NbltD
 
-                mbfD = pare[iembfD]
-                mblcD = pare[iemblcD]
-                mbhcD = pare[iembhcD]
-                mbhtD = pare[iembhtD]
-                mbltD = pare[iembltD]
+                mbfD  = eng_offdes.design.mbfD
+                mblcD = eng_offdes.design.mblcD
+                mbhcD = eng_offdes.design.mbhcD
+                mbhtD = eng_offdes.design.mbhtD
+                mbltD = eng_offdes.design.mbltD
 
-                pifD = pare[iepifD]
-                pilcD = pare[iepilcD]
-                pihcD = pare[iepihcD]
-                pihtD = pare[iepihtD]
-                piltD = pare[iepiltD]
+                pifD  = eng_offdes.design.pifD
+                pilcD = eng_offdes.design.pilcD
+                pihcD = eng_offdes.design.pihcD
+                pihtD = eng_offdes.design.pihtD
+                piltD = eng_offdes.design.piltD
 
                 if (initializes_engine)
                         #------ force TFOPER to initialize these state variables
