@@ -706,40 +706,16 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         # st45 total (Tt45/ht45/pt45/cpt45/Rt45) removed: written by engine_state_to_pare!
         # st49 total (Tt49/ht49/pt49/cpt49/Rt49) removed: written by engine_state_to_pare!
         # st49c is NOT in pare (no ie* indices defined); remains in eng.st49c only.
-
-        pare[ieTt5] = Tt5
-        pare[ieht5] = ht5
-        pare[iept5] = pt5
-        pare[iecpt5] = cpt5
-        pare[ieRt5] = Rt5
-
-        # st7 total state (Tt7/ht7/pt7/cpt7/Rt7) removed: written by engine_state_to_pare!
-        # via st7.Tt/ht/pt/cpt/Rt in both sizing and off-design EXIT blocks above.
-
-        # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
-
+        # st5 total (Tt5/ht5/pt5/cpt5/Rt5) removed: written by engine_state_to_pare!
+        # st5 static (p5/T5/R5/cp5/u5) and A5 removed: written by engine_state_to_pare!
+        # st6 static (p6/T6/R6/cp6/u6) and A6 removed: written by engine_state_to_pare!
+        # st7 total (Tt7/ht7/pt7/cpt7/Rt7) removed: written by engine_state_to_pare!
+        # st7 static (p7/T7/R7/cp7/u7) and A7 removed: written by engine_state_to_pare!
+        # st8 static (p8/T8/R8/cp8/u8) and A8 removed: written by engine_state_to_pare!
+        # st9 (u9/A9) removed: written by engine_state_to_pare!
         # st2 static (p2/T2/R2/cp2/u2) removed: written by engine_state_to_pare!
         # st25 static (p25/T25/R25/cp25/u25) removed: written by engine_state_to_pare!
-
-        pare[iep5] = p5
-        pare[ieT5] = T5
-        pare[ieR5] = R5
-        pare[iecp5] = cp5
-        pare[ieu5] = u5
-
-        pare[iep6] = p6
-        pare[ieT6] = T6
-        pare[ieR6] = R6
-        pare[iecp6] = cp6
-        pare[ieu6] = u6
-
-        # st7 static state (p7/T7/R7/cp7/u7) removed: written by engine_state_to_pare!
-        # st8 static state (p8/T8/R8/cp8/u8) and A8 removed: written by engine_state_to_pare!
-
-        pare[ieu9] = u9
-
-        pare[ieA6] = A6
-        pare[ieA9] = A9
+        # pare[ieu0] = u0  # removed: written by engine_state_to_pare! via st0.u
 
         pare[ieepf] = epf
         pare[ieeplc] = eplc
