@@ -191,3 +191,99 @@ function combustor_exit!(
 
     return ffb, lambda, ffb_Tt3, ffb_Ttf, ffb_Tb, lam_Tt3, lam_Ttf, lam_Tb
 end
+
+# ---------------------------------------------------------------------------
+# combustor_burnd  —  combustor with station-4 state and analytic Jacobian
+# ---------------------------------------------------------------------------
+
+"""
+    combustor_burnd(burner, alpha, nair, Tt3, Tb)
+        -> (ffb, lambda,
+            Tt4, ht4, st4, cpt4, Rt4,
+            ffb_Tt3, ffb_Tb,
+            ht4_Tt3, st4_Tt3, cpt4_Tt3, Rt4_Tt3,
+            ht4_Tb, st4_Tb, cpt4_Tb, Rt4_Tb,
+            lam_Tt3, lam_Tb)
+
+Compute the burner fuel fraction, exit composition, and exit thermodynamic
+state together with analytic partial derivatives with respect to the
+combustor's two natural inputs: the inlet total temperature `Tt3` and the
+target burner-exit temperature `Tb`.
+
+Wraps `gas_burnd` (energy balance) + `gassumd`/`gassum` (exit state from
+composition), applying the composition chain rule so that the caller can
+obtain Jacobian entries for any upstream Newton variable `x` via:
+
+    ffb_x  = ffb_Tt3 · Tt3_x           (scalar)
+    st4_x  = st4_Tt3 · Tt3_x           (scalar)
+    lam_x  = lam_Tt3 .* Tt3_x          (nair-vector × scalar)
+
+This eliminates `nvar` `gassum` calls from the Newton loop, replacing them
+with `nvar` scalar multiplications.
+
+## Returns
+
+A 19-element tuple (17 scalars + 2 nair-vectors):
+
+| Group                | Elements                                      |
+|:---------------------|:----------------------------------------------|
+| Fuel fraction        | `ffb`                                          |
+| Exit composition     | `lambda` (nair-vector)                         |
+| Exit state           | `Tt4, ht4, st4, cpt4, Rt4`                    |
+| ∂/∂Tt3               | `ffb_Tt3, ht4_Tt3, st4_Tt3, cpt4_Tt3, Rt4_Tt3` |
+| ∂/∂Tb                | `ffb_Tb, ht4_Tb, st4_Tb, cpt4_Tb, Rt4_Tb`     |
+| Composition partials | `lam_Tt3, lam_Tb` (nair-vectors)               |
+
+The `Tb` derivatives include both the composition chain (through `lam_Tb`)
+and the direct temperature dependence (`Tt4 = Tb`).
+
+Pressure is not returned: `pt4 = pib · pt3` depends on `pt3`, not on `Tt3`
+or `Tb`, so the caller handles it separately.
+"""
+function combustor_burnd(
+    burner ::Combustor{T},
+    alpha  ::AbstractVector,
+    nair   ::Int,
+    Tt3    ::T,
+    Tb     ::T,
+) where {T<:AbstractFloat}
+
+    # --- chemistry setup (same as combustor_exit!) -------------------------
+    beta = zeros(T, nair)
+    gamma_raw = gasfuel(burner.ifuel, nair + 1)
+    gamma = T.(gamma_raw[1:nair])
+    for i in 1:nair
+        gamma[i] = burner.etab * gamma[i]
+    end
+
+    # --- energy balance: fuel fraction + exit composition ------------------
+    ffb, lambda,
+    ffb_Tt3, _ffb_Ttf, ffb_Tb,
+    lam_Tt3, _lam_Ttf, lam_Tb = gas_burnd(
+        alpha, beta, gamma, nair, burner.ifuel,
+        Tt3, burner.Ttf, Tb, burner.hvap,
+    )
+
+    # --- exit state from composition at Tt4 = Tb --------------------------
+    Tt4 = Tb
+    st4, st4_Tt4,
+    ht4, ht4_Tt4,
+    cpt4, cpt4_Tt4, Rt4 = gassumd(lambda, nair, Tt4)
+
+    # --- ∂(state)/∂Tt3 via composition chain (linear in lambda) -----------
+    st4_Tt3, _, ht4_Tt3, _, cpt4_Tt3, Rt4_Tt3 = gassum(lam_Tt3, nair, Tt4)
+
+    # --- ∂(state)/∂Tb = composition chain + direct Tt4=Tb dependence ------
+    st4_Tb_lam, _, ht4_Tb_lam, _, cpt4_Tb_lam, Rt4_Tb = gassum(lam_Tb, nair, Tt4)
+    st4_Tb  = st4_Tb_lam  + st4_Tt4
+    ht4_Tb  = ht4_Tb_lam  + ht4_Tt4
+    cpt4_Tb = cpt4_Tb_lam + cpt4_Tt4
+    # Rt4 is temperature-independent (ideal gas), so Rt4_Tb = Rt4_Tb_lam only
+
+    return ffb, lambda,
+           Tt4, ht4, st4, cpt4, Rt4,
+           ffb_Tt3, ffb_Tb,
+           ht4_Tt3, st4_Tt3, cpt4_Tt3, Rt4_Tt3,
+           ht4_Tb, st4_Tb, cpt4_Tb, Rt4_Tb,
+           lam_Tt3, lam_Tb
+end

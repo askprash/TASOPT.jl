@@ -18,9 +18,9 @@ export GasState
 export FlowStation
 export EngineState
 export Inlet, inlet_diffuser!, inlet_bli_mixing!
-export Combustor, combustor_exit!
+export Combustor, combustor_exit!, combustor_burnd
 export Compressor, compressor_efficiency, compressor_exit!, compressor_Nb_residual, compressor_pratd
-export Shaft, hp_shaft_work, lp_shaft_work, shaft_speed_residual
+export Shaft, hp_shaft_work, lp_shaft_work, hp_shaft_workd, lp_shaft_workd, shaft_speed_residual
 export Splitter, bypass_ratio
 export Nozzle, nozzle_exit, nozzle_massflow_residual, nozzle_gross_thrust
 export TurbineMap, Turbine, turbine_efficiency, turbine_delhd, turbine_exit!, turbine_mb_residual

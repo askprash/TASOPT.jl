@@ -253,6 +253,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- splitter component instance (used by bypass_ratio)
       splitter = Splitter()
 
+      #---- typed combustor component instance (used by combustor_burnd)
+      burner = Combustor(pib, etab, Ttf, ifuel, hvap)
+
       #---- nozzle component instances (used by nozzle_exit and nozzle_massflow_residual)
       #     pn = 1 since pt7 = pt21*pifn and pt5 = pt49c*pitn already incorporate the loss
       nozzle_fan  = Nozzle(one(T), T(A7))
@@ -733,10 +736,17 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             Tt3_ht3 = 1 / cpt3
 
             # ===============================================================
-            #---- burner fuel flow from Tt3-Tb difference   (ffb = m_fuel/m_burner)
+            #---- burner: fuel fraction, exit composition + station 4 state with Jacobian
+            #     (combustor_burnd wraps gas_burnd + gassumd + composition chain)
             ffb, lambda,
-            ffb_Tt3, ffb_Ttf, ffb_Tb,
-            lam_Tt3, lam_Ttf, lam_Tb = gas_burnd(alpha, beta, gamma, nair, ifuel, Tt3, Ttf, Tb, hvap)
+            Tt4, ht4, st4, cpt4, Rt4,
+            ffb_Tt3, ffb_Tb,
+            ht4_Tt3, st4_Tt3, cpt4_Tt3, Rt4_Tt3,
+            ht4_Tb, st4_Tb, cpt4_Tb, Rt4_Tb,
+            lam_Tt3, lam_Tb = combustor_burnd(burner, alpha, nair, Tt3, Tb)
+            Tt4_Tb = 1.0  # Tt4 = Tb, needed downstream (cooling, Newton row 7)
+
+            #---- chain combustor derivatives to Newton variables via Tt3
             ffb_pl = ffb_Tt3 * Tt3_pl
             ffb_ph = ffb_Tt3 * Tt3_ph
             ffb_ml = ffb_Tt3 * Tt3_ml
@@ -748,20 +758,17 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   lam_mh[i] = lam_Tt3[i] * Tt3_mh
             end
 
-            #---- all station 4 quantities
-            Tt4 = Tb
-            Tt4_Tb = 1.0
-            st4, st4_Tt4,
-            ht4, ht4_Tt4,
-            cpt4, cpt4_Tt4, Rt4 = gassumd(lambda, nair, Tt4)
+            #---- station 4 state derivatives via Tt3 chain
+            st4_pl  = st4_Tt3  * Tt3_pl;  st4_ph  = st4_Tt3  * Tt3_ph
+            st4_ml  = st4_Tt3  * Tt3_ml;  st4_mh  = st4_Tt3  * Tt3_mh
+            ht4_pl  = ht4_Tt3  * Tt3_pl;  ht4_ph  = ht4_Tt3  * Tt3_ph
+            ht4_ml  = ht4_Tt3  * Tt3_ml;  ht4_mh  = ht4_Tt3  * Tt3_mh
+            cpt4_pl = cpt4_Tt3 * Tt3_pl;  cpt4_ph = cpt4_Tt3 * Tt3_ph
+            cpt4_ml = cpt4_Tt3 * Tt3_ml;  cpt4_mh = cpt4_Tt3 * Tt3_mh
+            Rt4_pl  = Rt4_Tt3  * Tt3_pl;  Rt4_ph  = Rt4_Tt3  * Tt3_ph
+            Rt4_ml  = Rt4_Tt3  * Tt3_ml;  Rt4_mh  = Rt4_Tt3  * Tt3_mh
 
-            #c     gassum(lambda,nair,Tt4,st4   ,dum,ht4   ,dum,cpt4   ,Rt4   )
-            st4_pl, dum, ht4_pl, dum, cpt4_pl, Rt4_pl = gassum(lam_pl, nair, Tt4)
-            st4_ph, dum, ht4_ph, dum, cpt4_ph, Rt4_ph = gassum(lam_ph, nair, Tt4)
-            st4_ml, dum, ht4_ml, dum, cpt4_ml, Rt4_ml = gassum(lam_ml, nair, Tt4)
-            st4_mh, dum, ht4_mh, dum, cpt4_mh, Rt4_mh = gassum(lam_mh, nair, Tt4)
-            st4_Tb, dum, ht4_Tb, dum, cpt4_Tb, Rt4_Tb = gassum(lam_Tb, nair, Tt4)
-
+            #---- station 4 pressure (depends on pt3, not temperatures)
             pt4 = pib * pt3
             pt4_pl = pib * pt3_pl
             pt4_ph = pib * pt3_ph
@@ -769,10 +776,6 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             pt4_mh = pib * pt3_mh
             pt4_Tb = 0.0
             pt4_Mi = pib * pt3_Mi
-
-            st4_Tb = st4_Tb + st4_Tt4 * Tt4_Tb
-            ht4_Tb = ht4_Tb + ht4_Tt4 * Tt4_Tb
-            cpt4_Tb = cpt4_Tb + cpt4_Tt4 * Tt4_Tb
 
             # HSC: SEEMS TO BE FINE
             # ===============================================================
@@ -1340,51 +1343,34 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt19c * pt19c_ml
             BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
 
-            #---- HPT work  (shaft_hp = Shaft(epsh, 1.0) constructed above Newton loop)
-            dhht, dhfac, dhfac_fo, dhfac_ff =
-                hp_shaft_work(shaft_hp, fo, ff, ht3, ht25c)
+            #---- HPT work with Jacobian  (shaft_hp = Shaft(epsh, 1.0) constructed above Newton loop)
+            dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht25c =
+                hp_shaft_workd(shaft_hp, fo, ff, ht3, ht25c)
 
-            dhfac_pl = dhfac_ff * ff_pl
-            dhfac_ph = dhfac_ff * ff_ph
-            dhfac_mf = dhfac_ff * ff_mf + dhfac_fo * fo_mf
-            dhfac_ml = dhfac_ff * ff_ml + dhfac_fo * fo_ml
-            dhfac_mh = dhfac_ff * ff_mh
-            dhfac_Tb = dhfac_ff * ff_Tb
-            dhfac_Mi = dhfac_ff * ff_Mi + dhfac_fo * fo_Mi
+            dhht_pl = dhht_ff * ff_pl + dhht_ht3 * ht3_pl + dhht_ht25c * ht25c_pl
+            dhht_ph = dhht_ff * ff_ph + dhht_ht3 * ht3_ph
+            dhht_mf = dhht_ff * ff_mf + dhht_fo * fo_mf
+            dhht_ml = dhht_ff * ff_ml + dhht_fo * fo_ml + dhht_ht3 * ht3_ml + dhht_ht25c * ht25c_ml
+            dhht_mh = dhht_ff * ff_mh + dhht_ht3 * ht3_mh
+            dhht_Tb = dhht_ff * ff_Tb
+            dhht_Mi = dhht_ff * ff_Mi + dhht_fo * fo_Mi
 
-            dhht_pl = (ht3 - ht25c) * dhfac_pl + (ht3_pl - ht25c_pl) * dhfac
-            dhht_ph = (ht3 - ht25c) * dhfac_ph + (ht3_ph) * dhfac
-            dhht_mf = (ht3 - ht25c) * dhfac_mf
-            dhht_ml = (ht3 - ht25c) * dhfac_ml + (ht3_ml - ht25c_ml) * dhfac
-            dhht_mh = (ht3 - ht25c) * dhfac_mh + (ht3_mh) * dhfac
-            dhht_Tb = (ht3 - ht25c) * dhfac_Tb
-            dhht_Mi = (ht3 - ht25c) * dhfac_Mi
+            #---- LPT work with Jacobian  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
+            dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
+            dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom =
+                lp_shaft_workd(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
 
-            #---- LPT work  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
-            dhlt, dlfac, dlfac_fo, dlfac_ff =
-                lp_shaft_work(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
-
-            dlfac_pl = dlfac_ff * ff_pl
-            dlfac_ph = dlfac_ff * ff_ph
-            dlfac_mf = dlfac_ff * ff_mf + dlfac_fo * fo_mf
-            dlfac_ml = dlfac_ff * ff_ml + dlfac_fo * fo_ml
-            dlfac_mh = dlfac_ff * ff_mh
-            dlfac_Tb = dlfac_ff * ff_Tb
-            dlfac_Mi = dlfac_ff * ff_Mi + dlfac_fo * fo_Mi
-
-            dhlt_pf = (BPR * ht21_pf) * dlfac
-            dhlt_pl = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_pl +
-                      (ht25_pl) * dlfac
-            dhlt_ph = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_ph
-            dhlt_mf = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_mf +
-                      (BPR * ht21_mf + Pom_mf +
-                       BPR_mf * (ht21 - ht2)) * dlfac
-            dhlt_ml = (ht25 - ht19c + BPR * (ht21 - ht2)) * dlfac_ml +
-                      (ht25_ml + BPR_ml * (ht21 - ht2) + Pom_ml) * dlfac
-            dhlt_mh = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_mh
-            dhlt_Tb = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_Tb
-            dhlt_Mi = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_Mi +
-                      (BPR_Mi * (ht21 - ht2) + Pom_Mi) * dlfac
+            dhlt_pf = dhlt_ht21 * ht21_pf
+            dhlt_pl = dhlt_ff * ff_pl + dhlt_ht25 * ht25_pl
+            dhlt_ph = dhlt_ff * ff_ph
+            dhlt_mf = dhlt_ff * ff_mf + dhlt_fo * fo_mf +
+                      dhlt_BPR * BPR_mf + dhlt_ht21 * ht21_mf + dhlt_Pom * Pom_mf
+            dhlt_ml = dhlt_ff * ff_ml + dhlt_fo * fo_ml +
+                      dhlt_BPR * BPR_ml + dhlt_ht25 * ht25_ml + dhlt_Pom * Pom_ml
+            dhlt_mh = dhlt_ff * ff_mh
+            dhlt_Tb = dhlt_ff * ff_Tb
+            dhlt_Mi = dhlt_ff * ff_Mi + dhlt_fo * fo_Mi +
+                      dhlt_BPR * BPR_Mi + dhlt_Pom * Pom_Mi
 
             #---- HPT corrected mass flow, using LPC corrected mass flow and fuel/air ratio
             mbht = ml * (1.0 - fo + ff) * sqrt(Tt41 / Tt19c) * pt19c / pt41

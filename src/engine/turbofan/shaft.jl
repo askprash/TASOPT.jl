@@ -236,6 +236,117 @@ and `Nl`, for use by the Newton Jacobian assembly (row 1 of the 9×9 system).
 At the design operating point, `Gearf · trf · Nf = trl · Nl` exactly, so
 `r = 0`.
 """
+# ---------------------------------------------------------------------------
+# hp_shaft_workd — HPT work with product-rule Jacobian pre-applied
+# ---------------------------------------------------------------------------
+
+"""
+    hp_shaft_workd(shaft, fo, ff, ht3, ht25c)
+        -> (dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht25c)
+
+Compute the HPT specific work and its partial derivatives with respect to
+the four natural inputs `(fo, ff, ht3, ht25c)`.
+
+Wraps `hp_shaft_work` and applies the product rule for
+`dhht = (ht3 − ht25c) · dhfac(fo, ff)` so that the caller assembles Newton
+Jacobian entries by simple chain rule:
+
+    dhht_x = dhht_fo · fo_x  +  dhht_ff · ff_x
+           + dhht_ht3 · ht3_x  +  dhht_ht25c · ht25c_x
+
+## Returns
+
+| Return       | Description                        |
+|:-------------|:-----------------------------------|
+| `dhht`       | HPT specific work  (< 0)          |
+| `dhht_fo`    | ∂dhht/∂fo                          |
+| `dhht_ff`    | ∂dhht/∂ff                          |
+| `dhht_ht3`   | ∂dhht/∂ht3   = dhfac               |
+| `dhht_ht25c` | ∂dhht/∂ht25c = −dhfac              |
+"""
+function hp_shaft_workd(
+    shaft ::Shaft{T},
+    fo    ::T,
+    ff    ::T,
+    ht3   ::T,
+    ht25c ::T,
+) where {T<:AbstractFloat}
+    dhht, dhfac, dhfac_fo, dhfac_ff = hp_shaft_work(shaft, fo, ff, ht3, ht25c)
+    Δh = ht3 - ht25c
+    dhht_fo    = Δh * dhfac_fo
+    dhht_ff    = Δh * dhfac_ff
+    dhht_ht3   = dhfac
+    dhht_ht25c = -dhfac
+    return dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht25c
+end
+
+# ---------------------------------------------------------------------------
+# lp_shaft_workd — LPT work with product-rule Jacobian pre-applied
+# ---------------------------------------------------------------------------
+
+"""
+    lp_shaft_workd(shaft, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
+        -> (dhlt, dhlt_fo, dhlt_ff, dhlt_BPR, dhlt_ht25, dhlt_ht19c,
+            dhlt_ht21, dhlt_ht2, dhlt_Pom)
+
+Compute the LPT specific work and its partial derivatives with respect to
+the nine natural inputs.
+
+Wraps `lp_shaft_work` and applies the product rule for
+`dhlt = demand · dlfac(fo, ff)` where
+`demand = (ht25 − ht19c) + BPR · (ht21 − ht2) + Pom`,
+so the caller assembles Newton entries by chain rule:
+
+    dhlt_x = dhlt_fo · fo_x  +  dhlt_ff · ff_x  +  dhlt_BPR · BPR_x
+           + dhlt_ht25 · ht25_x  +  dhlt_ht19c · ht19c_x
+           + dhlt_ht21 · ht21_x  +  dhlt_ht2 · ht2_x  +  dhlt_Pom · Pom_x
+
+## Returns
+
+| Return       | Description                                     |
+|:-------------|:------------------------------------------------|
+| `dhlt`       | LPT specific work  (< 0)                       |
+| `dhlt_fo`    | ∂dhlt/∂fo   = demand · dlfac_fo                 |
+| `dhlt_ff`    | ∂dhlt/∂ff   = demand · dlfac_ff                 |
+| `dhlt_BPR`   | ∂dhlt/∂BPR  = (ht21 − ht2) · dlfac             |
+| `dhlt_ht25`  | ∂dhlt/∂ht25 = dlfac                             |
+| `dhlt_ht19c` | ∂dhlt/∂ht19c = −dlfac                           |
+| `dhlt_ht21`  | ∂dhlt/∂ht21 = BPR · dlfac                       |
+| `dhlt_ht2`   | ∂dhlt/∂ht2  = −BPR · dlfac                      |
+| `dhlt_Pom`   | ∂dhlt/∂Pom  = dlfac                             |
+"""
+function lp_shaft_workd(
+    shaft ::Shaft{T},
+    fo    ::T,
+    ff    ::T,
+    BPR   ::T,
+    ht25  ::T,
+    ht19c ::T,
+    ht21  ::T,
+    ht2   ::T,
+    Pom   ::T,
+) where {T<:AbstractFloat}
+    dhlt, dlfac, dlfac_fo, dlfac_ff = lp_shaft_work(
+        shaft, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
+
+    demand     = ht25 - ht19c + BPR * (ht21 - ht2) + Pom
+    dhlt_fo    = demand * dlfac_fo
+    dhlt_ff    = demand * dlfac_ff
+    dhlt_BPR   = (ht21 - ht2) * dlfac
+    dhlt_ht25  = dlfac
+    dhlt_ht19c = -dlfac
+    dhlt_ht21  = BPR * dlfac
+    dhlt_ht2   = -BPR * dlfac
+    dhlt_Pom   = dlfac
+
+    return dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
+           dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom
+end
+
+# ---------------------------------------------------------------------------
+# shaft_speed_residual — gear-ratio speed constraint for the LP shaft
+# ---------------------------------------------------------------------------
+
 function shaft_speed_residual(
     shaft ::Shaft{T},
     Nf    ::T,

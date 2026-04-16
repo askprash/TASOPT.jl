@@ -4489,6 +4489,219 @@ isGradient = false
 
     end  # Shaft
 
+    # combustor_burnd — tasopt-j9l.58
+    @testset "combustor_burnd" begin
+        using StaticArrays
+
+        Comb_t      = TASOPT.engine.Combustor
+        comb_burnd  = TASOPT.engine.combustor_burnd
+
+        # Representative combustor parameters
+        pib_val  = 0.94
+        etab_val = 0.985
+        Ttf_val  = 300.0
+        ifuel_val = 24
+        hvap_val = 0.0
+
+        burner = Comb_t(pib_val, etab_val, Ttf_val, ifuel_val, hvap_val)
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair = 5
+
+        # Operating point: HPC exit temperature + burner exit temperature
+        Tt3_test = 830.0   # K (HPC exit)
+        Tb_test  = 1587.0  # K (combustor exit / Tt4)
+
+        # Base evaluation
+        ffb, lambda,
+        Tt4, ht4, st4, cpt4, Rt4,
+        ffb_Tt3, ffb_Tb,
+        ht4_Tt3, st4_Tt3, cpt4_Tt3, Rt4_Tt3,
+        ht4_Tb, st4_Tb, cpt4_Tb, Rt4_Tb,
+        lam_Tt3, lam_Tb = comb_burnd(burner, air_alpha, nair, Tt3_test, Tb_test)
+
+        # ------------------------------------------------------------------
+        # 1. Basic sanity: Tt4 = Tb, positive fuel fraction, valid state
+        # ------------------------------------------------------------------
+        @test Tt4 == Tb_test
+        @test ffb > 0.0
+        @test length(lambda) == nair
+        @test sum(lambda) ≈ 1.0   atol=0.05  # composition sums close to 1
+
+        # ------------------------------------------------------------------
+        # 2. FD verification: ∂ffb/∂Tt3
+        #    rtol=5e-4: gas_burnd internal Newton limits FD precision
+        # ------------------------------------------------------------------
+        eps_Tt3 = 1e-5 * Tt3_test
+        ffb_fwd, = comb_burnd(burner, air_alpha, nair, Tt3_test + eps_Tt3, Tb_test)
+        ffb_bwd, = comb_burnd(burner, air_alpha, nair, Tt3_test - eps_Tt3, Tb_test)
+        ffb_Tt3_fd = (ffb_fwd - ffb_bwd) / (2 * eps_Tt3)
+        @test ffb_Tt3 ≈ ffb_Tt3_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 3. FD verification: ∂ffb/∂Tb
+        # ------------------------------------------------------------------
+        eps_Tb = 1e-5 * Tb_test
+        ffb_fwd_Tb, = comb_burnd(burner, air_alpha, nair, Tt3_test, Tb_test + eps_Tb)
+        ffb_bwd_Tb, = comb_burnd(burner, air_alpha, nair, Tt3_test, Tb_test - eps_Tb)
+        ffb_Tb_fd = (ffb_fwd_Tb - ffb_bwd_Tb) / (2 * eps_Tb)
+        @test ffb_Tb ≈ ffb_Tb_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 4. FD verification: ∂ht4/∂Tt3 (composition chain only)
+        # ------------------------------------------------------------------
+        res_fwd = comb_burnd(burner, air_alpha, nair, Tt3_test + eps_Tt3, Tb_test)
+        res_bwd = comb_burnd(burner, air_alpha, nair, Tt3_test - eps_Tt3, Tb_test)
+        ht4_Tt3_fd = (res_fwd[4] - res_bwd[4]) / (2 * eps_Tt3)
+        @test ht4_Tt3 ≈ ht4_Tt3_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 5. FD verification: ∂st4/∂Tt3
+        # ------------------------------------------------------------------
+        st4_Tt3_fd = (res_fwd[5] - res_bwd[5]) / (2 * eps_Tt3)
+        @test st4_Tt3 ≈ st4_Tt3_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 6. FD verification: ∂ht4/∂Tb (composition + temperature)
+        # ------------------------------------------------------------------
+        res_fwd_Tb = comb_burnd(burner, air_alpha, nair, Tt3_test, Tb_test + eps_Tb)
+        res_bwd_Tb = comb_burnd(burner, air_alpha, nair, Tt3_test, Tb_test - eps_Tb)
+        ht4_Tb_fd = (res_fwd_Tb[4] - res_bwd_Tb[4]) / (2 * eps_Tb)
+        @test ht4_Tb ≈ ht4_Tb_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 7. FD verification: ∂st4/∂Tb
+        # ------------------------------------------------------------------
+        st4_Tb_fd = (res_fwd_Tb[5] - res_bwd_Tb[5]) / (2 * eps_Tb)
+        @test st4_Tb ≈ st4_Tb_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 8. FD verification: ∂cpt4/∂Tb
+        # ------------------------------------------------------------------
+        cpt4_Tb_fd = (res_fwd_Tb[6] - res_bwd_Tb[6]) / (2 * eps_Tb)
+        @test cpt4_Tb ≈ cpt4_Tb_fd   rtol=5e-4
+
+        # ------------------------------------------------------------------
+        # 9. FD verification: ∂Rt4/∂Tt3 (composition chain — small magnitude)
+        # ------------------------------------------------------------------
+        Rt4_Tt3_fd = (res_fwd[7] - res_bwd[7]) / (2 * eps_Tt3)
+        @test Rt4_Tt3 ≈ Rt4_Tt3_fd   atol=1e-5
+
+        # ------------------------------------------------------------------
+        # 10. Composition derivatives: ∂lambda/∂Tt3 via FD
+        # ------------------------------------------------------------------
+        lam_fwd = comb_burnd(burner, air_alpha, nair, Tt3_test + eps_Tt3, Tb_test)[2]
+        lam_bwd = comb_burnd(burner, air_alpha, nair, Tt3_test - eps_Tt3, Tb_test)[2]
+        lam_Tt3_fd = (lam_fwd .- lam_bwd) ./ (2 * eps_Tt3)
+        for i in 1:nair
+            @test lam_Tt3[i] ≈ lam_Tt3_fd[i]   rtol=5e-4
+        end
+    end  # combustor_burnd
+
+    # hp_shaft_workd — tasopt-j9l.58
+    @testset "hp_shaft_workd" begin
+        Shaft_t        = TASOPT.engine.Shaft
+        hp_workd       = TASOPT.engine.hp_shaft_workd
+        hp_work        = TASOPT.engine.hp_shaft_work
+
+        shaft = Shaft_t(0.01, 1.0)  # HP shaft
+
+        fo_val    = 0.015
+        ff_val    = 0.025
+        ht3_val   = 900_000.0   # J/kg (HPC exit)
+        ht25c_val = 430_000.0   # J/kg (HPC inlet)
+
+        # Base evaluation
+        dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht25c =
+            hp_workd(shaft, fo_val, ff_val, ht3_val, ht25c_val)
+
+        # 1. Consistency with hp_shaft_work
+        dhht_ref, dhfac_ref, _, _ = hp_work(shaft, fo_val, ff_val, ht3_val, ht25c_val)
+        @test dhht ≈ dhht_ref   rtol=1e-14
+
+        # 2. ∂dhht/∂ht3 = dhfac, ∂dhht/∂ht25c = -dhfac
+        @test dhht_ht3   ≈  dhfac_ref   rtol=1e-14
+        @test dhht_ht25c ≈ -dhfac_ref   rtol=1e-14
+
+        # 3. FD verification: ∂dhht/∂fo
+        eps_fo = 1e-7
+        dhht_fwd, = hp_workd(shaft, fo_val + eps_fo, ff_val, ht3_val, ht25c_val)
+        dhht_bwd, = hp_workd(shaft, fo_val - eps_fo, ff_val, ht3_val, ht25c_val)
+        @test dhht_fo ≈ (dhht_fwd - dhht_bwd) / (2 * eps_fo)   rtol=1e-7
+
+        # 4. FD verification: ∂dhht/∂ff
+        eps_ff = 1e-7
+        dhht_fwd_ff, = hp_workd(shaft, fo_val, ff_val + eps_ff, ht3_val, ht25c_val)
+        dhht_bwd_ff, = hp_workd(shaft, fo_val, ff_val - eps_ff, ht3_val, ht25c_val)
+        @test dhht_ff ≈ (dhht_fwd_ff - dhht_bwd_ff) / (2 * eps_ff)   rtol=1e-7
+
+        # 5. FD verification: ∂dhht/∂ht3
+        eps_h = 1.0
+        dhht_fwd_h, = hp_workd(shaft, fo_val, ff_val, ht3_val + eps_h, ht25c_val)
+        dhht_bwd_h, = hp_workd(shaft, fo_val, ff_val, ht3_val - eps_h, ht25c_val)
+        @test dhht_ht3 ≈ (dhht_fwd_h - dhht_bwd_h) / (2 * eps_h)   rtol=1e-10
+    end  # hp_shaft_workd
+
+    # lp_shaft_workd — tasopt-j9l.58
+    @testset "lp_shaft_workd" begin
+        Shaft_t        = TASOPT.engine.Shaft
+        lp_workd       = TASOPT.engine.lp_shaft_workd
+        lp_work        = TASOPT.engine.lp_shaft_work
+
+        shaft = Shaft_t(0.015, 1.3)  # LP shaft with gear ratio
+
+        fo_val    = 0.015
+        ff_val    = 0.025
+        BPR_val   = 5.5
+        ht25_val  = 450_000.0   # LPC exit
+        ht19c_val = 300_000.0   # LPC inlet
+        ht21_val  = 320_000.0   # Fan exit
+        ht2_val   = 290_000.0   # Fan inlet
+        Pom_val   = 5000.0      # Power offtake
+
+        # Base evaluation
+        dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
+        dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom =
+            lp_workd(shaft, fo_val, ff_val, BPR_val,
+                     ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+
+        # 1. Consistency with lp_shaft_work
+        dhlt_ref, dlfac_ref, _, _ = lp_work(shaft, fo_val, ff_val, BPR_val,
+                                            ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        @test dhlt ≈ dhlt_ref   rtol=1e-14
+
+        # 2. Analytic identities
+        @test dhlt_ht25  ≈  dlfac_ref         rtol=1e-14
+        @test dhlt_ht19c ≈ -dlfac_ref         rtol=1e-14
+        @test dhlt_ht21  ≈  BPR_val * dlfac_ref   rtol=1e-14
+        @test dhlt_ht2   ≈ -BPR_val * dlfac_ref   rtol=1e-14
+        @test dhlt_Pom   ≈  dlfac_ref         rtol=1e-14
+        @test dhlt_BPR   ≈ (ht21_val - ht2_val) * dlfac_ref   rtol=1e-14
+
+        # 3. FD verification: ∂dhlt/∂fo
+        eps_fo = 1e-7
+        dhlt_fwd, = lp_workd(shaft, fo_val + eps_fo, ff_val, BPR_val,
+                             ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        dhlt_bwd, = lp_workd(shaft, fo_val - eps_fo, ff_val, BPR_val,
+                             ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        @test dhlt_fo ≈ (dhlt_fwd - dhlt_bwd) / (2 * eps_fo)   rtol=1e-7
+
+        # 4. FD verification: ∂dhlt/∂ff
+        eps_ff = 1e-7
+        dhlt_fwd_ff, = lp_workd(shaft, fo_val, ff_val + eps_ff, BPR_val,
+                                ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        dhlt_bwd_ff, = lp_workd(shaft, fo_val, ff_val - eps_ff, BPR_val,
+                                ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        @test dhlt_ff ≈ (dhlt_fwd_ff - dhlt_bwd_ff) / (2 * eps_ff)   rtol=1e-7
+
+        # 5. FD verification: ∂dhlt/∂BPR
+        eps_BPR = 1e-5
+        dhlt_fwd_B, = lp_workd(shaft, fo_val, ff_val, BPR_val + eps_BPR,
+                               ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        dhlt_bwd_B, = lp_workd(shaft, fo_val, ff_val, BPR_val - eps_BPR,
+                               ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        @test dhlt_BPR ≈ (dhlt_fwd_B - dhlt_bwd_B) / (2 * eps_BPR)   rtol=1e-7
+    end  # lp_shaft_workd
+
     @testset "Splitter" begin
 
         Splitter_t    = TASOPT.engine.Splitter
