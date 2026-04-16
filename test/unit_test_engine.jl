@@ -3204,6 +3204,205 @@ isGradient = false
 
     end  # Inlet
 
+    # ==========================================================================
+    # Turbine component — tasopt-j9l.25
+    # Verify structural invariants and outlet-state physics for
+    #   TurbineMap, Turbine, turbine_efficiency, turbine_exit!
+    #
+    # Property-based tests:
+    #   - TurbineMap fields match constructor arguments
+    #   - Turbine default map constants are 0.15
+    #   - turbine_efficiency at design operating point returns ep0
+    #   - turbine_efficiency off-design returns value below ep0
+    #   - turbine_exit!: Tt_out < Tt_in, pt_out < pt_in, alpha unchanged
+    # Round-trip:
+    #   - turbine_efficiency result matches direct etmap call
+    #   - turbine_exit! Tt_out agrees with gas_delhd
+    # ==========================================================================
+    @testset "Turbine" begin
+        using StaticArrays
+
+        FS               = TASOPT.engine.FlowStation
+        TMap             = TASOPT.engine.TurbineMap
+        Turb             = TASOPT.engine.Turbine
+        turb_eff         = TASOPT.engine.turbine_efficiency
+        turb_exit!       = TASOPT.engine.turbine_exit!
+        etmap            = TASOPT.engine.etmap
+        gas_delhd        = TASOPT.engine.gas_delhd
+        gassum           = TASOPT.engine.gassum
+        set_tt!          = TASOPT.engine.set_total_from_Tt!
+
+        # ------------------------------------------------------------------
+        # HPT design parameters from tfwrap.jl (tasopt-j9l.25 reference values)
+        # ------------------------------------------------------------------
+        pihtD  = 2.1601257635200488
+        mbhtD  = 4.3594697284253883
+        NbhtD  = 0.44698693289691338
+        epht0  = 0.889
+        pcon_h = 0.15
+        Ncon_h = 0.15
+
+        # LPT design parameters
+        piltD  = 6.2886975330083716
+        mbltD  = 8.7016090343744406
+        NbltD  = 0.48396724306758404
+        eplt0  = 0.899
+
+        # Standard 5-species hot gas composition after combustion
+        hot_alpha = SA[0.6800, 0.2000, 0.0006, 0.0020, 0.1174]
+        nair = 5
+
+        # Realistic HPT inlet conditions (station 41 after combustor + cooling mixing)
+        Tt41   = 1800.0   # K — representative turbine-inlet temperature
+        pt41   = 2.0e6    # Pa — representative HPT inlet pressure
+
+        # Build HPT inlet FlowStation using set_total_from_Tt! pattern
+        # (same as Inlet testset — fills ht, st, cpt, Rt from Tt and alpha)
+        st41 = FS{Float64}()
+        st41.alpha = hot_alpha
+        st41.Tt    = Tt41
+        st41.pt    = pt41
+        set_tt!(st41)   # fills ht, st, cpt, Rt
+
+        # Extract scalars for use in etmap calls
+        ht41  = st41.ht
+        s41   = st41.st
+        cpt41 = st41.cpt
+        Rt41  = st41.Rt
+
+        # ------------------------------------------------------------------
+        # 1. TurbineMap struct and constructors
+        # ------------------------------------------------------------------
+        tmap1 = TMap(pcon_h, Ncon_h)
+        @test tmap1.pcon == pcon_h
+        @test tmap1.Ncon == Ncon_h
+
+        tmap2 = TMap([pcon_h, Ncon_h])   # vector constructor
+        @test tmap2.pcon == pcon_h
+        @test tmap2.Ncon == Ncon_h
+
+        # ------------------------------------------------------------------
+        # 2. Turbine struct and constructors
+        # ------------------------------------------------------------------
+        hpt = Turb(pihtD, mbhtD, NbhtD, epht0; map=TMap(pcon_h, Ncon_h))
+        @test hpt.piD ≈ pihtD
+        @test hpt.mbD ≈ mbhtD
+        @test hpt.NbD ≈ NbhtD
+        @test hpt.ep0 ≈ epht0
+        @test hpt.map.pcon ≈ pcon_h
+        @test hpt.map.Ncon ≈ Ncon_h
+
+        # Default map constants (0.15, 0.15)
+        lpt = Turb(piltD, mbltD, NbltD, eplt0)
+        @test lpt.map.pcon ≈ 0.15
+        @test lpt.map.Ncon ≈ 0.15
+
+        # ------------------------------------------------------------------
+        # 3. turbine_efficiency: design-point identity (ept = ep0)
+        #
+        # At the design operating point the two penalty terms vanish:
+        #   prat / piD = 1  →  pcon-term = 0
+        #   Nmb / NmbD = 1  →  Ncon-term = 0
+        # so ept = ep0.  We construct the design-point dh from piD:
+        #   Trat = piD^(Rt·ep0/cpt)
+        #   dh   = cpt · Tt · (1/Trat - 1)   (< 0)
+        # ------------------------------------------------------------------
+        Trat_dp = pihtD^(Rt41 * epht0 / cpt41)
+        dh_dp   = cpt41 * Tt41 * (1.0 / Trat_dp - 1.0)
+        @test dh_dp < 0.0   # work extracted → negative enthalpy change
+
+        ept_dp, _ = turb_eff(hpt, dh_dp, mbhtD, NbhtD, Tt41, cpt41, Rt41)
+        @test ept_dp ≈ epht0  rtol=1e-12   # exact identity at design point
+
+        # ------------------------------------------------------------------
+        # 4. turbine_efficiency: off-design penalty
+        # ------------------------------------------------------------------
+        mb_off = 0.6 * mbhtD   # significantly off design-point flow
+        Nb_off = 0.7 * NbhtD
+        ept_off, _ = turb_eff(hpt, dh_dp, mb_off, Nb_off, Tt41, cpt41, Rt41)
+        @test ept_off < epht0   # efficiency degrades off design
+
+        # Efficiency must be physically positive
+        @test ept_off > 0.0
+
+        # ------------------------------------------------------------------
+        # 5. turbine_efficiency round-trip: matches direct etmap call
+        # ------------------------------------------------------------------
+        Tmap_vec = [pcon_h, Ncon_h]
+        ept_ref, ept_ref_dh, ept_ref_mb, ept_ref_Nb,
+        ept_ref_Tt, ept_ref_cpt, ept_ref_Rt = etmap(
+            dh_dp, mbhtD, NbhtD,
+            pihtD, mbhtD, NbhtD, epht0, Tmap_vec,
+            Tt41, cpt41, Rt41,
+        )
+
+        ept_c, ept_c_dh, ept_c_mb, ept_c_Nb,
+        ept_c_Tt, ept_c_cpt, ept_c_Rt = turb_eff(hpt, dh_dp, mbhtD, NbhtD, Tt41, cpt41, Rt41)
+
+        @test ept_c      ≈ ept_ref      rtol=1e-14
+        @test ept_c_dh   ≈ ept_ref_dh   rtol=1e-14
+        @test ept_c_mb   ≈ ept_ref_mb   rtol=1e-14
+        @test ept_c_Nb   ≈ ept_ref_Nb   rtol=1e-14
+        @test ept_c_Tt   ≈ ept_ref_Tt   rtol=1e-14
+        @test ept_c_cpt  ≈ ept_ref_cpt  rtol=1e-14
+        @test ept_c_Rt   ≈ ept_ref_Rt   rtol=1e-14
+
+        # ------------------------------------------------------------------
+        # 6. turbine_exit!: physical invariants
+        # ------------------------------------------------------------------
+        dh_test  = cpt41 * Tt41 * (1.0 / Trat_dp - 1.0)   # design work
+        ept_test = epht0
+
+        st45 = FS{Float64}()
+        turb_exit!(st45, st41, dh_test, ept_test)
+
+        # Temperature drops through expansion
+        @test st45.Tt < st41.Tt
+
+        # Pressure drops through expansion
+        @test st45.pt < st41.pt
+
+        # Composition unchanged
+        @test all(st45.alpha .≈ st41.alpha)
+
+        # Enthalpy drop: gas_delhd solves h(alpha, Tt_out) = h_in + dh
+        @test st45.ht ≈ (ht41 + dh_test)  rtol=1e-8
+
+        # ------------------------------------------------------------------
+        # 7. turbine_exit! round-trip: matches direct gas_delhd call
+        # ------------------------------------------------------------------
+        epi_ref = 1.0 / ept_test
+        res_ref = gas_delhd(
+            hot_alpha, 5,
+            pt41, Tt41, ht41, s41, cpt41, Rt41,
+            dh_test, epi_ref,
+        )
+        pt45_ref, Tt45_ref, ht45_ref, s45_ref, cpt45_ref, Rt45_ref =
+            res_ref[1], res_ref[2], res_ref[3], res_ref[4], res_ref[5], res_ref[6]
+
+        @test st45.pt  ≈ pt45_ref  rtol=1e-14
+        @test st45.Tt  ≈ Tt45_ref  rtol=1e-14
+        @test st45.ht  ≈ ht45_ref  rtol=1e-14
+        @test st45.st  ≈ s45_ref   rtol=1e-14
+        @test st45.cpt ≈ cpt45_ref rtol=1e-14
+        @test st45.Rt  ≈ Rt45_ref  rtol=1e-14
+
+        # ------------------------------------------------------------------
+        # 8. turbine_exit! monotonicity: larger |dh| → lower pt and Tt
+        # ------------------------------------------------------------------
+        dh_small = 0.5 * dh_test   # less work extracted (dh_small closer to 0)
+        dh_large = 1.5 * dh_test   # more work extracted
+
+        st45_small = FS{Float64}()
+        st45_large = FS{Float64}()
+        turb_exit!(st45_small, st41, dh_small, ept_test)
+        turb_exit!(st45_large, st41, dh_large, ept_test)
+
+        @test st45_large.Tt < st45_small.Tt   # more work → lower exit temperature
+        @test st45_large.pt < st45_small.pt   # more work → lower exit pressure
+
+    end  # Turbine
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
