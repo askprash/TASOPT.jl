@@ -420,11 +420,11 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 # variables and project back to pare via engine_state_to_pare!.
                 eng_offdes = eng
 
-                #----- fixed parameters
-                A2 = pare[ieA2]
-                A25 = pare[ieA25]
-                A5 = pare[ieA5]
-                A7 = eng.st7.A   # fan nozzle throat area — read from typed state (set at entry by pare_to_engine_state!)
+                #----- fixed parameters (tasopt-j9l.53: read design flow areas from typed DesignState)
+                A2  = eng_offdes.design.A2
+                A25 = eng_offdes.design.A25
+                A5  = eng_offdes.design.A5
+                A7  = eng_offdes.design.A7
 
                 # tasopt-j9l.23: read map anchors from typed DesignState
                 # (populated by pare_to_engine_state! at harness entry)

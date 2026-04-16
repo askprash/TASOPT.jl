@@ -232,6 +232,16 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.design.NbltD = pare[ieNbltD]
 
     # -----------------------------------------------------------------------
+    # Design component flow areas (tasopt-j9l.53)
+    # These frozen sizing-point areas are read so off-design tfcalc! can
+    # consume them from typed DesignState rather than indexing pare directly.
+    # -----------------------------------------------------------------------
+    eng.design.A2  = pare[ieA2]
+    eng.design.A25 = pare[ieA25]
+    eng.design.A5  = pare[ieA5]
+    eng.design.A7  = pare[ieA7]
+
+    # -----------------------------------------------------------------------
     # Performance rollup scalars (tasopt-j9l.52)
     # -----------------------------------------------------------------------
     eng.TSFC  = pare[ieTSFC]
