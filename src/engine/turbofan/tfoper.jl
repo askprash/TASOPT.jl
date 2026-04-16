@@ -188,6 +188,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       prod *= epsrow[1] * M2 * pif * pilc * pihc * mbf * mblc * mbhc * Tt4 * pt5 * mcore * M25
       T = typeof(prod)
 
+      #---- typed turbine component instances (used by turbine_efficiency and turbine_mb_residual)
+      turb_hp = Turbine(pihtD, mbhtD, NbhtD, epht0;
+                        map = TurbineMap{T}(T(Tmaph[1]), T(Tmaph[2])))
+      turb_lp = Turbine(piltD, mbltD, NbltD, eplt0;
+                        map = TurbineMap{T}(T(Tmapl[1]), T(Tmapl[2])))
 
       #---- Newton system arrays
       res = zeros(T, 9, 1)
@@ -1465,8 +1470,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             # HACK: HSC
             #First find uncooled HPT efficiency and derivatives
             epht1, epht1_dhht, epht1_mbht, epht1_Nbht, epht1_Tt41,
-            epht1_cpt41, epht1_Rt41 = etmap(dhht, mbht, Nbht, pihtD, mbhtD, NbhtD, epht0, Tmaph,
-                  Tt41, cpt41, Rt41)
+            epht1_cpt41, epht1_Rt41 = turbine_efficiency(turb_hp, dhht, mbht, Nbht, Tt41, cpt41, Rt41)
 
             #Find cooled HPT efficiency epht
             epht = find_cooled_hpt_efficiency(epht1, epht_fc, fc0, fc)
@@ -1697,8 +1701,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- LPT efficiency
             eplt,
             eplt_dhlt, eplt_mblt, eplt_Nblt,
-            eplt_Tt45, eplt_cpt45, eplt_Rt45 = etmap(dhlt, mblt, Nblt, piltD, mbltD, NbltD, eplt0, Tmapl,
-                  Tt45, cpt45, Rt45)
+            eplt_Tt45, eplt_cpt45, eplt_Rt45 = turbine_efficiency(turb_lp, dhlt, mblt, Nblt, Tt45, cpt45, Rt45)
 
             if (eplt < 0.80)
                   eplt = 0.80
@@ -2316,7 +2319,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #-------------------------------------------------------------------------
             #---- fixed corrected mass flow at LPT IGV (vertical-line LPT map)
-            res[2, 1] = mblt - mbltD
+            res[2, 1], _ = turbine_mb_residual(turb_lp, mblt)
             a[2, 1] = 0.0
             a[2, 2] = mblt_pl
             a[2, 3] = mblt_ph
@@ -2330,7 +2333,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #-------------------------------------------------------------------------
             #---- fixed corrected mass flow at HPT IGV (vertical-line HPT map)
-            res[3, 1] = mbht - mbhtD
+            res[3, 1], _ = turbine_mb_residual(turb_hp, mbht)
             a[3, 1] = 0.0
             a[3, 2] = mbht_pl
             a[3, 3] = mbht_ph

@@ -213,6 +213,51 @@ work extraction (i.e., less efficient expansion).
 
 `st_out` (mutated in place).
 """
+# ---------------------------------------------------------------------------
+# turbine_mb_residual  —  map-match residual for vertical-line turbine matching
+# ---------------------------------------------------------------------------
+
+"""
+    turbine_mb_residual(turb, mb) -> (r, dr_dmb)
+
+Map-match residual for the vertical-line turbine constraint.
+
+Turbines in TASOPT are matched on the **vertical line**: corrected mass flow
+is pinned to its design value `turb.mbD`.  The residual is:
+
+    r = mb − turb.mbD
+
+and its derivative with respect to `mb` is identically 1.  The design mass
+flow `turb.mbD` is a constant anchor (no Newton-variable dependence), so its
+contribution to the Newton Jacobian is zero.
+
+This function is the canonical form used by the Newton driver to assemble
+rows 2 and 3 of the 9×9 turbine residual system (HPT and LPT corrected-flow
+constraints).  The full Jacobian column entries `a[i,j] = dr/d(newton_j)` are
+obtained by chain-ruling `dr_dmb * dmb_d(newton_j) = 1 × mbXX_j` in the
+Newton assembly.
+
+## Arguments
+
+| Argument | Unit  | Description                        |
+|:---------|:------|:-----------------------------------|
+| `turb`   | —     | `Turbine` component                |
+| `mb`     | kg/s  | Off-design corrected mass flow     |
+
+## Returns
+
+`(r, dr_dmb)` where `r = mb - turb.mbD` and `dr_dmb = 1`.
+"""
+function turbine_mb_residual(turb::Turbine{T}, mb::T) where {T<:AbstractFloat}
+    r      = mb - turb.mbD
+    dr_dmb = one(T)
+    return r, dr_dmb
+end
+
+# ---------------------------------------------------------------------------
+# turbine_exit!  —  compute outlet FlowStation from inlet + work extraction
+# ---------------------------------------------------------------------------
+
 function turbine_exit!(
     st_out ::FlowStation{T},
     st_in  ::FlowStation{T},

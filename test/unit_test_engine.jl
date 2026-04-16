@@ -3403,6 +3403,72 @@ isGradient = false
 
     end  # Turbine
 
+    # turbine_mb_residual — tasopt-j9l.30
+    #
+    # Tests the standalone map-match residual for vertical-line turbine matching.
+    # The residual r = mb - turb.mbD encodes the constraint that corrected mass
+    # flow stays at its design value in the Newton system (rows 2 and 3).
+    #
+    # Properties verified:
+    #   - At design point (mb = mbD): r = 0, dr_dmb = 1
+    #   - Below design (mb < mbD):   r < 0, dr_dmb = 1
+    #   - Above design (mb > mbD):   r > 0, dr_dmb = 1
+    #   - Derivative is identically 1 regardless of mb or turb.mbD
+    #   - Residual equals mb - turb.mbD exactly (round-trip)
+    #   - Correct types for both HPT and LPT representative values
+    @testset "turbine_mb_residual" begin
+
+        turb_mb_res = TASOPT.engine.turbine_mb_residual
+
+        # Representative HPT and LPT design values (typical TASOPT turbofan)
+        pihtD = 3.5;  mbhtD = 60.0;  NbhtD = 1.0;  epht0 = 0.89
+        piltD = 5.0;  mbltD = 70.0;  NbltD = 1.0;  eplt0 = 0.90
+
+        turb_hp = TASOPT.engine.Turbine(pihtD, mbhtD, NbhtD, epht0)
+        turb_lp = TASOPT.engine.Turbine(piltD, mbltD, NbltD, eplt0)
+
+        # 1. Design-point identity: r = 0, dr_dmb = 1
+        r_hp, dr_hp = turb_mb_res(turb_hp, mbhtD)
+        @test r_hp == 0.0
+        @test dr_hp == 1.0
+
+        r_lp, dr_lp = turb_mb_res(turb_lp, mbltD)
+        @test r_lp == 0.0
+        @test dr_lp == 1.0
+
+        # 2. Below-design: r < 0
+        r_low, dr_low = turb_mb_res(turb_hp, 0.95 * mbhtD)
+        @test r_low < 0.0
+        @test dr_low == 1.0
+
+        # 3. Above-design: r > 0
+        r_high, dr_high = turb_mb_res(turb_hp, 1.05 * mbhtD)
+        @test r_high > 0.0
+        @test dr_high == 1.0
+
+        # 4. Derivative is always 1 for any mb (including far off-design)
+        for mb_frac in (0.5, 0.8, 1.0, 1.2, 2.0)
+            _, dr = turb_mb_res(turb_lp, mb_frac * mbltD)
+            @test dr == 1.0
+        end
+
+        # 5. Round-trip: residual equals mb - turb.mbD exactly
+        for mb_frac in (0.7, 0.9, 1.0, 1.1, 1.3)
+            mb = mb_frac * mbhtD
+            r, _ = turb_mb_res(turb_hp, mb)
+            @test r == mb - turb_hp.mbD
+        end
+
+        # 6. Type preservation: Float32 in → Float32 out
+        turb32 = TASOPT.engine.Turbine(Float32(pihtD), Float32(mbhtD),
+                                        Float32(NbhtD),  Float32(epht0))
+        r32, dr32 = turb_mb_res(turb32, Float32(mbhtD))
+        @test r32 isa Float32
+        @test dr32 isa Float32
+        @test r32 == 0.0f0
+
+    end  # turbine_mb_residual
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
