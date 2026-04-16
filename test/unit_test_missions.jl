@@ -24,6 +24,43 @@ end
     @test ac.design_mission_state === ac.missions[1]
 end
 
+@testset "fly_mission! mirrors pare into ac.missions engine state" begin
+    # After fly_mission! each mission point that goes through _mission_iteration!'s
+    # enginecalc! must have its ac.missions[im].points[ip].engine synchronised with
+    # the corresponding pare[:, ip, im] column.
+    ac = load_default_model()
+    size_aircraft!(ac; printiter=false)
+    fly_mission!(ac, 1; printTO=false)
+
+    im = 1
+    tol = 1e-12
+
+    # ---- ipcruise1: three canonical checks from the issue spec ----
+    eng_cr = ac.missions[im].points[ipcruise1].engine
+    @test eng_cr.TSFC ≈ ac.pare[ieTSFC, ipcruise1, im]  rtol=tol
+    @test eng_cr.Fe   ≈ ac.pare[ieFe,   ipcruise1, im]  rtol=tol
+    @test eng_cr.st4.Tt ≈ ac.pare[ieTt4, ipcruise1, im] rtol=tol
+
+    # ---- ipcruisen: end-of-cruise point ----
+    eng_cr2 = ac.missions[im].points[ipcruisen].engine
+    @test eng_cr2.TSFC ≈ ac.pare[ieTSFC, ipcruisen, im] rtol=tol
+    @test eng_cr2.Fe   ≈ ac.pare[ieFe,   ipcruisen, im] rtol=tol
+
+    # ---- climb segment: all points ipclimb1:ipclimbn ----
+    for ip in ipclimb1:ipclimbn
+        eng_ip = ac.missions[im].points[ip].engine
+        @test eng_ip.TSFC ≈ ac.pare[ieTSFC, ip, im] rtol=tol
+        @test eng_ip.Fe   ≈ ac.pare[ieFe,   ip, im] rtol=tol
+    end
+
+    # ---- descent segment: all points ipdescent1:ipdescentn ----
+    for ip in ipdescent1:ipdescentn
+        eng_ip = ac.missions[im].points[ip].engine
+        @test eng_ip.TSFC ≈ ac.pare[ieTSFC, ip, im] rtol=tol
+        @test eng_ip.Fe   ≈ ac.pare[ieFe,   ip, im] rtol=tol
+    end
+end
+
 @testset "MissionPoint and Mission constructors" begin
     # Mission(npoints) constructs without error and has correct length
     m = Mission(17)

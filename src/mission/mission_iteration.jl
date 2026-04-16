@@ -346,6 +346,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   aircraft_drag!(ac, imission, ip, computes_wing_direct)
 
                   eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
+                  pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
 
             Ftotal = pare[ieFe, ip] * parg[igneng]
             TSFC = pare[ieTSFC, ip]
@@ -458,6 +459,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Wpay = parg[igWpay]
             
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
+            pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
 
       end
 
@@ -543,6 +545,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[ieFe, ip] = Ftotal / parg[igneng]
 
       eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
+      pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
       TSFC = pare[ieTSFC, ip]
 
       V = pare[ieu0, ip]
@@ -727,6 +730,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             end
 
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
+            pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
 
             # store effective thrust, effective TSFC
             F = pare[ieFe, ip] * parg[igneng]
