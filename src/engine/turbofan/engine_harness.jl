@@ -257,6 +257,17 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.mfuel = pare[iemfuel]
 
     # -----------------------------------------------------------------------
+    # Compressor map operating points (tasopt-drd)
+    # Written by tfcalc! EXIT block after off-design Newton solve.
+    # -----------------------------------------------------------------------
+    eng.mbf  = pare[iembf]
+    eng.mblc = pare[iemblc]
+    eng.mbhc = pare[iembhc]
+    eng.pif  = pare[iepif]
+    eng.pilc = pare[iepilc]
+    eng.pihc = pare[iepihc]
+
+    # -----------------------------------------------------------------------
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
     # -----------------------------------------------------------------------
     eng.etaf  = pare[ieetaf]
@@ -406,6 +417,16 @@ function engine_state_to_pare!(eng::EngineState, pare)
         pare[ieepsc1+icrow-1] = eng.design.epsrow[icrow]
         pare[ieTmet1+icrow-1] = eng.design.Tmrow[icrow]
     end
+
+    # Compressor map operating points (tasopt-drd)
+    # Sync typed state back to pare so off-design Newton solver
+    # (tfcalc!) can use them as initial guesses for the next call.
+    pare[iembf]  = eng.mbf
+    pare[iemblc] = eng.mblc
+    pare[iembhc] = eng.mbhc
+    pare[iepif]  = eng.pif
+    pare[iepilc] = eng.pilc
+    pare[iepihc] = eng.pihc
 
     # Performance rollup scalars (tasopt-j9l.52)
     # NOTE: pare[ieFe] is intentionally NOT written here.

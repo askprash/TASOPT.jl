@@ -712,23 +712,39 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             pare[ieFe, ip] = Fspec / parg[igneng]
 
             if initializes_engine
-                  pare[iembf, ip] = pare[iembf, ip-1]
-                  pare[iemblc, ip] = pare[iemblc, ip-1]
-                  pare[iembhc, ip] = pare[iembhc, ip-1]
-                  pare[iepif, ip] = pare[iepif, ip-1]
-                  pare[iepilc, ip] = pare[iepilc, ip-1]
-                  pare[iepihc, ip] = pare[iepihc, ip-1]
+                  # Back-propagate compressor map operating points from the previous
+                  # mission point (last cruise point) as Newton initial guesses for
+                  # the first descent engine call.  Write through typed state so the
+                  # per-point EngineState is the source of truth; then sync to pare
+                  # so tfcalc! can pick them up as initial iterates.
+                  prev_eng = mission.points[ip-1].engine
+                  cur_eng  = mission.points[ip].engine
+                  cur_eng.mbf  = prev_eng.mbf
+                  cur_eng.mblc = prev_eng.mblc
+                  cur_eng.mbhc = prev_eng.mbhc
+                  cur_eng.pif  = prev_eng.pif
+                  cur_eng.pilc = prev_eng.pilc
+                  cur_eng.pihc = prev_eng.pihc
+                  pare[iembf, ip]  = cur_eng.mbf
+                  pare[iemblc, ip] = cur_eng.mblc
+                  pare[iembhc, ip] = cur_eng.mbhc
+                  pare[iepif, ip]  = cur_eng.pif
+                  pare[iepilc, ip] = cur_eng.pilc
+                  pare[iepihc, ip] = cur_eng.pihc
                   initializes_engine = false #Apparently, this helps convergence
                                              #on descent, where the engine is at lower throttle
 
                   # make better estimate for new Tt4, adjusted for new ambient T0
-                  dTburn = pare[ieTt4, ip-1] - pare[ieTt3, ip-1]
-                  OTR = pare[ieTt3, ip-1] / pare[ieTt2, ip-1]
-                  Tt3 = pare[ieT0, ip] * OTR
+                  # Read previous-point station temps from typed state; current T0
+                  # from pare (set above by the descent freestream initialisation).
+                  dTburn = prev_eng.st4.Tt - prev_eng.st3.Tt
+                  OTR    = prev_eng.st3.Tt / prev_eng.st2.Tt
+                  Tt3    = pare[ieT0, ip] * OTR
                   pare[ieTt4, ip] = Tt3 + dTburn + 50.0
 
                   # make better estimate for new pt5, adjusted for new ambient p0
-                  pare[iept5, ip] = pare[iept5, ip-1] * pare[iep0, ip] / pare[iep0, ip-1]
+                  # Read previous-point pt5 and p0 from typed state.
+                  pare[iept5, ip] = prev_eng.st5.pt * pare[iep0, ip] / prev_eng.p0
 
             end
 

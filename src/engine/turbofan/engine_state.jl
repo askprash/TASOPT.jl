@@ -131,6 +131,20 @@ mutable struct EngineState{T<:AbstractFloat}
     mfuel ::T   # total fuel mass flow (all engines) [kg/s]
 
     # -----------------------------------------------------------------------
+    # Compressor map operating points (tasopt-drd)
+    # Written by tfcalc! EXIT block; read back via pare_to_engine_state!.
+    # Synced to pare before off-design calls via engine_state_to_pare!.
+    # Back-propagated from previous mission point as Newton initial guesses
+    # (see _mission_iteration! descent initialisation).
+    # -----------------------------------------------------------------------
+    mbf  ::T   # fan corrected mass flow   [kg/s corrected]
+    mblc ::T   # LPC corrected mass flow   [kg/s corrected]
+    mbhc ::T   # HPC corrected mass flow   [kg/s corrected]
+    pif  ::T   # fan pressure ratio        [—]
+    pilc ::T   # LPC pressure ratio        [—]
+    pihc ::T   # HPC pressure ratio        [—]
+
+    # -----------------------------------------------------------------------
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
     # Written by tfcalc! EXIT blocks; backed by pare[ieetaf..ieetalt].
     # -----------------------------------------------------------------------
@@ -183,6 +197,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
         z, z, z, z,                     # M0, T0, p0, a0
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
+        z, z, z, z, z, z,              # mbf, mblc, mbhc, pif, pilc, pihc
         z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
         z, z, z,                        # eta_thermal, eta_prop, eta_overall
         DesignState{T}(),               # design
@@ -213,6 +228,7 @@ const _ENGINE_OWN_FIELDS = (
     :st5, :st6, :st7, :st8, :st9,
     :M0, :T0, :p0, :a0,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
+    :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
     :etaf, :etalc, :etahc, :etaht, :etalt,
     :eta_thermal, :eta_prop, :eta_overall,
     :design,

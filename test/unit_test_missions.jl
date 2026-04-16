@@ -73,6 +73,57 @@ end
     end
 end
 
+@testset "fly_mission! map operating points synced into ac.missions engine state" begin
+    # After fly_mission! the compressor map operating points (mbf, mblc, mbhc,
+    # pif, pilc, pihc) in typed engine state must match the corresponding pare
+    # columns (pare_to_engine_state! round-trip).  This covers the four
+    # enginecalc! call sites: climb, ipcruisen, and descent.  ipcruise1 is
+    # conditional so tested separately.
+    ac = load_default_model()
+    size_aircraft!(ac; printiter=false)
+    fly_mission!(ac, 1; printTO=false)
+
+    im  = 1
+    tol = 1e-12
+
+    for ip in ipclimb1:ipclimbn
+        eng = ac.missions[im].points[ip].engine
+        @test eng.mbf  ≈ ac.pare[iembf,  ip, im] rtol=tol
+        @test eng.mblc ≈ ac.pare[iemblc, ip, im] rtol=tol
+        @test eng.mbhc ≈ ac.pare[iembhc, ip, im] rtol=tol
+        @test eng.pif  ≈ ac.pare[iepif,  ip, im] rtol=tol
+        @test eng.pilc ≈ ac.pare[iepilc, ip, im] rtol=tol
+        @test eng.pihc ≈ ac.pare[iepihc, ip, im] rtol=tol
+    end
+
+    for ip in ipdescent1:ipdescentn
+        eng = ac.missions[im].points[ip].engine
+        @test eng.mbf  ≈ ac.pare[iembf,  ip, im] rtol=tol
+        @test eng.mblc ≈ ac.pare[iemblc, ip, im] rtol=tol
+        @test eng.mbhc ≈ ac.pare[iembhc, ip, im] rtol=tol
+        @test eng.pif  ≈ ac.pare[iepif,  ip, im] rtol=tol
+        @test eng.pilc ≈ ac.pare[iepilc, ip, im] rtol=tol
+        @test eng.pihc ≈ ac.pare[iepihc, ip, im] rtol=tol
+    end
+
+    # ipcruisen: direct check
+    eng_n = ac.missions[im].points[ipcruisen].engine
+    @test eng_n.mbf  ≈ ac.pare[iembf,  ipcruisen, im] rtol=tol
+    @test eng_n.pif  ≈ ac.pare[iepif,  ipcruisen, im] rtol=tol
+    @test eng_n.pihc ≈ ac.pare[iepihc, ipcruisen, im] rtol=tol
+
+    # All descent map values must be positive (real converged engine call)
+    for ip in ipdescent1:ipdescentn
+        eng = ac.missions[im].points[ip].engine
+        @test eng.pif  > 1.0
+        @test eng.pilc > 1.0
+        @test eng.pihc > 1.0
+        @test eng.mbf  > 0.0
+        @test eng.mblc > 0.0
+        @test eng.mbhc > 0.0
+    end
+end
+
 @testset "MissionPoint and Mission constructors" begin
     # Mission(npoints) constructs without error and has correct length
     m = Mission(17)
