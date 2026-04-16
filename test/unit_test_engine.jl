@@ -2592,7 +2592,7 @@ isGradient = false
     end  # off-design engine_state_to_pare! round-trip
 
     # ======================================================================
-    # run_engine_sweep / SweepResult / write_sweep_csv
+    # run_engine_sweep / write_sweep_csv
     # ======================================================================
     @testset "run_engine_sweep" begin
         # ------------------------------------------------------------------
@@ -2603,59 +2603,48 @@ isGradient = false
 
         # ------------------------------------------------------------------
         # Sweep all regular mission points (ipstatic:ipdescentn = 1:16).
+        # run_engine_sweep returns ac.missions[1] (Mission{Float64}) and
+        # populates mission.points[ip].engine for each ip in ip_range.
         # After sizing, every pare column is already converged, so the sweep
         # should reproduce those converged values.
         # ------------------------------------------------------------------
-        sweep = TASOPT.engine.run_engine_sweep(ac)
+        mission = TASOPT.engine.run_engine_sweep(ac)
+        ips = collect(ipstatic:ipdescentn)
+        n_pts = length(ips)   # should be 16
 
-        # ---- Structural invariants ----
-        n_pts = ipdescentn - ipstatic + 1   # should be 16
-        @test length(sweep.ip_indices) == n_pts
-        @test length(sweep.ip_labels)  == n_pts
-        @test length(sweep.engines)    == n_pts
-        @test length(sweep.Fe)         == n_pts
-        @test length(sweep.TSFC)       == n_pts
-        @test length(sweep.BPR)        == n_pts
-        @test length(sweep.mcore)      == n_pts
-        @test length(sweep.mdotf)      == n_pts
-
-        # First and last ip indices match ipstatic and ipdescentn
-        @test sweep.ip_indices[1]   == ipstatic
-        @test sweep.ip_indices[end] == ipdescentn
+        # ---- Return type invariant ----
+        @test mission isa Mission{Float64}
 
         # ---- All performance scalars are positive (physical) ----
-        @test all(x -> x > 0.0, sweep.Fe)
-        @test all(x -> x > 0.0, sweep.TSFC)
-        @test all(x -> x > 0.0, sweep.BPR)
-        @test all(x -> x > 0.0, sweep.mcore)
-        @test all(x -> x > 0.0, sweep.mdotf)
+        @test all(ip -> mission.points[ip].engine.Fe   > 0.0, ips)
+        @test all(ip -> mission.points[ip].engine.TSFC > 0.0, ips)
+        @test all(ip -> mission.points[ip].engine.BPR  > 0.0, ips)
+        @test all(ip -> mission.points[ip].engine.st2.mdot > 0.0, ips)
+        @test all(ip -> mission.points[ip].engine.mfuel > 0.0, ips)
 
         # ---- Mach and altitude are populated for all points ----
-        @test all(x -> x >= 0.0, sweep.Mach)
-        @test all(x -> x >= 0.0, sweep.alt)
+        @test all(ip -> ac.para[iaMach, ip, 1] >= 0.0, ips)
+        @test all(ip -> ac.para[iaalt,  ip, 1] >= 0.0, ips)
 
         # ---- Engine states match pare at every mission point ----
-        # cruise1 index within the sweep vector
-        k_cr = ipcruise1 - ipstatic + 1
-        eng_cr = sweep.engines[k_cr]
+        eng_cr = mission.points[ipcruise1].engine
         pare_cr = view(ac.pare, :, ipcruise1, 1)
 
-        @test eng_cr.Tt4  ≈ pare_cr[ieTt4]   rtol = 1e-12
-        @test eng_cr.pt3  ≈ pare_cr[iept3]   rtol = 1e-12
-        @test eng_cr.Tt49 ≈ pare_cr[ieTt49]  rtol = 1e-12
-        @test sweep.BPR[k_cr] ≈ pare_cr[ieBPR]    rtol = 1e-12
-        @test sweep.Fe[k_cr]  ≈ pare_cr[ieFe]     rtol = 1e-12
-        @test sweep.TSFC[k_cr] ≈ pare_cr[ieTSFC]  rtol = 1e-12
-        @test sweep.mcore[k_cr] ≈ pare_cr[iemcore] rtol = 1e-12
-        @test sweep.mdotf[k_cr] ≈ pare_cr[iemfuel] rtol = 1e-12
+        @test eng_cr.Tt4  ≈ pare_cr[ieTt4]    rtol = 1e-12
+        @test eng_cr.pt3  ≈ pare_cr[iept3]    rtol = 1e-12
+        @test eng_cr.Tt49 ≈ pare_cr[ieTt49]   rtol = 1e-12
+        @test eng_cr.BPR  ≈ pare_cr[ieBPR]    rtol = 1e-12
+        @test eng_cr.Fe   ≈ pare_cr[ieFe]     rtol = 1e-12
+        @test eng_cr.TSFC ≈ pare_cr[ieTSFC]   rtol = 1e-12
+        @test eng_cr.st2.mdot ≈ pare_cr[iemcore] rtol = 1e-12
+        @test eng_cr.mfuel    ≈ pare_cr[iemfuel] rtol = 1e-12
 
         # Check a climb point too (ipclimb1 uses FixedTt4OffDes mode)
-        k_cl = ipclimb1 - ipstatic + 1
-        eng_cl = sweep.engines[k_cl]
+        eng_cl  = mission.points[ipclimb1].engine
         pare_cl = view(ac.pare, :, ipclimb1, 1)
 
-        @test eng_cl.Tt4  ≈ pare_cl[ieTt4]   rtol = 1e-12
-        @test eng_cl.pt3  ≈ pare_cl[iept3]   rtol = 1e-12
+        @test eng_cl.Tt4 ≈ pare_cl[ieTt4] rtol = 1e-12
+        @test eng_cl.pt3 ≈ pare_cl[iept3] rtol = 1e-12
 
         # ---- Thermodynamic invariants on cruise point ----
         # Total temperature must rise through compressor, fall through turbine
@@ -2667,28 +2656,27 @@ isGradient = false
         @test eng_cr.Tt49 < eng_cr.Tt45   # LPT
 
         # ---- Custom ip_range: only the two cruise points ----
-        sweep_cr2 = TASOPT.engine.run_engine_sweep(ac;
-                        ip_range = ipcruise1:ipcruise2)
-        @test length(sweep_cr2.ip_indices) == 2
-        @test sweep_cr2.ip_indices[1] == ipcruise1
-        @test sweep_cr2.ip_indices[2] == ipcruise2
-        @test all(x -> x > 0.0, sweep_cr2.Fe)
+        mission_cr2 = TASOPT.engine.run_engine_sweep(ac;
+                          ip_range = ipcruise1:ipcruise2)
+        @test mission_cr2 isa Mission{Float64}
+        @test mission_cr2.points[ipcruise1].engine.Fe > 0.0
+        @test mission_cr2.points[ipcruise2].engine.Fe > 0.0
 
         # ---- CSV serialisation round-trip ----
         buf = IOBuffer()
-        TASOPT.engine.write_sweep_csv(buf, sweep_cr2)
+        TASOPT.engine.write_sweep_csv(buf, mission_cr2, ipcruise1:ipcruise2, ac)
         csv_str = String(take!(buf))
 
         # Header row must contain expected column names
         header_line = split(csv_str, "\n")[1]
-        @test occursin("ip",        header_line)
-        @test occursin("label",     header_line)
-        @test occursin("Fe_N",      header_line)
+        @test occursin("ip",          header_line)
+        @test occursin("label",       header_line)
+        @test occursin("Fe_N",        header_line)
         @test occursin("TSFC_kg_Ns",  header_line)
         @test occursin("BPR",         header_line)
         @test occursin("mfuel_kg_s",  header_line)
-        @test occursin("Tt4_K",     header_line)
-        @test occursin("pt3_Pa",    header_line)
+        @test occursin("Tt4_K",       header_line)
+        @test occursin("pt3_Pa",      header_line)
 
         # Exactly 3 lines (header + 2 data rows + possible trailing newline)
         data_lines = filter(l -> !isempty(strip(l)), split(csv_str, "\n"))
@@ -2712,13 +2700,13 @@ isGradient = false
         # ------------------------------------------------------------------
         ac = TASOPT.load_default_model()
         size_aircraft!(ac; printiter=false)
-        sweep_cr2 = TASOPT.engine.run_engine_sweep(ac; ip_range=ipcruise1:ipcruise2)
+        mission_cr2 = TASOPT.engine.run_engine_sweep(ac; ip_range=ipcruise1:ipcruise2)
 
         # ------------------------------------------------------------------
         # write_sweep_toml writes valid, parseable TOML.
         # ------------------------------------------------------------------
         buf = IOBuffer()
-        TASOPT.engine.write_sweep_toml(buf, sweep_cr2)
+        TASOPT.engine.write_sweep_toml(buf, mission_cr2, ipcruise1:ipcruise2, ac)
         toml_str = String(take!(buf))
         @test !isempty(toml_str)
 
@@ -2814,13 +2802,14 @@ isGradient = false
         # ---- Setup ----
         ac = TASOPT.load_default_model()
         size_aircraft!(ac; printiter=false)
-        sweep = TASOPT.engine.run_engine_sweep(ac)
+        sweep = TASOPT.engine.run_engine_sweep(ac)   # returns Mission{Float64}
+        ips   = collect(ipstatic:ipdescentn)
 
         baseline_path = TASOPT.engine.ENGINE_BASELINE_PATH
         @test isfile(baseline_path)
         baseline = TOML.parsefile(baseline_path)
 
-        n_pts = length(sweep.ip_indices)
+        n_pts = length(ips)
         baseline_pts = baseline["points"]
         @test length(baseline_pts) == n_pts
 
@@ -2854,22 +2843,23 @@ isGradient = false
         for k in 1:n_pts
             bp  = baseline_pts[k]
             lbl = bp["label"]
-            eng = sweep.engines[k]
+            ip  = ips[k]
+            eng = sweep.points[ip].engine
 
-            @test sweep.ip_labels[k] == lbl  # ordering sanity check
+            @test ip_labels[ip] == lbl  # ordering sanity check
 
             # Top-level performance scalars
-            chk!(sweep.Fe[k],    bp["Fe_N"],       "[$lbl] Fe_N")
-            chk!(sweep.TSFC[k],  bp["TSFC_kg_Ns"], "[$lbl] TSFC_kg_Ns")
-            chk!(sweep.BPR[k],   bp["BPR"],        "[$lbl] BPR")
-            chk!(sweep.mcore[k], bp["mcore_kg_s"], "[$lbl] mcore_kg_s")
-            chk!(sweep.mdotf[k], bp["mfuel_kg_s"], "[$lbl] mfuel_kg_s")
-            chk!(sweep.alt[k],   bp["alt_m"],      "[$lbl] alt_m")
-            chk!(sweep.Mach[k],  bp["Mach"],       "[$lbl] Mach")
-            chk!(eng.M0,         bp["M0"],         "[$lbl] M0")
-            chk!(eng.T0,         bp["T0_K"],       "[$lbl] T0_K")
-            chk!(eng.p0,         bp["p0_Pa"],      "[$lbl] p0_Pa")
-            chk!(eng.a0,         bp["a0_m_s"],     "[$lbl] a0_m_s")
+            chk!(eng.Fe,        bp["Fe_N"],       "[$lbl] Fe_N")
+            chk!(eng.TSFC,      bp["TSFC_kg_Ns"], "[$lbl] TSFC_kg_Ns")
+            chk!(eng.BPR,       bp["BPR"],        "[$lbl] BPR")
+            chk!(eng.st2.mdot,  bp["mcore_kg_s"], "[$lbl] mcore_kg_s")
+            chk!(eng.mfuel,     bp["mfuel_kg_s"], "[$lbl] mfuel_kg_s")
+            chk!(ac.para[iaalt,  ip, 1], bp["alt_m"], "[$lbl] alt_m")
+            chk!(ac.para[iaMach, ip, 1], bp["Mach"],  "[$lbl] Mach")
+            chk!(eng.M0,        bp["M0"],         "[$lbl] M0")
+            chk!(eng.T0,        bp["T0_K"],       "[$lbl] T0_K")
+            chk!(eng.p0,        bp["p0_Pa"],      "[$lbl] p0_Pa")
+            chk!(eng.a0,        bp["a0_m_s"],     "[$lbl] a0_m_s")
 
             # Station-level fields
             bp_stations = bp["stations"]
@@ -2955,10 +2945,10 @@ isGradient = false
 
         ac_plots = TASOPT.load_default_model()
         size_aircraft!(ac_plots; printiter=false)
-        sweep_plots = TASOPT.engine.run_engine_sweep(ac_plots)
+        mission_plots = TASOPT.engine.run_engine_sweep(ac_plots)
 
         # ---- plot_engine_station_profiles -----------------------------------
-        p_prof = TASOPT.plot_engine_station_profiles(sweep_plots)
+        p_prof = TASOPT.plot_engine_station_profiles(mission_plots, ipstatic:ipdescentn)
 
         @test p_prof isa Plots.Plot
         # Two panels: Tt profile (top) and pt profile (bottom).
@@ -2969,7 +2959,7 @@ isGradient = false
         @test (savefig(p_prof, tmp_prof); isfile(tmp_prof))
 
         # ---- plot_engine_performance (no spool speeds) ----------------------
-        p_basic = TASOPT.plot_engine_performance(sweep_plots)
+        p_basic = TASOPT.plot_engine_performance(mission_plots, ipstatic:ipdescentn)
 
         @test p_basic isa Plots.Plot
         # Four panels: Fe, TSFC, BPR, mcore.
@@ -2979,7 +2969,8 @@ isGradient = false
         @test (savefig(p_basic, tmp_basic); isfile(tmp_basic))
 
         # ---- plot_engine_performance (with spool speeds) --------------------
-        p_full = TASOPT.plot_engine_performance(sweep_plots; ac=ac_plots, imission=1)
+        p_full = TASOPT.plot_engine_performance(mission_plots, ipstatic:ipdescentn;
+                                                ac=ac_plots, imission=1)
 
         @test p_full isa Plots.Plot
         # Seven panels: Fe, TSFC, BPR, mcore, Nbf, Nblc, Nbhc.

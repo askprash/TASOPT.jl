@@ -7,12 +7,12 @@ Provides:
 - `run_engine_design_point`: single-point design sizing runner — accepts an
   aircraft object, initialises ambient conditions, runs `tfsize!` via
   `tfwrap!`, and returns an `EngineState`.
-- `SweepResult`: tabular container aggregating per-mission-point engine states
-  and performance scalars.
 - `run_engine_sweep`: multi-point off-design runner — iterates the engine
-  across a range of mission points on an already-sized aircraft and returns a
-  `SweepResult`.
-- `write_sweep_csv`: serialise a `SweepResult` to CSV.
+  across a range of mission points, writes results into `ac.missions[imission]`,
+  and returns that `Mission{Float64}`.
+- `write_sweep_csv`: serialise a `Mission` sweep to CSV.
+- `write_sweep_toml`: serialise a `Mission` sweep to TOML regression baseline.
+- `SweepResult`: **deprecated** tabular container (use `Mission{T}` instead).
 """
 
 # ---------------------------------------------------------------------------
@@ -595,6 +595,12 @@ end
 """
     SweepResult{T<:AbstractFloat}
 
+!!! warning "Deprecated"
+    `SweepResult` is deprecated.  [`run_engine_sweep`](@ref) now returns a
+    `Mission{T}` directly and writes results into `ac.missions[imission]`.
+    Use `mission.points[ip].engine` to access per-point engine state.
+    `SweepResult` will be removed in a future release.
+
 Tabular container for the output of [`run_engine_sweep`](@ref).  Holds one
 [`EngineState`](@ref) per mission point together with the key engine
 performance scalars extracted from `pare`.
@@ -633,16 +639,18 @@ end
 
 """
     run_engine_sweep(ac; imission=1, ip_range=ipstatic:ipdescentn,
-                    initializes_engine=false) -> SweepResult{Float64}
+                    initializes_engine=false) -> Mission{Float64}
 
 Run the turbofan off-design performance routine across every mission point in
-`ip_range` and return the aggregated results as a [`SweepResult`](@ref).
+`ip_range`, write the converged engine state into `ac.missions[imission]`, and
+return that `Mission{Float64}` directly.
 
 The aircraft must already be sized with `size_aircraft!` (or equivalent)
 before calling this function.  In particular:
 - `pare[ieFe, ip, imission]` must hold the required thrust at each mission
   point (set by `size_aircraft!` ↔ `fly_mission!`).
 - Ambient conditions in `pare` (T0, p0, a0, M0, …) must be populated.
+- `ac.missions[imission]` must be pre-allocated (done by `read_input.jl`).
 
 For climb and ground-roll points (`ipstatic:ipclimbn`) the engine is operated
 at maximum turbine-inlet temperature (`CalcMode.FixedTt4OffDes`); for all
@@ -659,16 +667,16 @@ other points it operates at the thrust target (`CalcMode.FixedFeOffDes`).
   (slower, but independent of the current `pare` state).
 
 ## Returns
-A [`SweepResult{Float64}`](@ref) with one entry per mission point in
-`ip_range`.
+`ac.missions[imission]::Mission{Float64}` — the mission whose `points[ip].engine`
+fields have been populated for every `ip` in `ip_range`.
 
 ## Example
 ```julia
 using TASOPT
 ac = TASOPT.load_default_model()
 size_aircraft!(ac; printiter=false)
-sweep = TASOPT.engine.run_engine_sweep(ac)
-TASOPT.engine.write_sweep_csv("engine_sweep.csv", sweep)
+mission = TASOPT.engine.run_engine_sweep(ac)
+TASOPT.engine.write_sweep_csv("engine_sweep.csv", mission, ipstatic:ipdescentn, ac)
 ```
 """
 function run_engine_sweep(ac;
@@ -676,56 +684,34 @@ function run_engine_sweep(ac;
                           ip_range             = ipstatic:ipdescentn,
                           initializes_engine::Bool = false)
 
-    T   = Float64
-    ips = collect(Int, ip_range)
-    n   = length(ips)
+    mission = ac.missions[imission]
 
-    # Allocate output vectors
-    labels  = Vector{String}(undef, n)
-    alt_vec = zeros(T, n)
-    M_vec   = zeros(T, n)
-    engs    = [EngineState{T}() for _ in 1:n]
-    Fe_vec  = zeros(T, n)
-    TSFC_v  = zeros(T, n)
-    BPR_v   = zeros(T, n)
-    mc_v    = zeros(T, n)
-    mf_v    = zeros(T, n)
-
-    for (k, ip) in enumerate(ips)
-        # Human-readable label from the index-constant table in index.inc
-        labels[k] = (ip <= length(ip_labels)) ? ip_labels[ip] : string(ip)
-
-        # Altitude and Mach from para (populated by size_aircraft! / fly_mission!)
-        alt_vec[k] = ac.para[iaalt,  ip, imission]
-        M_vec[k]   = ac.para[iaMach, ip, imission]
-
+    for ip in ip_range
         # Run engine off-design at this mission point
         tfwrap!(ac, "off_design", imission, ip, initializes_engine)
 
-        # Map converged pare column → typed EngineState
-        pare_to_engine_state!(engs[k], view(ac.pare, :, ip, imission))
-
-        # Extract key performance scalars from pare
-        Fe_vec[k] = ac.pare[ieFe,    ip, imission]
-        TSFC_v[k] = ac.pare[ieTSFC,  ip, imission]
-        BPR_v[k]  = ac.pare[ieBPR,   ip, imission]
-        mc_v[k]   = ac.pare[iemcore, ip, imission]
-        mf_v[k]   = ac.pare[iemfuel, ip, imission]
+        # Map converged pare column → typed EngineState in mission
+        pare_to_engine_state!(mission.points[ip].engine,
+                               view(ac.pare, :, ip, imission))
     end
 
-    return SweepResult{T}(ips, labels, alt_vec, M_vec, engs,
-                          Fe_vec, TSFC_v, BPR_v, mc_v, mf_v)
+    return mission
 end
 
 # ---------------------------------------------------------------------------
 # write_sweep_csv
 # ---------------------------------------------------------------------------
 
-"""
-    write_sweep_csv(io::IO, result::SweepResult)
-    write_sweep_csv(path::AbstractString, result::SweepResult)
+const _SWEEP_CSV_STATIONS = (
+    ("0",  :st0),  ("2",  :st2),  ("3",  :st3),
+    ("4",  :st4),  ("41", :st41), ("45", :st45),
+    ("49", :st49), ("5",  :st5),  ("7",  :st7))
 
-Write a [`SweepResult`](@ref) to CSV format.
+"""
+    write_sweep_csv(io::IO, mission::Mission, ip_range, ac; imission=1)
+    write_sweep_csv(path::AbstractString, mission::Mission, ip_range, ac; imission=1)
+
+Write a [`Mission`](@ref) sweep to CSV format for the mission points in `ip_range`.
 
 Each row corresponds to one mission point.  Columns:
 - Metadata: `ip`, `label`, `alt_m`, `Mach`
@@ -737,17 +723,72 @@ Each row corresponds to one mission point.  Columns:
 
 The `path` overload opens the file, writes, and closes it.
 """
+function write_sweep_csv(io::IO, mission, ip_range, ac; imission::Int=1)
+    # ----- Header -----
+    header_parts = [
+        "ip", "label", "alt_m", "Mach",
+        "Fe_N", "TSFC_kg_Ns", "BPR", "mcore_kg_s", "mfuel_kg_s",
+    ]
+    for (sname, _) in _SWEEP_CSV_STATIONS
+        push!(header_parts, "Tt$(sname)_K", "pt$(sname)_Pa", "ht$(sname)_J_kg")
+    end
+    push!(header_parts, "u5_m_s", "u7_m_s")
+    println(io, join(header_parts, ","))
+
+    # ----- Rows -----
+    for ip in ip_range
+        eng = mission.points[ip].engine
+        lbl = (ip <= length(ip_labels)) ? ip_labels[ip] : string(ip)
+        row = [
+            string(ip),
+            lbl,
+            @sprintf("%.2f", ac.para[iaalt,  ip, imission]),
+            @sprintf("%.6g", ac.para[iaMach, ip, imission]),
+            @sprintf("%.6g", eng.Fe),
+            @sprintf("%.6g", eng.TSFC),
+            @sprintf("%.6g", eng.BPR),
+            @sprintf("%.6g", eng.st2.mdot),
+            @sprintf("%.6g", eng.mfuel),
+        ]
+        for (_, stfield) in _SWEEP_CSV_STATIONS
+            fs = getfield(eng, stfield)
+            push!(row,
+                  @sprintf("%.6g", fs.Tt),
+                  @sprintf("%.6g", fs.pt),
+                  @sprintf("%.6g", fs.ht))
+        end
+        push!(row,
+              @sprintf("%.6g", eng.st5.u),
+              @sprintf("%.6g", eng.st7.u))
+        println(io, join(row, ","))
+    end
+    return nothing
+end
+
+function write_sweep_csv(path::AbstractString, mission, ip_range, ac; imission::Int=1)
+    open(path, "w") do io
+        write_sweep_csv(io, mission, ip_range, ac; imission=imission)
+    end
+    return nothing
+end
+
+"""
+    write_sweep_csv(io::IO, result::SweepResult)
+    write_sweep_csv(path::AbstractString, result::SweepResult)
+
+!!! warning "Deprecated"
+    This overload is deprecated.  Use `write_sweep_csv(io, mission, ip_range, ac)`
+    with the `Mission{T}` returned by [`run_engine_sweep`](@ref).
+
+Write a [`SweepResult`](@ref) to CSV format.
+"""
 function write_sweep_csv(io::IO, result::SweepResult)
     # ----- Header -----
     header_parts = [
         "ip", "label", "alt_m", "Mach",
         "Fe_N", "TSFC_kg_Ns", "BPR", "mcore_kg_s", "mfuel_kg_s",
     ]
-    # Station columns: Tt and pt at stations 0, 2, 3, 4, 41, 45, 49, 5, 7
-    _sweep_stations = (("0",  :st0),  ("2",  :st2),  ("3",  :st3),
-                       ("4",  :st4),  ("41", :st41), ("45", :st45),
-                       ("49", :st49), ("5",  :st5),  ("7",  :st7))
-    for (sname, _) in _sweep_stations
+    for (sname, _) in _SWEEP_CSV_STATIONS
         push!(header_parts, "Tt$(sname)_K", "pt$(sname)_Pa", "ht$(sname)_J_kg")
     end
     push!(header_parts, "u5_m_s", "u7_m_s")
@@ -768,7 +809,7 @@ function write_sweep_csv(io::IO, result::SweepResult)
             @sprintf("%.6g", result.mcore[k]),
             @sprintf("%.6g", result.mdotf[k]),
         ]
-        for (_, stfield) in _sweep_stations
+        for (_, stfield) in _SWEEP_CSV_STATIONS
             fs = getfield(eng, stfield)
             push!(row,
                   @sprintf("%.6g", fs.Tt),
@@ -846,29 +887,79 @@ function _station_to_dict(fs::FlowStation)
 end
 
 """
-    write_sweep_toml(io::IO, result::SweepResult)
-    write_sweep_toml(path::AbstractString, result::SweepResult)
+    write_sweep_toml(io::IO, mission::Mission, ip_range, ac; imission=1)
+    write_sweep_toml(path::AbstractString, mission::Mission, ip_range, ac; imission=1)
 
-Write a [`SweepResult`](@ref) to TOML format suitable for use as a
+Write a [`Mission`](@ref) sweep to TOML format suitable for use as a
 regression baseline fixture.
 
-The output is structured as an array of `[[points]]` tables, one per
-mission point.  Each table contains:
+Each `[[points]]` table contains:
 - Metadata: `ip`, `label`, `alt_m`, `Mach`.
 - Engine performance: `Fe_N`, `TSFC_kg_Ns`, `BPR`, `mcore_kg_s`,
   `mfuel_kg_s`, `M0`, `T0_K`, `p0_Pa`, `a0_m_s`.
 - Station subtables (e.g. `[points.stations.st0]`) with twelve scalar
   fields: `Tt`, `ht`, `pt`, `cpt`, `Rt`, `Ts`, `ps`, `cps`, `Rs`,
-  `u`, `A`, `mdot`.  Stations 19c, 25c, 4a, 49c are all-zero for the
-  default turbofan (no heat exchangers / cooling-mix path in pare).
+  `u`, `A`, `mdot`.
 
 The TOML format is line-oriented and deterministic, making it suitable
 for `git diff` review when baseline values change.
+"""
+function write_sweep_toml(io::IO, mission, ip_range, ac; imission::Int=1)
+    ips = collect(Int, ip_range)
+    n = length(ips)
+    points = Vector{Dict{String,Any}}(undef, n)
+    for (k, ip) in enumerate(ips)
+        eng = mission.points[ip].engine
+        lbl = (ip <= length(ip_labels)) ? ip_labels[ip] : string(ip)
+        stations = Dict{String,Any}()
+        for (_, _, stfld) in _TOML_STATION_ORDER
+            stations[String(stfld)] = _station_to_dict(getfield(eng, stfld))
+        end
+        points[k] = Dict{String,Any}(
+            "ip"          => ip,
+            "label"       => lbl,
+            "alt_m"       => Float64(ac.para[iaalt,  ip, imission]),
+            "Mach"        => Float64(ac.para[iaMach, ip, imission]),
+            "Fe_N"        => Float64(eng.Fe),
+            "TSFC_kg_Ns"  => Float64(eng.TSFC),
+            "BPR"         => Float64(eng.BPR),
+            "mcore_kg_s"  => Float64(eng.st2.mdot),
+            "mfuel_kg_s"  => Float64(eng.mfuel),
+            "M0"          => Float64(eng.M0),
+            "T0_K"        => Float64(eng.T0),
+            "p0_Pa"       => Float64(eng.p0),
+            "a0_m_s"      => Float64(eng.a0),
+            "stations"    => stations,
+        )
+    end
+    data = Dict{String,Any}(
+        "metadata" => Dict{String,Any}(
+            "n_points" => n,
+            "aircraft" => "default",
+            "description" => "Engine sweep baseline — default TASOPT aircraft.",
+        ),
+        "points" => points,
+    )
+    TOML.print(io, data)
+    return nothing
+end
 
-## Usage
-```julia
-TASOPT.engine.write_sweep_toml("baseline.toml", sweep)
-```
+function write_sweep_toml(path::AbstractString, mission, ip_range, ac; imission::Int=1)
+    open(path, "w") do io
+        write_sweep_toml(io, mission, ip_range, ac; imission=imission)
+    end
+    return nothing
+end
+
+"""
+    write_sweep_toml(io::IO, result::SweepResult)
+    write_sweep_toml(path::AbstractString, result::SweepResult)
+
+!!! warning "Deprecated"
+    This overload is deprecated.  Use `write_sweep_toml(io, mission, ip_range, ac)`
+    with the `Mission{T}` returned by [`run_engine_sweep`](@ref).
+
+Write a [`SweepResult`](@ref) to TOML format.
 """
 function write_sweep_toml(io::IO, result::SweepResult)
     n = length(result.ip_indices)
@@ -970,9 +1061,9 @@ function regenerate_engine_baseline(ac; path::AbstractString=ENGINE_BASELINE_PAT
     reviewers can audit the numerical diff.
     """
     mkpath(dirname(abspath(path)))
-    sweep = run_engine_sweep(ac)
-    write_sweep_toml(path, sweep)
-    n = length(sweep.ip_indices)
+    mission = run_engine_sweep(ac)
+    write_sweep_toml(path, mission, ipstatic:ipdescentn, ac)
+    n = ipdescentn - ipstatic + 1
     @info "Baseline written: $(abspath(path))  ($n mission points)"
     return abspath(path)
 end
