@@ -72,6 +72,10 @@ using .aerodynamics
 using .structures
 using .engine
 
+# Typed mission containers (MissionPoint, Mission) — depends on EngineState
+include(joinpath(__TASOPTroot__,"mission/mission_types.jl"))
+export MissionPoint, Mission
+
 # Load primary aircraft structure
 include(joinpath(__TASOPTroot__,"data_structs/landing_gear.jl"))
 include(joinpath(__TASOPTroot__,"data_structs/options.jl"))
@@ -81,10 +85,6 @@ export aircraft, fuselage_tank
 #Include cryogenic tanks after loading Fuselage and fuselage_tank
 include(joinpath(__TASOPTroot__,"cryo_tank/CryoTank.jl"))
 using .CryoTank
-
-# Typed mission containers (MissionPoint, Mission) — depends on EngineState
-include(joinpath(__TASOPTroot__,"mission/mission_types.jl"))
-export MissionPoint, Mission
 
 # Off-design performance via BADA file like output
 #  and LTO output for EDB points for use in AEIC

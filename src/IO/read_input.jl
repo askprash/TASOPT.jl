@@ -131,6 +131,7 @@ parg = zeros(Float64, igtotal)
 parm = zeros(Float64, (imtotal, nmisx))
 para = zeros(Float64, (iatotal, iptotal, nmisx))
 pare = zeros(Float64, (ietotal, iptotal, nmisx))
+missions_vec = [Mission{Float64}(iptotal) for _ in 1:nmisx]
 
 wing = Wing()
 htail = Tail()
@@ -1268,8 +1269,9 @@ ac_options = TASOPT.Options(
     
 #Create aircraft object
 ac = TASOPT.aircraft(name, description, ac_options,
-    parg, parm, para, pare, is_sized, 
-    fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear)
+    parg, parm, para, pare, is_sized,
+    fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear,
+    missions_vec, 1)
 
 # ---------------------------------
 # Recalculate cabin length
