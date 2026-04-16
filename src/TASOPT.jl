@@ -82,6 +82,10 @@ export aircraft, fuselage_tank
 include(joinpath(__TASOPTroot__,"cryo_tank/CryoTank.jl"))
 using .CryoTank
 
+# Typed mission containers (MissionPoint, Mission) — depends on EngineState
+include(joinpath(__TASOPTroot__,"mission/mission_types.jl"))
+export MissionPoint, Mission
+
 # Off-design performance via BADA file like output
 #  and LTO output for EDB points for use in AEIC
 include(joinpath(__TASOPTroot__,"mission/odperformance.jl"))
