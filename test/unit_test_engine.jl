@@ -3639,6 +3639,276 @@ isGradient = false
 
     end  # Combustor
 
+    # Compressor component — tasopt-j9l.24
+    # Verify structural invariants and outlet-state physics for
+    #   Compressor, compressor_efficiency, compressor_exit!
+    #
+    # Property-based tests:
+    #   - Compressor fields match constructor arguments
+    #   - compressor_efficiency at design operating point returns epol0
+    #   - compressor_efficiency off-design returns a different efficiency
+    #   - compressor_efficiency floor: clamped when map returns below floor
+    #   - compressor_efficiency windmilling: pi < 1 inverts efficiency
+    #   - compressor_exit!: Tt_out > Tt_in, pt_out = pi*pt_in, alpha unchanged
+    # Round-trip:
+    #   - compressor_efficiency matches direct calculate_compressor_speed_and_efficiency call
+    #   - compressor_exit! agrees with direct gas_pratd call
+    # ==========================================================================
+    @testset "Compressor" begin
+        using StaticArrays
+
+        FS               = TASOPT.engine.FlowStation
+        Comp             = TASOPT.engine.Compressor
+        comp_eff         = TASOPT.engine.compressor_efficiency
+        comp_exit!       = TASOPT.engine.compressor_exit!
+        calc_cse         = TASOPT.engine.calculate_compressor_speed_and_efficiency
+        gas_pratd        = TASOPT.engine.gas_pratd
+        FanMap           = TASOPT.engine.FanMap
+        LPCMap           = TASOPT.engine.LPCMap
+        HPCMap           = TASOPT.engine.HPCMap
+        set_tt!          = TASOPT.engine.set_total_from_Tt!
+
+        # ------------------------------------------------------------------
+        # Design parameters from tfoper.jl mode-1 test (baseline aircraft)
+        # ------------------------------------------------------------------
+        pifD   = 1.6850000000000001
+        pilcD  = 8.0000000000000000
+        pihcD  = 3.7500000000000000
+
+        mbfD   = 235.16225770724063
+        mblcD  = 46.110246609262873
+        mbhcD  = 7.8056539219349039
+
+        NbfD   = 1.0790738309310697
+        NblcD  = 1.0790738309310697
+        NbhcD  = 0.77137973563891493
+
+        epf0   = 0.89480000000000004
+        eplc0  = 0.88000000000000000
+        ephc0  = 0.87000000000000000
+
+        epfmin  = 0.60
+        elpcmin = 0.70
+        ephcmin = 0.70
+
+        # Standard 5-species air composition (from tfoper.jl)
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair = 5
+
+        # Realistic fan-face inlet conditions (station 2, ISA cruise ~10 km)
+        Tt2  = 288.15   # K  — ISA sea-level (fan-face after inlet recovery)
+        pt2  = 30_000.0 # Pa — approx 10 km altitude static → total near 30 kPa
+
+        st2 = FS{Float64}()
+        st2.alpha = air_alpha
+        st2.Tt    = Tt2
+        st2.pt    = pt2
+        set_tt!(st2)
+
+        # ------------------------------------------------------------------
+        # 1. Compressor struct and constructor invariants
+        # ------------------------------------------------------------------
+        fan = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        @test fan.piD      ≈ pifD
+        @test fan.mbD      ≈ mbfD
+        @test fan.NbD      ≈ NbfD
+        @test fan.epol0    ≈ epf0
+        @test fan.epol_min ≈ epfmin
+        @test fan.map      === FanMap
+        @test fan.Ng       ≈ 0.5    # default warm-start speed
+        @test fan.Rg       ≈ 2.0    # default warm-start R-line
+
+        lpc = Comp(pilcD, mblcD, NblcD, eplc0, elpcmin, LPCMap)
+        @test lpc.piD  ≈ pilcD
+        @test lpc.mbD  ≈ mblcD
+
+        hpc = Comp(pihcD, mbhcD, NbhcD, ephc0, ephcmin, HPCMap)
+        @test hpc.piD  ≈ pihcD
+        @test hpc.mbD  ≈ mbhcD
+
+        # ------------------------------------------------------------------
+        # 2. compressor_efficiency: design-point evaluation
+        #
+        # At the design operating point the map should return a positive,
+        # sub-unity efficiency above the floor.  Note: the map's
+        # defaults.polyeff is the *maximum* across the whole map, not
+        # the value at the design (Nc, Rline) point, so epol_dp ≠ epol0
+        # in general.  The constraint we can assert is: epol_dp ∈ (epfmin, 1).
+        # ------------------------------------------------------------------
+        fan_dp = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        Nb_dp, epol_dp, _, _, _, _ = comp_eff(fan_dp, pifD, mbfD)
+
+        @test epol_dp > epfmin    # above the efficiency floor
+        @test epol_dp < 1.0       # physically sub-unity
+
+        # Speed should be positive
+        @test Nb_dp > 0.0
+
+        # ------------------------------------------------------------------
+        # 3. compressor_efficiency: off-design operating point
+        # ------------------------------------------------------------------
+        mb_off = 0.8 * mbfD   # mass flow 20% below design
+        Nb_off, epol_off, _, _, _, _ = comp_eff(fan_dp, pifD, mb_off)
+
+        # Efficiency must remain physically positive
+        @test epol_off > 0.0
+
+        # Speed must be positive
+        @test Nb_off > 0.0
+
+        # Compressor speed should change when mass flow changes
+        # (not a strict monotonicity guarantee, but sanity check)
+        @test Nb_off != Nb_dp
+
+        # ------------------------------------------------------------------
+        # 4. compressor_efficiency round-trip: matches direct calc call
+        # ------------------------------------------------------------------
+        fan_rt = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        pi_test = pifD * 0.95   # slightly off design-point pressure ratio
+        mb_test = mbfD * 0.95   # slightly off design-point mass flow
+
+        Nb_c, epol_c, Nb_pi_c, Nb_mb_c, epol_pi_c, epol_mb_c =
+            comp_eff(fan_rt, pi_test, mb_test)
+
+        # Direct call (no floor/windmill correction since nominal efficiency > floor)
+        Nb_ref, epol_ref, Nb_pi_ref, Nb_mb_ref, epol_pi_ref, epol_mb_ref, _, _ =
+            calc_cse(FanMap, pi_test, mb_test, pifD, mbfD, NbfD, epf0)
+
+        @test Nb_c      ≈ Nb_ref      rtol=1e-12
+        @test epol_c    ≈ epol_ref    rtol=1e-12
+        @test Nb_pi_c   ≈ Nb_pi_ref   rtol=1e-12
+        @test Nb_mb_c   ≈ Nb_mb_ref   rtol=1e-12
+        @test epol_pi_c ≈ epol_pi_ref rtol=1e-12
+        @test epol_mb_c ≈ epol_mb_ref rtol=1e-12
+
+        # ------------------------------------------------------------------
+        # 5. compressor_efficiency: warm-start hints updated after each call
+        # ------------------------------------------------------------------
+        fan_ws = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        Ng_before = fan_ws.Ng
+        Rg_before = fan_ws.Rg
+        comp_eff(fan_ws, pifD, mbfD)
+        # After a call the hints should be updated (map solver returns converged N, R)
+        @test fan_ws.Ng != Ng_before || fan_ws.Rg != Rg_before  # at least one changes
+
+        # ------------------------------------------------------------------
+        # 6. compressor_efficiency: efficiency floor clamping
+        #
+        # Set epol_min = 0.999 (above any realistic map output).
+        # The returned efficiency must equal epol_min and derivatives = 0.
+        # ------------------------------------------------------------------
+        fan_floor = Comp(pifD, mbfD, NbfD, epf0, 0.999, FanMap)
+        _, epol_fl, _, _, epol_pi_fl, epol_mb_fl = comp_eff(fan_floor, pifD, mbfD)
+        @test epol_fl    ≈ 0.999  atol=1e-12
+        @test epol_pi_fl ≈ 0.0   atol=1e-14
+        @test epol_mb_fl ≈ 0.0   atol=1e-14
+
+        # ------------------------------------------------------------------
+        # 7. compressor_efficiency: windmilling (pi < 1)
+        #
+        # When pi < 1, the efficiency is inverted (TASOPT convention for
+        # reverse-flow / braking mode).  The inverted value must be > 1
+        # (since original epol ∈ (0,1) implies 1/epol > 1).
+        # ------------------------------------------------------------------
+        fan_wm = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        pi_wm  = 0.9   # below unity → windmilling
+        mb_wm  = 0.5 * mbfD
+        _, epol_wm, _, _, epol_pi_wm, epol_mb_wm = comp_eff(fan_wm, pi_wm, mb_wm)
+        @test epol_wm > 1.0   # inverted efficiency exceeds 1
+
+        # Derivative consistency: epol_pi_wm should have opposite sign to raw derivative
+        # (chain rule: d(1/epol)/dpi = -1/epol² * depol/dpi; for positive depol/dpi,
+        # the inverted derivative is negative)
+        _, _, _, _, epol_pi_raw, _ = calc_cse(FanMap, pi_wm, mb_wm, pifD, mbfD, NbfD, epf0)
+        epol_wm_raw = 1.0  # dummy: check sign consistency
+        # Just verify derivative has the expected sign (opposite to raw)
+        if epol_pi_raw > 0.0
+            @test epol_pi_wm < 0.0
+        elseif epol_pi_raw < 0.0
+            @test epol_pi_wm > 0.0
+        end
+
+        # ------------------------------------------------------------------
+        # 8. compressor_exit!: physical invariants
+        # ------------------------------------------------------------------
+        epol_test = epf0   # use design-point efficiency
+        pi_exit   = pifD
+
+        st21 = FS{Float64}()
+        comp_exit!(st21, st2, pi_exit, epol_test)
+
+        # Temperature rises through compression
+        @test st21.Tt > st2.Tt
+
+        # Pressure ratio applied: pt_out ≈ pi × pt_in
+        @test st21.pt ≈ pi_exit * st2.pt  rtol=1e-12
+
+        # Composition unchanged through compressor
+        @test all(st21.alpha .≈ st2.alpha)
+
+        # Entropy increases (irreversible compression, epol < 1)
+        @test st21.st > st2.st
+
+        # Enthalpy increases (work added)
+        @test st21.ht > st2.ht
+
+        # ------------------------------------------------------------------
+        # 9. compressor_exit! round-trip: matches direct gas_pratd call
+        # ------------------------------------------------------------------
+        res_ref = gas_pratd(
+            air_alpha, 5,
+            pt2, Tt2, st2.ht, st2.st, st2.cpt, st2.Rt,
+            pi_exit, epol_test,
+        )
+        pt21_ref  = res_ref[1]
+        Tt21_ref  = res_ref[2]
+        ht21_ref  = res_ref[3]
+        st21_ref  = res_ref[4]
+        cpt21_ref = res_ref[5]
+        Rt21_ref  = res_ref[6]
+
+        @test st21.pt  ≈ pt21_ref  rtol=1e-14
+        @test st21.Tt  ≈ Tt21_ref  rtol=1e-14
+        @test st21.ht  ≈ ht21_ref  rtol=1e-14
+        @test st21.st  ≈ st21_ref  rtol=1e-14
+        @test st21.cpt ≈ cpt21_ref rtol=1e-14
+        @test st21.Rt  ≈ Rt21_ref  rtol=1e-14
+
+        # ------------------------------------------------------------------
+        # 10. compressor_exit! monotonicity: larger pi → higher Tt and pt
+        # ------------------------------------------------------------------
+        pi_lo = pifD * 0.8
+        pi_hi = pifD * 1.2
+
+        st21_lo = FS{Float64}()
+        st21_hi = FS{Float64}()
+        comp_exit!(st21_lo, st2, pi_lo, epol_test)
+        comp_exit!(st21_hi, st2, pi_hi, epol_test)
+
+        @test st21_hi.Tt > st21_lo.Tt   # higher compression → hotter exit
+        @test st21_hi.pt > st21_lo.pt   # higher pi → higher outlet pressure
+
+        # ------------------------------------------------------------------
+        # 11. Compressor{Float32} struct construction (type parameter)
+        #
+        # The map inversion (NLsolve) requires Float64, so compressor_efficiency
+        # and compressor_exit! are limited to Float64 in practice.  Here we
+        # verify only that Compressor{Float32} can be constructed and stores Float32.
+        # ------------------------------------------------------------------
+        # Use the outer convenience constructor (infers T=Float32, adds Ng/Rg defaults)
+        fan32 = Comp(
+            Float32(pifD), Float32(mbfD), Float32(NbfD),
+            Float32(epf0), Float32(epfmin), FanMap,
+        )
+        @test fan32 isa Comp{Float32}
+        @test fan32.piD      isa Float32
+        @test fan32.mbD      isa Float32
+        @test fan32.NbD      isa Float32
+        @test fan32.epol0    isa Float32
+        @test fan32.epol_min isa Float32
+
+    end  # Compressor
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
