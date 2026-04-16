@@ -4308,6 +4308,270 @@ isGradient = false
 
     end  # Splitter
 
+    # Nozzle component — tasopt-j9l.56
+    @testset "Nozzle" begin
+
+        Nozzle_t                    = TASOPT.engine.Nozzle
+        nozzle_exit_t               = TASOPT.engine.nozzle_exit
+        nozzle_massflow_residual_t  = TASOPT.engine.nozzle_massflow_residual
+        nozzle_gross_thrust_t       = TASOPT.engine.nozzle_gross_thrust
+
+        # ---------------------------------------------------------------------------
+        # Thermodynamic state — representative cruise conditions
+        # Air species composition (standard TASOPT ordering)
+        # ---------------------------------------------------------------------------
+        alpha_air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair  = 5
+
+        # Fan nozzle inlet conditions derived from a default sized aircraft
+        # (run_engine_design_point output, design cruise point).
+        # These match the tfoper station 21 totals used in engine_sweep_regression.
+        pt21  = 61271.983314487086
+        Tt21  = 294.1405135675445
+        pifn  = 0.98          # fan nozzle pressure recovery (pare[iepifn])
+        A7    = 0.841808817378845  # fan nozzle area, m² (design.A7)
+        p0    = 23922.608843328788 # cruise ambient static pressure, Pa
+
+        # Compute entropy-complement and ht from Tt21 via gassum
+        gassum_t = TASOPT.engine.gassum
+        st21, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
+
+        # Fan nozzle component — design point is choked (M=1)
+        fan_nozzle = Nozzle_t(pifn, A7)
+
+        # ---------------------------------------------------------------------------
+        # 1. Struct construction
+        # ---------------------------------------------------------------------------
+
+        @test fan_nozzle isa Nozzle_t{Float64}
+        @test fan_nozzle.pn ≈ pifn
+        @test fan_nozzle.A  ≈ A7
+
+        # ── 2. Nozzle with different pressure recovery and Float32 ─────────────────
+
+        noz_hi_pn = Nozzle_t(0.99, A7)
+        @test noz_hi_pn.pn ≈ 0.99
+
+        noz32 = Nozzle_t(Float32(pifn), Float32(A7))
+        @test noz32 isa Nozzle_t{Float32}
+
+        # ---------------------------------------------------------------------------
+        # 3. nozzle_exit — choked case (design point)
+        # ---------------------------------------------------------------------------
+
+        p_e, T_e, h_e, s_e, cp_e, R_e, u_e, rho_e, M_e =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+
+        # Choked: M_e = 1
+        @test M_e ≈ 1.0 rtol=1e-12
+
+        # Exit velocity from energy conservation
+        @test u_e ≈ sqrt(2 * (ht21 - h_e)) rtol=1e-12
+
+        # Exit density from ideal gas law
+        @test rho_e ≈ p_e / (R_e * T_e) rtol=1e-12
+
+        # Velocity positive
+        @test u_e > 0.0
+
+        # For choked nozzle, exit pressure > ambient (under-expanded)
+        @test p_e > p0
+
+        # Exit pressure is at the nozzle throat (below pt_nozzle since M=1)
+        @test p_e < pifn * pt21
+
+        # Choked exit temperature < total temperature
+        @test T_e < Tt21
+
+        # ---------------------------------------------------------------------------
+        # 4. nozzle_exit — unchoked case
+        #    Force subsonic exit by using a high ambient pressure p0 = 0.9 * pt_nozzle
+        # ---------------------------------------------------------------------------
+
+        p0_unch = pifn * pt21 * 0.90   # 90% of nozzle total pressure → M < 1
+        p_e_u, T_e_u, h_e_u, s_e_u, cp_e_u, R_e_u, u_e_u, rho_e_u, M_e_u =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+
+        # Unchoked: M_e < 1
+        @test M_e_u < 1.0
+
+        # Exit pressure equals ambient (isentropic, unchoked)
+        @test p_e_u ≈ p0_unch rtol=1e-10
+
+        # Exit velocity from energy conservation
+        @test u_e_u ≈ sqrt(2 * (ht21 - h_e_u)) rtol=1e-12
+
+        # Exit density from ideal gas law
+        @test rho_e_u ≈ p_e_u / (R_e_u * T_e_u) rtol=1e-12
+
+        # ---------------------------------------------------------------------------
+        # 5. nozzle_massflow_residual — design-point identity r = 0
+        # ---------------------------------------------------------------------------
+
+        # At design, mdot = rho_e * u_e * A  →  residual = 0
+        mdot_dp = rho_e * u_e * A7
+
+        r, r_pt, r_ht, r_st, r_Tt,
+        _p_al, _T_al, _h_al, _s_al, _cp_al, _R_al =
+            nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                       pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                       p0, mdot_dp)
+
+        @test r ≈ 0.0 atol=1e-10
+
+        # unchoked design-point identity
+        mdot_u = rho_e_u * u_e_u * A7
+        r_u, = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                          p0_unch, mdot_u)
+        @test r_u ≈ 0.0 atol=1e-10
+
+        # ---------------------------------------------------------------------------
+        # 6. nozzle_massflow_residual — unchoked: r_Tt = 0 exactly
+        # ---------------------------------------------------------------------------
+
+        _, _, _, _, r_Tt_u = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                                         pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                                         p0_unch, mdot_u)[1:5]
+        @test iszero(r_Tt_u)
+
+        # ---------------------------------------------------------------------------
+        # 7. Finite-difference derivative self-consistency — choked case
+        # ---------------------------------------------------------------------------
+
+        # r_pt: ∂r/∂pt_in
+        δ_pt = pt21 * 1e-5
+        r_pp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21 + δ_pt, Tt21, ht21, st21, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        r_pm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21 - δ_pt, Tt21, ht21, st21, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        @test r_pt ≈ (r_pp - r_pm) / (2δ_pt) rtol=1e-3
+
+        # r_ht: ∂r/∂ht  (choked; gas_machd Newton tolerance → rtol ≈ 1e-3)
+        δ_ht = 1.0    # J/kg absolute step (ht ≈ −36000 J/kg)
+        r_hp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21, Tt21, ht21 + δ_ht, st21, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        r_hm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21, Tt21, ht21 - δ_ht, st21, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        @test r_ht ≈ (r_hp - r_hm) / (2δ_ht) rtol=1e-3
+
+        # r_st: ∂r/∂st
+        δ_st = 1e-4   # J/(kg·K) absolute step
+        r_sp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21, Tt21, ht21, st21 + δ_st, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        r_sm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                          pt21, Tt21, ht21, st21 - δ_st, cpt21, Rt21,
+                                          p0, mdot_dp)[1]
+        @test r_st ≈ (r_sp - r_sm) / (2δ_st) rtol=1e-3
+
+        # ---------------------------------------------------------------------------
+        # 8. Finite-difference derivative self-consistency — unchoked case
+        # ---------------------------------------------------------------------------
+
+        r_u2, r_pt_u, r_ht_u, r_st_u, r_Tt_u2 =
+            nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                       pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                       p0_unch, mdot_u)[1:5]
+
+        δ_pt_u = pt21 * 1e-5
+        r_up_pt = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                             pt21 + δ_pt_u, Tt21, ht21, st21, cpt21, Rt21,
+                                             p0_unch, mdot_u)[1]
+        r_um_pt = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                             pt21 - δ_pt_u, Tt21, ht21, st21, cpt21, Rt21,
+                                             p0_unch, mdot_u)[1]
+        @test r_pt_u ≈ (r_up_pt - r_um_pt) / (2δ_pt_u) rtol=1e-3
+
+        # r_ht unchoked: purely from energy equation, exact (no Newton iteration)
+        δ_ht_u = 1.0
+        r_up_ht = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                             pt21, Tt21, ht21 + δ_ht_u, st21, cpt21, Rt21,
+                                             p0_unch, mdot_u)[1]
+        r_um_ht = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
+                                             pt21, Tt21, ht21 - δ_ht_u, st21, cpt21, Rt21,
+                                             p0_unch, mdot_u)[1]
+        @test r_ht_u ≈ (r_up_ht - r_um_ht) / (2δ_ht_u) rtol=1e-8
+
+        # ---------------------------------------------------------------------------
+        # 9. nozzle_gross_thrust
+        # ---------------------------------------------------------------------------
+
+        # Ideally expanded nozzle: pressure thrust vanishes
+        F_ideal = nozzle_gross_thrust_t(fan_nozzle, mdot_dp, u_e, p_e, p_e)
+        @test F_ideal ≈ mdot_dp * u_e rtol=1e-14
+
+        # Choked (under-expanded): p_e > p0 → pressure thrust positive
+        F_choked = nozzle_gross_thrust_t(fan_nozzle, mdot_dp, u_e, p_e, p0)
+        @test F_choked > mdot_dp * u_e
+
+        # Unchoked (p_e = p0): pressure term vanishes
+        F_unchoked = nozzle_gross_thrust_t(fan_nozzle, mdot_u, u_e_u, p_e_u, p0_unch)
+        @test F_unchoked ≈ mdot_u * u_e_u rtol=1e-12
+
+        # Formula: F = mdot*u + (p - p0)*A
+        @test F_choked ≈ mdot_dp * u_e + (p_e - p0) * A7 rtol=1e-14
+
+        # ---------------------------------------------------------------------------
+        # 10. Monotonicity
+        #
+        # Choked case: u_e is determined by (ht, Tt, st) only, not by pt_in.
+        # Higher pt_in → higher mass flux (ρ_e u_e A) at fixed sonic conditions.
+        #
+        # Unchoked case: higher pt_in → greater expansion ratio → higher u_e.
+        # ---------------------------------------------------------------------------
+
+        # Choked monotonicity: mass flux increases with pt_in
+        _, _, _, _, _, _, u_e_hi, rho_e_hi, _ =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          1.05 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+        _, _, _, _, _, _, u_e_lo, rho_e_lo, _ =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          0.95 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+        @test rho_e_hi * u_e_hi > rho_e * u_e   # higher pt → more mass flux
+        @test rho_e_lo * u_e_lo < rho_e * u_e
+
+        # Unchoked monotonicity: higher pt_in → more expansion → higher exit velocity
+        _, _, _, _, _, _, u_e_hi_u, _, _ =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          1.05 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+        _, _, _, _, _, _, u_e_lo_u, _, _ =
+            nozzle_exit_t(fan_nozzle, alpha_air, nair,
+                          0.95 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+        @test u_e_hi_u > u_e_u
+        @test u_e_lo_u < u_e_u
+
+        # ---------------------------------------------------------------------------
+        # 11. Float32 dispatch
+        # ---------------------------------------------------------------------------
+
+        fan_nozzle_32 = Nozzle_t(Float32(pifn), Float32(A7))
+        p_e32, T_e32, h_e32, s_e32, cp_e32, R_e32, u_e32, rho_e32, M_e32 =
+            nozzle_exit_t(fan_nozzle_32,
+                          alpha_air, nair,
+                          Float32(pt21), Float32(Tt21), Float32(ht21),
+                          Float32(st21), Float32(cpt21), Float32(Rt21),
+                          Float32(p0))
+        @test u_e32   isa Float32
+        @test rho_e32 isa Float32
+        @test M_e32   isa Float32
+        @test u_e32   ≈ Float32(u_e) rtol=1e-4
+
+        r32 = nozzle_massflow_residual_t(fan_nozzle_32,
+                                         alpha_air, nair,
+                                         Float32(pt21), Float32(Tt21), Float32(ht21),
+                                         Float32(st21), Float32(cpt21), Float32(Rt21),
+                                         Float32(p0), Float32(mdot_dp))[1]
+        @test r32 isa Float32
+
+    end  # Nozzle
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
