@@ -258,6 +258,62 @@ end
 # turbine_exit!  —  compute outlet FlowStation from inlet + work extraction
 # ---------------------------------------------------------------------------
 
+"""
+    turbine_delhd(alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept)
+
+Compute turbine outlet state and analytic Jacobian blocks for work-based expansion,
+combining `gas_delhd` with the efficiency-to-epi chain rule.
+
+## Physics
+
+`gas_delhd` solves for the outlet temperature from energy conservation
+`h_out = h_in + dh`, then computes total pressure via the polytropic relation using
+`epi = 1/ept`.  Only `pt_out` depends on `ept`; `Tt_out`, `ht_out`, and `st_out`
+are determined by the fixed work `dh` alone.
+
+## Returns
+
+22-tuple: outlet state (6), pressure chain (2), enthalpy chain (4),
+work chain (4), efficiency chain (1), species arrays (4 × nair):
+
+    (pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+     pt_out_pt_in, pt_out_st_in,
+     pt_out_ht_in, Tt_out_ht_in, ht_out_ht_in, st_out_ht_in,
+     pt_out_dh, Tt_out_dh, ht_out_dh, st_out_dh,
+     pt_out_ept,
+     p_al, T_al, h_al, s_al)
+
+`pt_out_ept` equals `∂pt_out/∂ept`, with the chain rule through `epi = 1/ept`
+already applied.  The caller chains it with `∂ept/∂x` for each Newton variable `x`.
+"""
+function turbine_delhd(
+    alpha, nair,
+    pt_in  ::T, Tt_in ::T, ht_in ::T, st_in ::T, cpt_in ::T, Rt_in ::T,
+    dh     ::T,
+    ept    ::T,
+) where {T<:AbstractFloat}
+    epi = one(T) / ept
+
+    pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+    pt_out_st_in,
+    pt_out_pt_in,
+    pt_out_epi,
+    pt_out_ht_in, Tt_out_ht_in, ht_out_ht_in, st_out_ht_in,
+    pt_out_dh, Tt_out_dh, ht_out_dh, st_out_dh,
+    p_al, T_al, h_al, s_al,
+    cp_al, R_al = gas_delhd(alpha, nair,
+        pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, epi)
+
+    pt_out_ept = pt_out_epi * (-epi / ept)
+
+    return pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+           pt_out_pt_in, pt_out_st_in,
+           pt_out_ht_in, Tt_out_ht_in, ht_out_ht_in, st_out_ht_in,
+           pt_out_dh, Tt_out_dh, ht_out_dh, st_out_dh,
+           pt_out_ept,
+           p_al, T_al, h_al, s_al
+end
+
 function turbine_exit!(
     st_out ::FlowStation{T},
     st_in  ::FlowStation{T},

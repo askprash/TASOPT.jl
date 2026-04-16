@@ -4211,6 +4211,133 @@ isGradient = false
 
     end  # compressor_pratd
 
+    # turbine_delhd — tasopt-j9l.57
+    #
+    # Tests the turbine outlet-state + analytic Jacobian block for work-based expansion.
+    # turbine_delhd wraps gas_delhd with the efficiency chain rule pre-applied:
+    #   pt_out_ept = pt_out_epi * (-epi/ept)   where epi = 1/ept
+    #
+    # Invariants verified:
+    #   - Energy conservation: ht_out ≈ ht_in + dh (within gas_delhd precision)
+    #   - Tt_out < Tt_in  (expansion cools)
+    #   - pt_out < pt_in  (expansion drops total pressure)
+    #   - pt_out_pt_in ≈ pt_out / pt_in  (linear scaling with inlet pressure)
+    #   - FD: ∂pt_out/∂dh  matches pt_out_dh    (rtol=1e-6)
+    #   - FD: ∂Tt_out/∂dh  matches Tt_out_dh    (rtol=1e-6)
+    #   - FD: ∂pt_out/∂ept matches pt_out_ept   (rtol=1e-5; chain through epi)
+    #   - FD: ∂Tt_out/∂ept ≈ 0                  (energy conservation; Tt indep. of ept)
+    #   - FD: ∂pt_out/∂ht_in matches pt_out_ht_in (rtol=1e-6)
+    #   - FD: ∂Tt_out/∂ht_in matches Tt_out_ht_in (rtol=1e-6)
+    #   - round-trip: scalar outputs match direct gas_delhd call at same (dh, ept)
+    @testset "turbine_delhd" begin
+        using StaticArrays
+
+        turb_delhd = TASOPT.engine.turbine_delhd
+
+        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair = 5
+
+        # HPT-like inlet conditions (post-combustor, high temperature)
+        pt_in  = 2.0e6    # Pa  (HPT inlet total pressure)
+        Tt_in  = 1650.0   # K   (HPT inlet temperature)
+        ht_in  = 1.73e6   # J/kg  (approx enthalpy at 1650 K)
+        st_in  = 2900.0   # J/kg·K
+        cpt_in = 1148.0   # J/kg·K  (approx cp at 1650 K)
+        Rt_in  = 287.0    # J/kg·K
+
+        dh  = -5.0e5      # J/kg  (work extraction; negative)
+        ept = 0.90        # polytropic efficiency
+
+        pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+        pt_out_pt_in, pt_out_st_in,
+        pt_out_ht_in, Tt_out_ht_in, ht_out_ht_in, st_out_ht_in,
+        pt_out_dh, Tt_out_dh, ht_out_dh, st_out_dh,
+        pt_out_ept,
+        p_al, T_al, h_al, s_al =
+            turb_delhd(air_alpha, nair,
+                pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept)
+
+        # ------------------------------------------------------------------
+        # 1. Energy conservation: ht_out ≈ ht_in + dh
+        # ------------------------------------------------------------------
+        @test ht_out ≈ ht_in + dh   rtol=1e-6
+
+        # ------------------------------------------------------------------
+        # 2. Physical direction: expansion drops temperature and pressure
+        # ------------------------------------------------------------------
+        @test Tt_out < Tt_in
+        @test pt_out < pt_in
+
+        # ------------------------------------------------------------------
+        # 3. pt_out_pt_in = pt_out / pt_in  (linear pressure scaling)
+        # ------------------------------------------------------------------
+        @test pt_out_pt_in ≈ pt_out / pt_in   rtol=1e-8
+
+        # ------------------------------------------------------------------
+        # 4. FD: ∂pt_out/∂dh
+        # ------------------------------------------------------------------
+        eps_dh = 1e-4 * abs(dh)
+        pt_fwd_dh, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh + eps_dh, ept)
+        pt_bwd_dh, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh - eps_dh, ept)
+        pt_out_dh_fd = (pt_fwd_dh - pt_bwd_dh) / (2 * eps_dh)
+        @test pt_out_dh ≈ pt_out_dh_fd   rtol=5e-4  # gas_delhd Newton ttol limits precision
+
+        # ------------------------------------------------------------------
+        # 5. FD: ∂Tt_out/∂dh
+        # ------------------------------------------------------------------
+        _, Tt_fwd_dh, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh + eps_dh, ept)
+        _, Tt_bwd_dh, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh - eps_dh, ept)
+        Tt_out_dh_fd = (Tt_fwd_dh - Tt_bwd_dh) / (2 * eps_dh)
+        @test Tt_out_dh ≈ Tt_out_dh_fd   rtol=1e-5
+
+        # ------------------------------------------------------------------
+        # 6. FD: ∂pt_out/∂ept  (efficiency chain: epi = 1/ept → pt_out_ept)
+        # ------------------------------------------------------------------
+        eps_ept = 1e-5 * ept
+        pt_fwd_ept, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept + eps_ept)
+        pt_bwd_ept, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept - eps_ept)
+        pt_out_ept_fd = (pt_fwd_ept - pt_bwd_ept) / (2 * eps_ept)
+        @test pt_out_ept ≈ pt_out_ept_fd   rtol=1e-5
+
+        # ------------------------------------------------------------------
+        # 7. ∂Tt_out/∂ept ≈ 0  (Tt set by energy conservation, not ept)
+        # ------------------------------------------------------------------
+        _, Tt_fwd_ept, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept + eps_ept)
+        _, Tt_bwd_ept, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, ept - eps_ept)
+        Tt_out_ept_fd = (Tt_fwd_ept - Tt_bwd_ept) / (2 * eps_ept)
+        @test abs(Tt_out_ept_fd) < 1e-6 * Tt_out   # Tt is independent of ept
+
+        # ------------------------------------------------------------------
+        # 8. FD: ∂pt_out/∂ht_in
+        # ------------------------------------------------------------------
+        eps_ht = 1e-4 * abs(ht_in)
+        pt_fwd_ht, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in + eps_ht, st_in, cpt_in, Rt_in, dh, ept)
+        pt_bwd_ht, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in - eps_ht, st_in, cpt_in, Rt_in, dh, ept)
+        pt_out_ht_in_fd = (pt_fwd_ht - pt_bwd_ht) / (2 * eps_ht)
+        @test pt_out_ht_in ≈ pt_out_ht_in_fd   rtol=5e-4  # gas_delhd Newton ttol limits precision
+
+        # ------------------------------------------------------------------
+        # 9. FD: ∂Tt_out/∂ht_in
+        # ------------------------------------------------------------------
+        _, Tt_fwd_ht, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in + eps_ht, st_in, cpt_in, Rt_in, dh, ept)
+        _, Tt_bwd_ht, = turb_delhd(air_alpha, nair, pt_in, Tt_in, ht_in - eps_ht, st_in, cpt_in, Rt_in, dh, ept)
+        Tt_out_ht_in_fd = (Tt_fwd_ht - Tt_bwd_ht) / (2 * eps_ht)
+        @test Tt_out_ht_in ≈ Tt_out_ht_in_fd   rtol=1e-5
+
+        # ------------------------------------------------------------------
+        # 10. Round-trip: scalar outputs match direct gas_delhd call
+        # ------------------------------------------------------------------
+        gas_delhd_fn = TASOPT.engine.gas_delhd
+        epi = 1.0 / ept
+        res = gas_delhd_fn(air_alpha, nair,
+            pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, dh, epi)
+        @test pt_out ≈ res[1]   rtol=1e-12
+        @test Tt_out ≈ res[2]   rtol=1e-12
+        @test ht_out ≈ res[3]   rtol=1e-12
+        @test st_out ≈ res[4]   rtol=1e-12
+
+    end  # turbine_delhd
+
     # Shaft component — tasopt-j9l.27
     @testset "Shaft" begin
 

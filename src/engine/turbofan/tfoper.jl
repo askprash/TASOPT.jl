@@ -1472,18 +1472,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             epht_Mi = epht1_Mi + epht_fc * fc_Mi
            
             #---- HPT work to determine station 45
-            epi = 1.0 / epht
             pt45, Tt45, ht45, st45, cpt45, Rt45,
-            pt45_st41,
-            pt45_pt41,
-            pt45_epi,
+            pt45_pt41, pt45_st41,
             pt45_ht41, Tt45_ht41, ht45_ht41, st45_ht41,
             pt45_dhht, Tt45_dhht, ht45_dhht, st45_dhht,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_delhd(lambdap, nair,
-                  pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epi)
-
-            pt45_epht = pt45_epi * (-epi / epht)
+            pt45_epht,
+            p_al, T_al, h_al, s_al = turbine_delhd(lambdap, nair,
+                  pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epht)
 
             pt45_pl = pt45_st41 * st41_pl +
                       pt45_pt41 * pt41_pl +
