@@ -318,3 +318,117 @@ function compressor_exit!(
 
     return st_out
 end
+
+# ---------------------------------------------------------------------------
+# compressor_pratd  —  outlet state + analytic Jacobian block
+# ---------------------------------------------------------------------------
+
+"""
+    compressor_pratd(comp, alpha, nair, pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in, pi, mb)
+      -> (pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+          pt_out_pt_in,
+          pt_out_st_in, Tt_out_st_in, ht_out_st_in, st_out_st_in,
+          pt_out_pi, Tt_out_pi, ht_out_pi, st_out_pi,
+          pt_out_mb, Tt_out_mb, ht_out_mb, st_out_mb,
+          Nb, Nb_pi, Nb_mb, epol, epol_pi, epol_mb)
+
+Compute the outlet total state of a compressor stage and its analytic partial
+derivatives for use in the Newton Jacobian.
+
+This function combines `compressor_efficiency` (map inversion) with `gas_pratd`
+(isentropic-in-efficiency compression) and applies the efficiency chain rule to
+produce the full derivative set needed by the Newton driver.
+
+## Arguments
+
+| Argument  | Unit   | Description                                         |
+|:----------|:-------|:----------------------------------------------------|
+| `comp`    | —      | `Compressor` component (design anchors + map)       |
+| `alpha`   | —      | Gas composition mass fractions                      |
+| `nair`    | —      | Number of gas species                               |
+| `pt_in`   | Pa     | Inlet total pressure                                |
+| `Tt_in`   | K      | Inlet total temperature                             |
+| `ht_in`   | J/kg   | Inlet total enthalpy                                |
+| `st_in`   | J/kg·K | Inlet entropy complement                            |
+| `cpt_in`  | J/kg·K | Inlet specific heat                                 |
+| `Rt_in`   | J/kg·K | Inlet gas constant                                  |
+| `pi`      | —      | Compression ratio  pt_out / pt_in  (Newton variable)|
+| `mb`      | kg/s   | Corrected mass flow  (Newton variable)              |
+
+## Returns
+
+A 26-tuple. Derivative naming convention: `X_Y` means ∂X/∂Y.
+
+| Value               | Description                                        |
+|:--------------------|:---------------------------------------------------|
+| `pt_out … Rt_out`   | Outlet total state (6 scalars)                     |
+| `pt_out_pt_in`      | ∂pt_out/∂pt_in  (= `pi`)                           |
+| `pt_out_st_in`      | ∂pt_out/∂st_in  (= 0; pressure is pt_in·pi)        |
+| `Tt_out_st_in …`    | ∂Tt_out/∂st_in, ∂ht_out/∂st_in, ∂st_out/∂st_in   |
+| `pt_out_pi …`       | ∂X/∂pi with efficiency chain rule applied (4)      |
+| `pt_out_mb …`       | ∂X/∂mb, efficiency-chain only; add `pt_out_pt_in · ∂pt_in/∂mb` in caller (4) |
+| `Nb, Nb_pi, Nb_mb`  | Corrected spool speed and its derivatives (shaft Jacobian) |
+| `epol, epol_pi, epol_mb` | Polytropic efficiency and its derivatives     |
+
+## Notes
+
+The `pt_out_mb` block captures only the efficiency-chain contribution
+`∂pt_out/∂epol · ∂epol/∂mb`.  The caller must add the upstream total-pressure
+chain `pt_out_pt_in · ∂pt_in/∂mb` to form the complete `∂pt_out/∂mb`.
+This separation lets the function remain agnostic of which Newton variable
+drives `pt_in` (e.g. inlet Mach number or corrected mass flow of an upstream
+compressor).
+"""
+function compressor_pratd(
+    comp   ::Compressor{T},
+    alpha, nair,
+    pt_in  ::T, Tt_in ::T, ht_in ::T, st_in ::T, cpt_in ::T, Rt_in ::T,
+    pi     ::T,
+    mb     ::T,
+) where {T<:AbstractFloat}
+
+    # 1. Map inversion: corrected speed + polytropic efficiency and derivatives
+    Nb, epol, Nb_pi, Nb_mb, epol_pi, epol_mb = compressor_efficiency(comp, pi, mb)
+
+    # 2. Isentropic-in-efficiency compression (gas_pratd requires Float64)
+    res = gas_pratd(alpha, nair,
+        Float64(pt_in), Float64(Tt_in), Float64(ht_in), Float64(st_in),
+        Float64(cpt_in), Float64(Rt_in), Float64(pi), Float64(epol))
+
+    pt_out  = T(res[1]);  Tt_out  = T(res[2])
+    ht_out  = T(res[3]);  st_out  = T(res[4])
+    cpt_out = T(res[5]);  Rt_out  = T(res[6])
+
+    pt_out_pt_in = T(res[7])   # = pi  (pt_out = pt_in · pi)
+    # res[8] = p_so = 0 always (pressure doesn't depend on inlet entropy)
+    pt_out_st_in  = T(res[8])  # 0
+    Tt_out_st_in  = T(res[9])
+    ht_out_st_in  = T(res[10])
+    st_out_st_in  = T(res[11])
+
+    pt_out_pi_raw = T(res[12]);  Tt_out_pi_raw = T(res[13])
+    ht_out_pi_raw = T(res[14]);  st_out_pi_raw = T(res[15])
+
+    pt_out_epol = T(res[16]);  Tt_out_epol = T(res[17])
+    ht_out_epol = T(res[18]);  st_out_epol = T(res[19])
+
+    # 3. Chain rule: apply efficiency dependence on pi
+    pt_out_pi = pt_out_epol * epol_pi + pt_out_pi_raw
+    Tt_out_pi = Tt_out_epol * epol_pi + Tt_out_pi_raw
+    ht_out_pi = ht_out_epol * epol_pi + ht_out_pi_raw
+    st_out_pi = st_out_epol * epol_pi + st_out_pi_raw
+
+    # 4. mb direction: efficiency chain only
+    #    Caller adds pt_out_pt_in * (∂pt_in/∂mb) for the upstream pressure contribution
+    pt_out_mb = pt_out_epol * epol_mb
+    Tt_out_mb = Tt_out_epol * epol_mb
+    ht_out_mb = ht_out_epol * epol_mb
+    st_out_mb = st_out_epol * epol_mb
+
+    return pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
+           pt_out_pt_in,
+           pt_out_st_in, Tt_out_st_in, ht_out_st_in, st_out_st_in,
+           pt_out_pi, Tt_out_pi, ht_out_pi, st_out_pi,
+           pt_out_mb, Tt_out_mb, ht_out_mb, st_out_mb,
+           Nb, Nb_pi, Nb_mb, epol, epol_pi, epol_mb
+end

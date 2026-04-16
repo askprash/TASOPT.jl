@@ -555,26 +555,19 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             # ===============================================================
             #---- fan flow 2-7
-            Nf, epf, Nf_pf, Nf_mf, epf_pf, epf_mf = compressor_efficiency(comp_fan, pf, mf)
-
             pt21, Tt21, ht21, st21, cpt21, Rt21,
             pt21_pt2,
             pt21_st2, Tt21_st2, ht21_st2, st21_st2,
             pt21_pf, Tt21_pf, ht21_pf, st21_pf,
-            pt21_epf, Tt21_epf, ht21_epf, st21_epf,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
-                  pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
+            pt21_mf_eff, Tt21_mf_eff, ht21_mf_eff, st21_mf_eff,
+            Nf, Nf_pf, Nf_mf, epf, epf_pf, epf_mf =
+                  compressor_pratd(comp_fan, alpha, nair,
+                        pt2, Tt2, ht2, st2, cpt2, Rt2, pf, mf)
 
-            pt21_pf = pt21_epf * epf_pf + pt21_pf
-            Tt21_pf = Tt21_epf * epf_pf + Tt21_pf
-            ht21_pf = ht21_epf * epf_pf + ht21_pf
-            st21_pf = st21_epf * epf_pf + st21_pf
-
-            pt21_mf = pt21_epf * epf_mf + pt21_pt2 * pt2_mf
-            Tt21_mf = Tt21_epf * epf_mf
-            ht21_mf = ht21_epf * epf_mf
-            st21_mf = st21_epf * epf_mf
+            pt21_mf = pt21_mf_eff + pt21_pt2 * pt2_mf
+            Tt21_mf = Tt21_mf_eff
+            ht21_mf = ht21_mf_eff
+            st21_mf = st21_mf_eff
 
             pt21_ml = pt21_pt2 * pt2_ml
             pt21_Mi = pt21_pt2 * pt2_Mi
@@ -657,26 +650,19 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       
             # ===============================================================
             #---- LP compressor flow 2-25
-            Nl, eplc, Nl_pl, Nl_ml, eplc_pl, eplc_ml = compressor_efficiency(comp_lpc, pl, ml)
-
             pt25, Tt25, ht25, st25, cpt25, Rt25,
             pt25_pt19c,
             pt25_st19c, Tt25_st19c, ht25_st19c, st25_st19c,
             pt25_pl, Tt25_pl, ht25_pl, st25_pl,
-            pt25_eplc, Tt25_eplc, ht25_eplc, st25_eplc,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
-                  pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pl, eplc)
+            pt25_ml_eff, Tt25_ml_eff, ht25_ml_eff, st25_ml_eff,
+            Nl, Nl_pl, Nl_ml, eplc, eplc_pl, eplc_ml =
+                  compressor_pratd(comp_lpc, alpha, nair,
+                        pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pl, ml)
 
-            pt25_pl = pt25_eplc * eplc_pl + pt25_pl
-            Tt25_pl = Tt25_eplc * eplc_pl + Tt25_pl
-            ht25_pl = ht25_eplc * eplc_pl + ht25_pl
-            st25_pl = st25_eplc * eplc_pl + st25_pl
-
-            pt25_ml = pt25_eplc * eplc_ml + pt25_pt19c * pt19c_ml
-            Tt25_ml = Tt25_eplc * eplc_ml
-            ht25_ml = ht25_eplc * eplc_ml
-            st25_ml = st25_eplc * eplc_ml
+            pt25_ml = pt25_ml_eff + pt25_pt19c * pt19c_ml
+            Tt25_ml = Tt25_ml_eff
+            ht25_ml = ht25_ml_eff
+            st25_ml = st25_ml_eff
 
             pt25_mf = pt25_pt19c * pt19c_mf
             pt25_Mi = pt25_pt19c * pt19c_Mi
@@ -714,16 +700,14 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       
             # ===============================================================
             #---- HP compressor flow 25-3
-            Nh, ephc, Nh_ph, Nh_mh, ephc_ph, ephc_mh = compressor_efficiency(comp_hpc, ph, mh)
-
             pt3, Tt3, ht3, st3, cpt3, Rt3,
             pt3_pt25c,
             pt3_st25c, Tt3_st25c, ht3_st25c, st3_st25c,
             pt3_ph, Tt3_ph, ht3_ph, st3_ph,
-            pt3_ephc, Tt3_ephc, ht3_ephc, st3_ephc,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
-                  pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, ph, ephc)
+            pt3_mh_eff, Tt3_mh_eff, ht3_mh_eff, st3_mh_eff,
+            Nh, Nh_ph, Nh_mh, ephc, ephc_ph, ephc_mh =
+                  compressor_pratd(comp_hpc, alpha, nair,
+                        pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, ph, mh)
 
             pt3_pl = pt3_pt25c * pt25c_pl +
                      pt3_st25c * st25c_pl
@@ -731,23 +715,18 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ht3_pl = ht3_st25c * st25c_pl
             st3_pl = st3_st25c * st25c_pl
 
-            pt3_ph = pt3_ephc * ephc_ph + pt3_ph
-            Tt3_ph = Tt3_ephc * ephc_ph + Tt3_ph
-            ht3_ph = ht3_ephc * ephc_ph + ht3_ph
-            st3_ph = st3_ephc * ephc_ph + st3_ph
-
-            pt3_mf = pt3_pt25c * pt25c_mf
-
             pt3_ml = pt3_pt25c * pt25c_ml +
                      pt3_st25c * st25c_ml
             Tt3_ml = Tt3_st25c * st25c_ml
             ht3_ml = ht3_st25c * st25c_ml
             st3_ml = st3_st25c * st25c_ml
 
-            pt3_mh = pt3_ephc * ephc_mh
-            Tt3_mh = Tt3_ephc * ephc_mh
-            ht3_mh = ht3_ephc * ephc_mh
-            st3_mh = st3_ephc * ephc_mh
+            pt3_mf = pt3_pt25c * pt25c_mf
+
+            pt3_mh = pt3_mh_eff
+            Tt3_mh = Tt3_mh_eff
+            ht3_mh = ht3_mh_eff
+            st3_mh = st3_mh_eff
 
             pt3_Mi = pt3_pt25c * pt25c_Mi
 
