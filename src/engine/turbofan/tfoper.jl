@@ -246,6 +246,10 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       comp_lpc = Compressor(pilcD, mblcD, NblcD, eplc0, T(0.70), LPCMap)
       comp_hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
 
+      #---- typed shaft component instances (used by hp_shaft_work, lp_shaft_work, shaft_speed_residual)
+      shaft_hp = Shaft(epsh, T(1.0))
+      shaft_lp = Shaft(epsl, Gearf)
+
       # from "airfrac.inc"
       # air fractions  
       #        N2      O2      CO2    H2O      Ar       fuel
@@ -1353,11 +1357,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             BPR_Mi = BPR / pt2 * pt2_Mi -
                      BPR / pt19c * pt19c_Mi
 
-            #---- HPT work
-            dhfac = -(1.0 - fo) / (1.0 - fo + ff) / (1.0 - epsh)
-            dhfac_fo = dhfac / (1.0 - fo + ff) +
-                       1.0 / (1.0 - fo + ff) / (1.0 - epsh)
-            dhfac_ff = -dhfac / (1.0 - fo + ff)
+            #---- HPT work  (shaft_hp = Shaft(epsh, 1.0) constructed above Newton loop)
+            dhht, dhfac, dhfac_fo, dhfac_ff =
+                hp_shaft_work(shaft_hp, fo, ff, ht3, ht25c)
 
             dhfac_pl = dhfac_ff * ff_pl
             dhfac_ph = dhfac_ff * ff_ph
@@ -1367,7 +1369,6 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dhfac_Tb = dhfac_ff * ff_Tb
             dhfac_Mi = dhfac_ff * ff_Mi + dhfac_fo * fo_Mi
 
-            dhht = (ht3 - ht25c) * dhfac
             dhht_pl = (ht3 - ht25c) * dhfac_pl + (ht3_pl - ht25c_pl) * dhfac
             dhht_ph = (ht3 - ht25c) * dhfac_ph + (ht3_ph) * dhfac
             dhht_mf = (ht3 - ht25c) * dhfac_mf
@@ -1376,10 +1377,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dhht_Tb = (ht3 - ht25c) * dhfac_Tb
             dhht_Mi = (ht3 - ht25c) * dhfac_Mi
 
-            #---- LPT work
-            dlfac = -1.0 / (1.0 - fo + ff) / (1.0 - epsl)
-            dlfac_fo = dlfac / (1.0 - fo + ff)
-            dlfac_ff = -dlfac / (1.0 - fo + ff)
+            #---- LPT work  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
+            dhlt, dlfac, dlfac_fo, dlfac_ff =
+                lp_shaft_work(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
 
             dlfac_pl = dlfac_ff * ff_pl
             dlfac_ph = dlfac_ff * ff_ph
@@ -1389,7 +1389,6 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dlfac_Tb = dlfac_ff * ff_Tb
             dlfac_Mi = dlfac_ff * ff_Mi + dlfac_fo * fo_Mi
 
-            dhlt = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac
             dhlt_pf = (BPR * ht21_pf) * dlfac
             dhlt_pl = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_pl +
                       (ht25_pl) * dlfac
@@ -2274,15 +2273,16 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             # ===========================================================================
             #---- set up Newton system
 
-            #---- fan/LPC speed constraint
+            #---- fan/LPC speed constraint  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
             trf = sqrt(Tt2 / Tref)
             trl = sqrt(Tt19c / Tref)
-            res[1, 1] = Gearf * trf * Nf - trl * Nl
-            a[1, 1] = Gearf * trf * Nf_pf
-            a[1, 2] = -trl * Nl_pl
+            r1, r1_Nf, r1_Nl = shaft_speed_residual(shaft_lp, Nf, Nl, trf, trl)
+            res[1, 1] = r1
+            a[1, 1] = r1_Nf * Nf_pf
+            a[1, 2] = r1_Nl * Nl_pl
             a[1, 3] = 0.0
-            a[1, 4] = Gearf * trf * Nf_mf
-            a[1, 5] = -trl * Nl_ml
+            a[1, 4] = r1_Nf * Nf_mf
+            a[1, 5] = r1_Nl * Nl_ml
             a[1, 6] = 0.0
             a[1, 7] = 0.0
             a[1, 8] = 0.0

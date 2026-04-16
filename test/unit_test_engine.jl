@@ -4024,6 +4024,157 @@ isGradient = false
 
     end  # compressor_Nb_residual
 
+    # Shaft component — tasopt-j9l.27
+    @testset "Shaft" begin
+
+        Shaft_t            = TASOPT.engine.Shaft
+        hp_shaft_work_t    = TASOPT.engine.hp_shaft_work
+        lp_shaft_work_t    = TASOPT.engine.lp_shaft_work
+        shaft_speed_res_t  = TASOPT.engine.shaft_speed_residual
+
+        # Representative parameter values
+        epsh_val = 0.01    # HP shaft loss fraction
+        epsl_val = 0.015   # LP shaft loss fraction
+        Gearf_val = 1.0    # LP shaft gear ratio (direct drive in this example)
+
+        # ── 1. Struct construction ────────────────────────────────────────────
+
+        shaft_hp = Shaft_t(epsh_val, 1.0)
+        shaft_lp = Shaft_t(epsl_val, Gearf_val)
+
+        @test shaft_hp.eps   == epsh_val
+        @test shaft_hp.Gearf == 1.0
+        @test shaft_lp.eps   == epsl_val
+        @test shaft_lp.Gearf == Gearf_val
+
+        # Type parameter preserved
+        shaft32 = Shaft_t(Float32(epsh_val), Float32(1.0))
+        @test shaft32 isa Shaft_t{Float32}
+        @test shaft32.eps isa Float32
+
+        # ── 2. hp_shaft_work: formula verification ────────────────────────────
+
+        fo = 0.04; ff = 0.025; ht3 = 1_050_000.0; ht25c = 650_000.0
+
+        dhht, dhfac, dhfac_fo, dhfac_ff = hp_shaft_work_t(shaft_hp, fo, ff, ht3, ht25c)
+
+        # Expected from the formula:
+        fac_ref    = 1.0 - fo + ff
+        dhfac_ref  = -(1.0 - fo) / fac_ref / (1.0 - epsh_val)
+        dhht_ref   = (ht3 - ht25c) * dhfac_ref
+        dhfac_fo_ref = dhfac_ref / fac_ref + 1.0 / fac_ref / (1.0 - epsh_val)
+        dhfac_ff_ref = -dhfac_ref / fac_ref
+
+        @test dhht   ≈ dhht_ref   rtol=1e-14
+        @test dhfac  ≈ dhfac_ref  rtol=1e-14
+        @test dhfac_fo ≈ dhfac_fo_ref rtol=1e-14
+        @test dhfac_ff ≈ dhfac_ff_ref rtol=1e-14
+
+        # dhht must be negative (HPT extracts energy → enthalpy drop)
+        @test dhht < 0.0
+
+        # Design-point identity: work magnitude = HPC work / (1 - eps)
+        @test abs(dhht) ≈ abs(ht3 - ht25c) * abs(dhfac_ref)  rtol=1e-14
+
+        # ── 3. hp_shaft_work: monotonicity in eps ────────────────────────────
+
+        # More loss → more HPT work required (|dhht| larger for larger eps)
+        dhht_lo, _, _, _ = hp_shaft_work_t(Shaft_t(0.005, 1.0), fo, ff, ht3, ht25c)
+        dhht_hi, _, _, _ = hp_shaft_work_t(Shaft_t(0.050, 1.0), fo, ff, ht3, ht25c)
+        @test abs(dhht_hi) > abs(dhht_lo)
+
+        # ── 4. lp_shaft_work: formula verification ────────────────────────────
+
+        BPR = 5.0; ht25 = 680_000.0; ht19c = 310_000.0
+        ht21 = 380_000.0; ht2 = 290_000.0; Pom = 1_500.0
+
+        dhlt, dlfac, dlfac_fo, dlfac_ff = lp_shaft_work_t(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
+
+        fac_lp_ref   = 1.0 - fo + ff
+        dlfac_ref    = -1.0 / fac_lp_ref / (1.0 - epsl_val)
+        demand_ref   = ht25 - ht19c + BPR * (ht21 - ht2) + Pom
+        dhlt_ref     = demand_ref * dlfac_ref
+        dlfac_fo_ref = dlfac_ref / fac_lp_ref
+        dlfac_ff_ref = -dlfac_ref / fac_lp_ref
+
+        @test dhlt   ≈ dhlt_ref   rtol=1e-14
+        @test dlfac  ≈ dlfac_ref  rtol=1e-14
+        @test dlfac_fo ≈ dlfac_fo_ref rtol=1e-14
+        @test dlfac_ff ≈ dlfac_ff_ref rtol=1e-14
+
+        # dhlt must be negative (LPT extracts energy)
+        @test dhlt < 0.0
+
+        # ── 5. lp_shaft_work: Pom = 0 reproduces no-offtake case ─────────────
+
+        dhlt_no_pom, dlfac_no, _, _ = lp_shaft_work_t(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, 0.0)
+        demand_no_pom = ht25 - ht19c + BPR * (ht21 - ht2)
+        @test dhlt_no_pom ≈ demand_no_pom * dlfac_ref   rtol=1e-14
+        @test dlfac_no    ≈ dlfac_ref                   rtol=1e-14
+
+        # Adding offtake increases |dhlt| (LPT must do more work)
+        @test abs(dhlt) > abs(dhlt_no_pom)
+
+        # ── 6. shaft_speed_residual: design-point zero ───────────────────────
+
+        # LP shaft: Gearf * trf * Nf = trl * Nl at design
+        Nf_des = 1.5; Nl_des = Gearf_val * Nf_des   # exact design balance (Gearf=1)
+        trf = sqrt(288.0 / 288.15)                   # typical cruise correction
+        trl = sqrt(300.0 / 288.15)
+
+        # With Gearf = 1, trf = trl if temps equal; use asymmetric case
+        shaft_test_lp = Shaft_t(epsl_val, 2.0)       # Gearf = 2
+        Nl_design = 2.0 * trf * Nf_des / trl         # satisfies Gearf * trf * Nf = trl * Nl
+
+        r, r_Nf, r_Nl = shaft_speed_res_t(shaft_test_lp, Nf_des, Nl_design, trf, trl)
+        @test r ≈ 0.0  atol=1e-12
+
+        # ── 7. shaft_speed_residual: derivative sign and magnitude ───────────
+
+        # r_Nf should be positive (increasing Nf increases r)
+        @test r_Nf > 0.0
+        @test r_Nf ≈ shaft_test_lp.Gearf * trf  rtol=1e-14
+
+        # r_Nl should be negative (increasing Nl decreases r)
+        @test r_Nl < 0.0
+        @test r_Nl ≈ -trl  rtol=1e-14
+
+        # ── 8. shaft_speed_residual: sign above/below design ─────────────────
+
+        r_above, _, _ = shaft_speed_res_t(shaft_test_lp, 1.05 * Nf_des, Nl_design, trf, trl)
+        r_below, _, _ = shaft_speed_res_t(shaft_test_lp, 0.95 * Nf_des, Nl_design, trf, trl)
+        @test r_above > 0.0
+        @test r_below < 0.0
+
+        # ── 9. Round-trip vs. inline formula for hp_shaft_work ───────────────
+
+        for (fo_test, ff_test, ht3_test, ht25c_test) in (
+                (0.02, 0.020, 1_000_000.0, 600_000.0),
+                (0.04, 0.025, 1_050_000.0, 650_000.0),
+                (0.06, 0.030, 1_100_000.0, 700_000.0),
+        )
+            d, dfac, _, _ = hp_shaft_work_t(shaft_hp, fo_test, ff_test, ht3_test, ht25c_test)
+            fac = 1.0 - fo_test + ff_test
+            dfac_inline = -(1.0 - fo_test) / fac / (1.0 - epsh_val)
+            d_inline    = (ht3_test - ht25c_test) * dfac_inline
+            @test d    ≈ d_inline    rtol=1e-14
+            @test dfac ≈ dfac_inline rtol=1e-14
+        end
+
+        # ── 10. Round-trip vs. inline formula for lp_shaft_work ──────────────
+
+        for (fo_test, ff_test) in ((0.02, 0.020), (0.04, 0.025), (0.06, 0.030))
+            d, dfac, _, _ = lp_shaft_work_t(shaft_lp, fo_test, ff_test, BPR, ht25, ht19c, ht21, ht2, Pom)
+            fac_t = 1.0 - fo_test + ff_test
+            dfac_inline = -1.0 / fac_t / (1.0 - epsl_val)
+            demand_t    = ht25 - ht19c + BPR * (ht21 - ht2) + Pom
+            d_inline    = demand_t * dfac_inline
+            @test d    ≈ d_inline    rtol=1e-14
+            @test dfac ≈ dfac_inline rtol=1e-14
+        end
+
+    end  # Shaft
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
