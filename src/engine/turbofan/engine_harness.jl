@@ -69,6 +69,8 @@ Only fields that the legacy `pare` array actually stores are written:
 - **Area** (A): stations 2, 25, 5, 6, 7, 8, 9.
 - **Mass flow** (mdot): station 2 (`mcore`, the core mass flow).
 - **Ambient scalars**: `M0`, `T0`, `p0`, `a0`.
+- **Cooling design state**: `design.epsrow` (per-row cooling bypass ratios),
+  `design.Tmrow` (blade metal temperatures), `design.fc` (total cooling fraction).
 
 Fields **not** in `pare` — total state for stations 19c, 25c, 4a, 49c; static
 enthalpy `hs` and entropy complement `ss` at all stations — remain at their
@@ -191,6 +193,19 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.st9.pt = pare[iept9]
     eng.st9.u  = pare[ieu9]
     eng.st9.A  = pare[ieA9]
+
+    # -----------------------------------------------------------------------
+    # Cooling design state — always populated so tfcalc! can read from typed
+    # state rather than indexing pare[ieepsc1..4] directly.
+    # epsrow[i] = ṁ_cool,i / ṁ_core (cooling bypass ratio for blade row i)
+    # Tmrow[i]  = blade metal temperature [K] for blade row i
+    # fc        = total cooling mass-flow fraction (normalised by design core)
+    # -----------------------------------------------------------------------
+    eng.design.epsrow = SVector{4,Float64}(
+        pare[ieepsc1], pare[ieepsc2], pare[ieepsc3], pare[ieepsc4])
+    eng.design.Tmrow  = SVector{4,Float64}(
+        pare[ieTmet1], pare[ieTmet2], pare[ieTmet3], pare[ieTmet4])
+    eng.design.fc     = pare[iefc]
 
     return eng
 end

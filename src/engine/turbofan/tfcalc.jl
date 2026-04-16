@@ -110,7 +110,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         if opt_cooling == CoolingOpt.FixedCoolingFlowRatio
                 ncrow = ncrowx
                 for icrow = 1:ncrowx
-                        epsrow[icrow] = pare[ieepsc1+icrow-1]
+                        epsrow[icrow] = eng.design.epsrow[icrow]
                 end
         elseif opt_cooling == CoolingOpt.FixedTmetal
                 ncrow = ncrowx
