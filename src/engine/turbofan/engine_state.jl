@@ -131,6 +131,16 @@ mutable struct EngineState{T<:AbstractFloat}
     mfuel ::T   # total fuel mass flow (all engines) [kg/s]
 
     # -----------------------------------------------------------------------
+    # Component adiabatic efficiencies (tasopt-j9l.63.1)
+    # Written by tfcalc! EXIT blocks; backed by pare[ieetaf..ieetalt].
+    # -----------------------------------------------------------------------
+    etaf  ::T   # fan adiabatic efficiency           [—]
+    etalc ::T   # LPC adiabatic efficiency           [—]
+    etahc ::T   # HPC adiabatic efficiency           [—]
+    etaht ::T   # HPT adiabatic efficiency           [—]
+    etalt ::T   # LPT adiabatic efficiency           [—]
+
+    # -----------------------------------------------------------------------
     # Frozen design-point state (set by tfsize!, read by tfoper!)
     # -----------------------------------------------------------------------
     design ::DesignState{T}
@@ -157,6 +167,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
         z, z, z, z,                     # M0, T0, p0, a0
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
+        z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
         DesignState{T}(),               # design
     )
 end
@@ -185,6 +196,7 @@ const _ENGINE_OWN_FIELDS = (
     :st5, :st6, :st7, :st8, :st9,
     :M0, :T0, :p0, :a0,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
+    :etaf, :etalc, :etahc, :etaht, :etalt,
     :design,
 )
 
@@ -259,6 +271,13 @@ let
                 setproperty!(getfield(eng, $(QuoteNode(stfld))), $(QuoteNode(qty)), v)
         end
     end
+
+    # ---- derived shortcuts (tasopt-j9l.63.1) ----
+    # eng.mcore → eng.st2.mdot  (core mass flow; no separate field)
+    @eval @inline _eng_getprop(eng::EngineState, ::Val{:mcore}) =
+        getproperty(getfield(eng, :st2), :mdot)
+    @eval @inline _eng_setprop!(eng::EngineState, ::Val{:mcore}, v) =
+        setproperty!(getfield(eng, :st2), :mdot, v)
 end
 
 # ---------------------------------------------------------------------------

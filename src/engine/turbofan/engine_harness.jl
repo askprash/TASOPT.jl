@@ -250,6 +250,15 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.BPR   = pare[ieBPR]
     eng.mfuel = pare[iemfuel]
 
+    # -----------------------------------------------------------------------
+    # Component adiabatic efficiencies (tasopt-j9l.63.1)
+    # -----------------------------------------------------------------------
+    eng.etaf  = pare[ieetaf]
+    eng.etalc = pare[ieetalc]
+    eng.etahc = pare[ieetahc]
+    eng.etaht = pare[ieetaht]
+    eng.etalt = pare[ieetalt]
+
     return eng
 end
 
@@ -381,6 +390,13 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieFsp]   = eng.Fsp
     pare[ieBPR]   = eng.BPR
     pare[iemfuel] = eng.mfuel
+
+    # Component adiabatic efficiencies (tasopt-j9l.63.1)
+    pare[ieetaf]  = eng.etaf
+    pare[ieetalc] = eng.etalc
+    pare[ieetahc] = eng.etahc
+    pare[ieetaht] = eng.etaht
+    pare[ieetalt] = eng.etalt
 
     return eng
 end

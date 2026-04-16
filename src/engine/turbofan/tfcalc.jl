@@ -389,6 +389,13 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_design.BPR   = BPR
                 eng_design.mfuel = ff * mcore * neng
 
+                # Component adiabatic efficiencies (tasopt-j9l.63.1)
+                eng_design.etaf  = etaf
+                eng_design.etalc = etalc
+                eng_design.etahc = etahc
+                eng_design.etaht = etaht
+                eng_design.etalt = etalt
+
                 # ── PROJECT design scalars back to pare ──────────────────────
                 # design_state_to_pare! writes frozen design-point scalars.
                 # engine_state_to_pare! writes ambient scalars, station
@@ -640,6 +647,13 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
                 eng_offdes.Fsp   = Fsp
                 eng_offdes.mfuel = ff * mcore * neng
 
+                # Component adiabatic efficiencies (tasopt-j9l.63.1)
+                eng_offdes.etaf  = etaf
+                eng_offdes.etalc = etalc
+                eng_offdes.etahc = etahc
+                eng_offdes.etaht = etaht
+                eng_offdes.etalt = etalt
+
                 # Project thermodynamic state back to pare.  Writes ambient
                 # scalars, station fields, and performance rollup scalars.
                 # Does NOT write M2/M25/Tt4 (handled below) or design-point
@@ -757,12 +771,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         pare[ieepht] = epht
         pare[ieeplt] = eplt
 
-        pare[ieetaf] = etaf
-        pare[ieetalc] = etalc
-        pare[ieetahc] = etahc
-        pare[ieetaht] = etaht
-        pare[ieetalt] = etalt
-
+        # pare[ieetaf..ieetalt] removed (tasopt-j9l.63.1): written by engine_state_to_pare! via eng.etaf..etalt
         # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
         if (M5 <= 0.999999)
