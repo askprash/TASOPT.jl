@@ -3909,6 +3909,121 @@ isGradient = false
 
     end  # Compressor
 
+    # compressor_Nb_residual — tasopt-j9l.29
+    #
+    # Tests the per-compressor corrected-speed map-match residual.
+    # r = Nb_map(pi, mb) − Nb_target; converges to 0 when shaft coupling satisfied.
+    @testset "compressor_Nb_residual" begin
+
+        Comp        = TASOPT.engine.Compressor
+        comp_Nb_res = TASOPT.engine.compressor_Nb_residual
+        comp_eff    = TASOPT.engine.compressor_efficiency
+        FanMap      = TASOPT.engine.FanMap
+        LPCMap      = TASOPT.engine.LPCMap
+        HPCMap      = TASOPT.engine.HPCMap
+
+        # Design parameters (same as Compressor testset for consistency)
+        pifD  = 1.6850000000000001;  mbfD  = 235.16225770724063;  NbfD  = 1.0790738309310697;  epf0  = 0.89480000000000004
+        pilcD = 8.0000000000000000;  mblcD = 46.110246609262873;  NblcD = 1.0790738309310697;  eplc0 = 0.88000000000000000
+        pihcD = 3.7500000000000000;  mbhcD = 7.8056539219349039;  NbhcD = 0.77137973563891493;  ephc0 = 0.87000000000000000
+
+        fan = Comp(pifD,  mbfD,  NbfD,  epf0,  0.60, FanMap)
+        lpc = Comp(pilcD, mblcD, NblcD, eplc0, 0.70, LPCMap)
+        hpc = Comp(pihcD, mbhcD, NbhcD, ephc0, 0.70, HPCMap)
+
+        # ------------------------------------------------------------------
+        # 1. Design-point identity: r ≈ 0 when Nb_target = NbD
+        #
+        # At (piD, mbD) the map scaling guarantees Nb_map ≈ NbD (the
+        # fan map returns it exactly due to its grid layout; LPC and HPC
+        # may have O(ε_machine) rounding in the interpolation step).
+        # ------------------------------------------------------------------
+        r_fan, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD)
+        @test r_fan ≈ 0.0  atol=1e-12
+
+        r_lpc, _, _ = comp_Nb_res(lpc, pilcD, mblcD, NblcD)
+        @test r_lpc ≈ 0.0  atol=1e-12
+
+        r_hpc, _, _ = comp_Nb_res(hpc, pihcD, mbhcD, NbhcD)
+        @test r_hpc ≈ 0.0  atol=1e-12
+
+        # ------------------------------------------------------------------
+        # 2. Sign: r > 0 when Nb_target is below the map speed
+        # ------------------------------------------------------------------
+        r_high, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD * 0.95)
+        @test r_high > 0.0   # Nb_map = NbfD > 0.95*NbfD = Nb_target
+
+        # ------------------------------------------------------------------
+        # 3. Sign: r < 0 when Nb_target is above the map speed
+        # ------------------------------------------------------------------
+        r_low, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD * 1.05)
+        @test r_low < 0.0    # Nb_map = NbfD < 1.05*NbfD = Nb_target
+
+        # ------------------------------------------------------------------
+        # 4. Round-trip: r = Nb_map - Nb_target exactly, derivatives match
+        #    compressor_efficiency
+        # ------------------------------------------------------------------
+        pi_test = pifD * 0.97
+        mb_test = mbfD * 0.98
+        Nb_t    = NbfD * 0.99
+
+        r_rt, Nb_pi_rt, Nb_mb_rt = comp_Nb_res(fan, pi_test, mb_test, Nb_t)
+
+        fan_rt = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        Nb_eff, _, Nb_pi_eff, Nb_mb_eff, _, _ = comp_eff(fan_rt, pi_test, mb_test)
+
+        @test r_rt     ≈ Nb_eff - Nb_t   rtol=1e-14
+        @test Nb_pi_rt ≈ Nb_pi_eff       rtol=1e-12
+        @test Nb_mb_rt ≈ Nb_mb_eff       rtol=1e-12
+
+        # ------------------------------------------------------------------
+        # 5. Derivative self-consistency: dr/dpi matches finite-difference
+        #    Nb_target is held constant, so dr/dpi = dNb_map/dpi.
+        # ------------------------------------------------------------------
+        eps_fd = 1e-5 * pifD
+        r_fwd, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+                                   pi_test + eps_fd, mb_test, Nb_t)
+        r_bwd, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+                                   pi_test - eps_fd, mb_test, Nb_t)
+        Nb_pi_fd = (r_fwd - r_bwd) / (2 * eps_fd)
+        @test Nb_pi_rt ≈ Nb_pi_fd  rtol=1e-4
+
+        # dr/dmb finite-difference
+        eps_mb = 1e-5 * mbfD
+        r_fwd_mb, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+                                      pi_test, mb_test + eps_mb, Nb_t)
+        r_bwd_mb, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+                                      pi_test, mb_test - eps_mb, Nb_t)
+        Nb_mb_fd = (r_fwd_mb - r_bwd_mb) / (2 * eps_mb)
+        @test Nb_mb_rt ≈ Nb_mb_fd  rtol=1e-4
+
+        # ------------------------------------------------------------------
+        # 6. Monotonicity: increasing pi (above design) increases Nb_map
+        #    for fixed mb, so r increases for fixed Nb_target.
+        # ------------------------------------------------------------------
+        Nb_tgt_fixed = NbfD
+        fan_mono = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        r_lo, _, _ = comp_Nb_res(fan_mono, pifD * 0.90, mbfD, Nb_tgt_fixed)
+        r_md, _, _ = comp_Nb_res(fan_mono, pifD * 1.00, mbfD, Nb_tgt_fixed)
+        r_hi, _, _ = comp_Nb_res(fan_mono, pifD * 1.10, mbfD, Nb_tgt_fixed)
+        @test r_lo < r_md
+        @test r_md < r_hi
+
+        # ------------------------------------------------------------------
+        # 7. LPC and HPC at design: r = 0 (same invariant as fan)
+        # ------------------------------------------------------------------
+        r_lpc2, Nb_pi_lpc, Nb_mb_lpc = comp_Nb_res(lpc, pilcD, mblcD, NblcD)
+        @test r_lpc2 ≈ 0.0  atol=1e-12
+        @test Nb_pi_lpc isa Float64
+        @test Nb_mb_lpc isa Float64
+
+        r_hpc2, Nb_pi_hpc, Nb_mb_hpc = comp_Nb_res(hpc, pihcD, mbhcD, NbhcD)
+        @test r_hpc2 ≈ 0.0  atol=1e-12
+        @test Nb_pi_hpc isa Float64
+        @test Nb_mb_hpc isa Float64
+
+    end  # compressor_Nb_residual
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()

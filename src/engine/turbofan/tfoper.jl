@@ -241,6 +241,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- minimum allowable fan efficiency
       epfmin = 0.60
 
+      #---- typed compressor component instances (used by compressor_efficiency and compressor_Nb_residual)
+      comp_fan = Compressor(pifD,  mbfD,  NbfD,  epf0,  T(0.60), FanMap)
+      comp_lpc = Compressor(pilcD, mblcD, NblcD, eplc0, T(0.70), LPCMap)
+      comp_hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
+
       # from "airfrac.inc"
       # air fractions  
       #        N2      O2      CO2    H2O      Ar       fuel
@@ -281,13 +286,6 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       end
       gamma[n] = 1.0 - etab
 
-      #Starting guesses for compressor map non-linear solvers
-      Nfg = 0.5
-      Rfg = 2.0
-      Nlcg = 0.5
-      Rlcg = 2.0
-      Nhcg = 0.5
-      Rhcg = 2.0
       #
       # ===============================================================
       #---- freestream static quantities
@@ -545,19 +543,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             # ===============================================================
             #---- fan flow 2-7
-            Nf, epf, Nf_pf, Nf_mf, epf_pf, epf_mf, Nfg, Rfg = 
-                  calculate_compressor_speed_and_efficiency(FanMap, pf, mf, pifD, mbfD, NbfD, epf0, Ng = Nfg, Rg = Rfg)
-            
-            if (epf < epfmin)
-                  epf = epfmin
-                  epf_pf = 0.0
-                  epf_mf = 0.0
-            end
-            if (pf < 1.0)
-                  epf_pf = (-1.0 / epf^2) * epf_pf
-                  epf_mf = (-1.0 / epf^2) * epf_mf
-                  epf = 1.0 / epf
-            end
+            Nf, epf, Nf_pf, Nf_mf, epf_pf, epf_mf = compressor_efficiency(comp_fan, pf, mf)
 
             pt21, Tt21, ht21, st21, cpt21, Rt21,
             pt21_pt2,
@@ -659,14 +645,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       
             # ===============================================================
             #---- LP compressor flow 2-25
-            Nl, eplc, Nl_pl, Nl_ml, eplc_pl, eplc_ml, Nlcg, Rlcg = 
-                  calculate_compressor_speed_and_efficiency(LPCMap, pl, ml, pilcD, mblcD, NblcD, eplc0, Ng = Nlcg, Rg = Rlcg)
-                  
-            if (eplc < 0.70)
-                  eplc = 0.70
-                  eplc_pl = 0.0
-                  eplc_ml = 0.0
-            end
+            Nl, eplc, Nl_pl, Nl_ml, eplc_pl, eplc_ml = compressor_efficiency(comp_lpc, pl, ml)
 
             pt25, Tt25, ht25, st25, cpt25, Rt25,
             pt25_pt19c,
@@ -723,14 +702,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       
             # ===============================================================
             #---- HP compressor flow 25-3
-            Nh, ephc, Nh_ph, Nh_mh, ephc_ph, ephc_mh, Nhcg, Rhcg = 
-                  calculate_compressor_speed_and_efficiency(HPCMap, ph, mh, pihcD, mbhcD, NbhcD, ephc0, Ng = Nhcg, Rg = Rhcg)
-            
-            if (ephc < 0.70)
-                  ephc = 0.70
-                  ephc_ph = 0.0
-                  ephc_mh = 0.0
-            end
+            Nh, ephc, Nh_ph, Nh_mh, ephc_ph, ephc_mh = compressor_efficiency(comp_hpc, ph, mh)
 
             pt3, Tt3, ht3, st3, cpt3, Rt3,
             pt3_pt25c,

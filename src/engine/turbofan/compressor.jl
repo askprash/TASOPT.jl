@@ -223,6 +223,78 @@ the isentropic value for the same pressure ratio (less efficient compression).
 
 `st_out` (mutated in place).
 """
+# ---------------------------------------------------------------------------
+# compressor_Nb_residual  —  corrected-speed map-match residual
+# ---------------------------------------------------------------------------
+
+"""
+    compressor_Nb_residual(comp, pi, mb, Nb_target) -> (r, Nb_pi, Nb_mb)
+
+Map-match residual for the spool-speed coupling constraint.
+
+In a TASOPT turbofan the fan and LPC share a shaft (via gear ratio `Gearf`).
+At a converged off-design operating point the corrected spool speeds must
+satisfy:
+
+    Gearf × √(Tt2/Tref) × Nb_fan = √(Tt19c/Tref) × Nb_lpc
+
+The per-compressor primitive is:
+
+    r = Nb_map(pi, mb) − Nb_target
+
+where `Nb_target` is the corrected speed imposed by the complementary spool
+member (e.g. `Nl × trl / (Gearf × trf)` for the fan side).  The Newton
+driver assembles the full row-1 residual from two calls:
+
+    res[1] = Gearf × trf × r_fan                # r_fan with Nb_target = Nl×trl/(Gearf×trf)
+           = Gearf × trf × Nb_fan − trl × Nb_lpc
+
+At any converged Newton point the shaft coupling is satisfied and `r = 0`.
+
+The partial derivatives of r with respect to `pi` and `mb` are those of
+`Nb_map` (from `compressor_efficiency`); the derivative with respect to
+`Nb_target` is always −1.
+
+## Arguments
+
+| Argument    | Unit  | Description                                            |
+|:-----------|:------|:-------------------------------------------------------|
+| `comp`      | —     | `Compressor` component                                 |
+| `pi`        | —     | Off-design compression pressure ratio  pt_out / pt_in  |
+| `mb`        | kg/s  | Off-design corrected mass flow                         |
+| `Nb_target` | —     | Target corrected spool speed from the shaft coupling   |
+
+## Returns
+
+A 3-tuple `(r, Nb_pi, Nb_mb)`:
+
+| Value    | Description                              |
+|:---------|:-----------------------------------------|
+| `r`      | `Nb_map(pi, mb) − Nb_target`             |
+| `Nb_pi`  | ∂Nb_map / ∂pi                            |
+| `Nb_mb`  | ∂Nb_map / ∂mb                            |
+
+## Design-point identity
+
+At the design operating point (`pi = piD`, `mb = mbD`) the map scaling
+returns `Nb_map = NbD` exactly (see `calculate_compressor_speed_and_efficiency`).
+Therefore, calling with `Nb_target = comp.NbD` gives `r = 0` exactly.
+"""
+function compressor_Nb_residual(
+    comp      ::Compressor{T},
+    pi        ::T,
+    mb        ::T,
+    Nb_target ::T,
+) where {T<:AbstractFloat}
+    Nb, _, Nb_pi, Nb_mb, _, _ = compressor_efficiency(comp, pi, mb)
+    r = Nb - Nb_target
+    return r, Nb_pi, Nb_mb
+end
+
+# ---------------------------------------------------------------------------
+# compressor_exit!  —  compute outlet FlowStation from inlet + compression
+# ---------------------------------------------------------------------------
+
 function compressor_exit!(
     st_out ::FlowStation{T},
     st_in  ::FlowStation{T},
