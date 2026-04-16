@@ -293,6 +293,20 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieu9]  = eng.st9.u
     pare[ieA9]  = eng.st9.A
 
+    # Cooling — per-row cooling fractions (ieepsc1..4) and blade metal
+    # temperatures (ieTmet1..4).  Both arrays are always populated in the EXIT
+    # blocks (sizing lines 376-378; off-design just before this call), so we
+    # can write them unconditionally here.
+    # NOTE: pare[iefc] is intentionally NOT written here.  In FixedTmetal mode
+    # it is written explicitly in the off-design EXIT block (and sizing EXIT
+    # block) because fc is a computed output only in that mode.  In
+    # FixedCoolingFlowRatio mode fc is not recomputed and pare[iefc] retains
+    # the initialization value — matching historical behaviour.
+    for icrow in 1:length(eng.design.epsrow)
+        pare[ieepsc1+icrow-1] = eng.design.epsrow[icrow]
+        pare[ieTmet1+icrow-1] = eng.design.Tmrow[icrow]
+    end
+
     return eng
 end
 
@@ -338,8 +352,8 @@ Write the frozen design-point scalars from a `DesignState` back into the
 pressure ratios, corrected flows, corrected spool speeds, flow areas) and
 subsequently read by `tfoper!` for every off-design point.
 
-The cooling arrays (`epsrow`, `Tmrow`, `fc`) are managed by the conditional
-cooling section in `tfcalc!` and are **not** written here.
+The cooling arrays (`epsrow`, `Tmrow`, `fc`) are written by
+`engine_state_to_pare!` via the `EngineState.design` fields, not here.
 """
 function design_state_to_pare!(ds::DesignState, pare)
     # Flow areas

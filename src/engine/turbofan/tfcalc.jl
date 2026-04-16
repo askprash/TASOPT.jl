@@ -611,6 +611,15 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
 
                 eng_offdes.st9.u   = u9;   eng_offdes.st9.A   = A9
 
+                # Cooling — mirror the sizing EXIT block (lines 376-378) so that
+                # engine_state_to_pare! can write cooling data to pare for both
+                # operating modes (FixedCoolingFlowRatio and FixedTmetal).
+                # epsrow/Tmrow are populated by tfoper! in place; mofft/mcore
+                # are available as tfoper! return values.
+                eng_offdes.design.epsrow = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
+                eng_offdes.design.Tmrow  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
+                eng_offdes.design.fc     = (1.0 - mofft / mcore) * sum(epsrow)
+
                 # Project thermodynamic state back to pare.  Writes ambient
                 # scalars and station fields; does NOT write M2/M25/BPR/Fe/Tt4
                 # (handled below) or design-point scalars (read-only for off-des).
@@ -647,21 +656,18 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         end
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-        if opt_cooling == CoolingOpt.FixedCoolingFlowRatio
-                #------ cooling flow was specified... set metal temperatures
-                for icrow = 1:ncrowx
-                        pare[ieTmet1+icrow-1] = Tmrow[icrow]
-                end
-
-        elseif opt_cooling == CoolingOpt.FixedTmetal
-                #------ Tmetal was specified... set cooling flow ratios
-                epstot = 0.0
-                for icrow = 1:ncrowx
-                        epstot = epstot + epsrow[icrow]
-                        pare[ieepsc1+icrow-1] = epsrow[icrow]
-                end
-                pare[iefc] = (1.0 - fo) * epstot
-
+        # Cooling (tasopt-j9l.20):
+        # FixedCoolingFlowRatio — Tmrow bare-write removed; now written via
+        #   engine_state_to_pare! from eng.design.Tmrow (set in EXIT blocks).
+        # FixedCoolingFlowRatio — epsrow is an INPUT (read from pare at entry);
+        #   writing it back via engine_state_to_pare! is idempotent.
+        # FixedTmetal — epsrow bare-write removed; now written via
+        #   engine_state_to_pare! from eng.design.epsrow (set in EXIT blocks).
+        # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode;
+        #   pare[iefc] is NOT touched in FixedCoolingFlowRatio mode (retains
+        #   initialization value), so we keep an explicit write here.
+        if opt_cooling == CoolingOpt.FixedTmetal
+                pare[iefc] = (1.0 - fo) * sum(epsrow)
         end
 
         pare[ieTSFC] = TSFC
