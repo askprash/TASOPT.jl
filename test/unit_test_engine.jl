@@ -4572,6 +4572,88 @@ isGradient = false
 
     end  # Nozzle
 
+    # Newton driver nozzle wiring — tasopt-j9l.31
+    # Verify that nozzle_massflow_residual called with pn=1 (total-pressure loss
+    # already folded into pt7/pt5) reproduces the same residual and chain-rule
+    # Jacobian as the inlined physics it replaces.
+    @testset "Newton driver nozzle wiring" begin
+
+        Nozzle_t                   = TASOPT.engine.Nozzle
+        nozzle_exit_t              = TASOPT.engine.nozzle_exit
+        nozzle_massflow_residual_t = TASOPT.engine.nozzle_massflow_residual
+
+        # Re-use fan nozzle state from the parent Nozzle testset conditions
+        # but now wrap with pn=1 to match Newton driver usage (loss already in pt7)
+        alpha_air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        nair  = 5
+
+        pt21  = 61271.983314487086
+        Tt21  = 294.1405135675445
+        pifn  = 0.98
+        A7    = 0.841808817378845
+        p0    = 23922.608843328788
+
+        gassum_t = TASOPT.engine.gassum
+        st21, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
+
+        # pt7 has the nozzle loss already applied (as in the Newton driver)
+        pt7  = pt21 * pifn
+        Tt7  = Tt21
+        ht7  = ht21
+        st7  = st21
+        cpt7 = cpt21
+        Rt7  = Rt21
+
+        # Newton driver constructs: nozzle_fan = Nozzle(one(T), A7)  (pn = 1)
+        nozzle_pn1 = Nozzle_t(1.0, A7)
+
+        # Design mass flow at the exit
+        p_e, T_e, h_e, s_e, cp_e, R_e, u_e, rho_e, M_e =
+            nozzle_exit_t(nozzle_pn1, alpha_air, nair, pt7, Tt7, ht7, st7, cpt7, Rt7, p0)
+        mdot_dp = rho_e * u_e * A7
+
+        # 1. Residual is exactly zero at design mass flow
+        r, r_pt7, r_ht7, r_st7, r_Tt7, _, _, _, _, _, _ =
+            nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                       pt7, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)
+        @test r ≈ 0.0 atol=1e-10
+
+        # 2. Chain-rule Jacobian: verify r_pt7 via finite differences
+        δpt = pt7 * 1e-5
+        r_pp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7 + δpt, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)[1]
+        r_pm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7 - δpt, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)[1]
+        @test r_pt7 ≈ (r_pp - r_pm) / (2δpt) rtol=1e-3
+
+        # 3. Chain-rule Jacobian: verify r_ht7 via finite differences
+        δht = 1.0
+        r_hp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7, Tt7, ht7 + δht, st7, cpt7, Rt7, p0, mdot_dp)[1]
+        r_hm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7, Tt7, ht7 - δht, st7, cpt7, Rt7, p0, mdot_dp)[1]
+        @test r_ht7 ≈ (r_hp - r_hm) / (2δht) rtol=1e-3
+
+        # 4. Chain-rule Jacobian: verify r_st7 via finite differences
+        δst = 1e-4
+        r_sp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7, Tt7, ht7, st7 + δst, cpt7, Rt7, p0, mdot_dp)[1]
+        r_sm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
+                                          pt7, Tt7, ht7, st7 - δst, cpt7, Rt7, p0, mdot_dp)[1]
+        @test r_st7 ≈ (r_sp - r_sm) / (2δst) rtol=1e-3
+
+        # 5. Nozzle with pn=1 at the same pt7 is equivalent to pn=pifn at pt21
+        nozzle_original = Nozzle_t(pifn, A7)
+        r_orig, r_pt_orig = nozzle_massflow_residual_t(nozzle_original, alpha_air, nair,
+                                                        pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                                        p0, mdot_dp)[1:2]
+        @test r ≈ r_orig atol=1e-10
+        # r_pt of pn=1 nozzle at pt7 ↔ r_pt of pifn nozzle at pt21:
+        # dr/d(pt_in) = dr/d(pt_nozzle) * pn, so r_pt_orig = r_pt7 * pifn
+        @test r_pt7 * pifn ≈ r_pt_orig rtol=1e-8
+
+    end  # Newton driver nozzle wiring
+
     @testset "engine_plots" begin
 
         ac_plots = TASOPT.load_default_model()
