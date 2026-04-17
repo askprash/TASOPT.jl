@@ -138,11 +138,17 @@ mutable struct DesignState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Cooling design parameters — frozen inputs (iedTstrk..ietfilm)
     # -----------------------------------------------------------------------
-    dTstrk ::T   # hot-streak temperature allowance [K]
-    Mtexit ::T   # design Mach number at turbine blade exit
-    StA    ::T   # Stanton number times blade area (St × A)
-    efilm  ::T   # film cooling effectiveness
-    tfilm  ::T   # film cooling thickness parameter
+    dTstrk  ::T   # hot-streak temperature allowance [K]
+    Mtexit  ::T   # design Mach number at turbine blade exit
+    StA     ::T   # Stanton number times blade area (St × A)
+    efilm   ::T   # film cooling effectiveness
+    tfilm   ::T   # film cooling thickness parameter
+
+    # -----------------------------------------------------------------------
+    # HPT cooling model constants — frozen design inputs (iefc0, iedehtdfc)
+    # -----------------------------------------------------------------------
+    fc0     ::T   # baseline cooling fraction (reference f_c for efficiency model)
+    dehtdfc ::T   # HPT isentropic efficiency derivative w.r.t. cooling fraction
 end
 
 """
@@ -169,6 +175,7 @@ function DesignState{T}() where {T<:AbstractFloat}
         z, z,            # epsl, epsh
         z,               # etab
         z, z, z, z, z,   # dTstrk, Mtexit, StA, efilm, tfilm
+        z, z,            # fc0, dehtdfc
     )
 end
 

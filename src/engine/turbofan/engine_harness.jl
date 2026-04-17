@@ -315,11 +315,13 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.design.etab   = pare[ieetab]
 
     # Cooling design parameters
-    eng.design.dTstrk = pare[iedTstrk]
-    eng.design.Mtexit = pare[ieMtexit]
-    eng.design.StA    = pare[ieStA]
-    eng.design.efilm  = pare[ieefilm]
-    eng.design.tfilm  = pare[ietfilm]
+    eng.design.dTstrk  = pare[iedTstrk]
+    eng.design.Mtexit  = pare[ieMtexit]
+    eng.design.StA     = pare[ieStA]
+    eng.design.efilm   = pare[ieefilm]
+    eng.design.tfilm   = pare[ietfilm]
+    eng.design.fc0     = pare[iefc0]
+    eng.design.dehtdfc = pare[iedehtdfc]
 
     # -----------------------------------------------------------------------
     # Overall propulsion efficiencies (tasopt-j9l.63.2)

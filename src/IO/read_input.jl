@@ -932,6 +932,33 @@ pare[ieM25, :, :] .= M25
 pare[ieepsl, :, :] .= epsl
 pare[ieepsh, :, :] .= epsh
 
+# tasopt-50r: mirror turbomachinery design scalars and initial per-point PRs/BPR
+# to typed engine state. Reads from pare immediately after writing to guarantee
+# agreement. Design constants (pid, pib, etc.) are uniform across ip — read from ip=1.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        eng = missions_vec[im].points[ip].engine
+        eng.design.pid    = pare[iepid,    1, im]
+        eng.design.pib    = pare[iepib,    1, im]
+        eng.design.pifn   = pare[iepifn,   1, im]
+        eng.design.pitn   = pare[iepitn,   1, im]
+        eng.design.epolf  = pare[ieepolf,  1, im]
+        eng.design.epollc = pare[ieepollc, 1, im]
+        eng.design.epolhc = pare[ieepolhc, 1, im]
+        eng.design.epolht = pare[ieepolht, 1, im]
+        eng.design.epollt = pare[ieepollt, 1, im]
+        eng.design.etab   = pare[ieetab,   1, im]
+        eng.design.M2     = pare[ieM2,     1, im]
+        eng.design.M25    = pare[ieM25,    1, im]
+        eng.design.epsl   = pare[ieepsl,   1, im]
+        eng.design.epsh   = pare[ieepsh,   1, im]
+        eng.pif  = pare[iepif,  ip, im]
+        eng.pilc = pare[iepilc, ip, im]
+        eng.pihc = pare[iepihc, ip, im]
+        eng.BPR  = pare[ieBPR,  ip, im]
+    end
+end
+
 parg[igGearf] = Gearf
 parg[igHTRf] = HTRf
 parg[igHTRlc] = HTRlc
@@ -963,6 +990,23 @@ readcool(x) = read_input(x, cool, dcool)
     pare[iedehtdfc,:,:] .= readcool("HPT_efficiency_derivative_with_cooling")
     pare[iefc0,:,:] .= readcool("baseline_cooling_fraction")
 
+    # tasopt-50r: mirror cooling design scalars to typed DesignState.
+    # Uniform across ip — read from ip=1 for each mission.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            eng = missions_vec[im].points[ip].engine
+            eng.design.M4a    = pare[ieM4a,    1, im]
+            eng.design.ruc    = pare[ieruc,    1, im]
+            eng.design.dTstrk = pare[iedTstrk, 1, im]
+            eng.design.Mtexit = pare[ieMtexit, 1, im]
+            eng.design.StA    = pare[ieStA,    1, im]
+            eng.design.efilm  = pare[ieefilm,  1, im]
+            eng.design.tfilm  = pare[ietfilm,  1, im]
+            eng.design.fc0     = pare[iefc0,     1, im]
+            eng.design.dehtdfc = pare[iedehtdfc, 1, im]
+        end
+    end
+
 # Offtakes
 off = readprop("Offtakes")
 doff = dprop["Offtakes"]
@@ -980,6 +1024,16 @@ readoff(x) = read_input(x, off, doff)
 
     pare[ieTt9, :, :] .= Ttdischarge
     pare[iept9, :, :] .= Ptdischarge
+
+    # tasopt-50r: mirror offtake discharge conditions to typed engine state.
+    # Uniform across ip — read from ip=1 for each mission.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            eng = missions_vec[im].points[ip].engine
+            eng.st9.Tt = pare[ieTt9, 1, im]
+            eng.st9.pt = pare[iept9, 1, im]
+        end
+    end
 
     parg[igmofWpay] = mofftpax ./ parm[imWperpax, 1]
     parg[igmofWMTO] = mofftmMTO / gee

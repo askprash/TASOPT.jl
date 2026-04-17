@@ -153,6 +153,57 @@
         @test ac_1v7.missions[im].points[ipdescent1].engine.A7fac ≈ ac_1v7.pare[ieA7fac, ipdescent1, im]
     end
 
+    # tasopt-50r: verify that read_aircraft_model populates typed design-point engine
+    # state for turbomachinery scalars, cooling constants, and offtake discharge
+    # conditions immediately after parsing — no sizing needed.
+    @testset "read_input populates design-point engine state from input (tasopt-50r)" begin
+        ac_50r = load_default_model()
+        im = 1  # design mission
+        eng_d = ac_50r.missions[im].points[ipcruise1].engine.design
+
+        # Component pressure ratios
+        @test eng_d.pid    ≈ ac_50r.pare[iepid,    1, im]
+        @test eng_d.pib    ≈ ac_50r.pare[iepib,    1, im]
+        @test eng_d.pifn   ≈ ac_50r.pare[iepifn,   1, im]
+        @test eng_d.pitn   ≈ ac_50r.pare[iepitn,   1, im]
+
+        # Polytropic efficiencies
+        @test eng_d.epolf  ≈ ac_50r.pare[ieepolf,  1, im]
+        @test eng_d.epollc ≈ ac_50r.pare[ieepollc, 1, im]
+        @test eng_d.epolhc ≈ ac_50r.pare[ieepolhc, 1, im]
+        @test eng_d.epolht ≈ ac_50r.pare[ieepolht, 1, im]
+        @test eng_d.epollt ≈ ac_50r.pare[ieepollt, 1, im]
+
+        # Combustion efficiency, duct Mach numbers, spool losses
+        @test eng_d.etab   ≈ ac_50r.pare[ieetab,   1, im]
+        @test eng_d.M2     ≈ ac_50r.pare[ieM2,     1, im]
+        @test eng_d.M25    ≈ ac_50r.pare[ieM25,    1, im]
+        @test eng_d.epsl   ≈ ac_50r.pare[ieepsl,   1, im]
+        @test eng_d.epsh   ≈ ac_50r.pare[ieepsh,   1, im]
+
+        # Per-point pressure ratios and BPR (uniform at parse time)
+        @test ac_50r.missions[im].points[ipcruise1].engine.pif  ≈ ac_50r.pare[iepif,  ipcruise1, im]
+        @test ac_50r.missions[im].points[ipcruise1].engine.pilc ≈ ac_50r.pare[iepilc, ipcruise1, im]
+        @test ac_50r.missions[im].points[ipcruise1].engine.pihc ≈ ac_50r.pare[iepihc, ipcruise1, im]
+        @test ac_50r.missions[im].points[ipcruise1].engine.BPR  ≈ ac_50r.pare[ieBPR,  ipcruise1, im]
+        @test ac_50r.missions[im].points[ipstatic].engine.BPR   ≈ ac_50r.pare[ieBPR,  ipstatic,  im]
+
+        # Cooling design constants
+        @test eng_d.M4a    ≈ ac_50r.pare[ieM4a,    1, im]
+        @test eng_d.ruc    ≈ ac_50r.pare[ieruc,    1, im]
+        @test eng_d.dTstrk ≈ ac_50r.pare[iedTstrk, 1, im]
+        @test eng_d.Mtexit ≈ ac_50r.pare[ieMtexit, 1, im]
+        @test eng_d.StA    ≈ ac_50r.pare[ieStA,    1, im]
+        @test eng_d.efilm  ≈ ac_50r.pare[ieefilm,  1, im]
+        @test eng_d.tfilm  ≈ ac_50r.pare[ietfilm,  1, im]
+        @test eng_d.fc0     ≈ ac_50r.pare[iefc0,     1, im]
+        @test eng_d.dehtdfc ≈ ac_50r.pare[iedehtdfc, 1, im]
+
+        # Offtake discharge conditions
+        @test ac_50r.missions[im].points[ipcruise1].engine.st9.Tt ≈ ac_50r.pare[ieTt9, 1, im]
+        @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ ac_50r.pare[iept9, 1, im]
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)
