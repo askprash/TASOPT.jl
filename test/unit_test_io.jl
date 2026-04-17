@@ -5,6 +5,18 @@
         #when round-tripped via model save and read
     ac_def = load_default_model()
 
+    # tasopt-rcy: verify BPR is read from typed engine state in save_aircraft_model.
+    # The sync in save_aircraft_model populates typed state from pare before reading,
+    # so the saved BPR must equal the pare design value whether or not sized.
+    @testset "save_model reads BPR from typed engine state (tasopt-rcy)" begin
+        import TOML
+        filepath_bpr = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_bpr.toml")
+        save_aircraft_model(ac_def, filepath_bpr)
+        saved = TOML.parsefile(filepath_bpr)
+        @test saved["Propulsion"]["Turbomachinery"]["BPR"] ≈ ac_def.pare[ieBPR, 1, 1]
+        rm(filepath_bpr)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)

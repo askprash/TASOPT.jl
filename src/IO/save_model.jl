@@ -33,8 +33,16 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #unpack aircraft struct
     imission = 1 #design mission for now
-    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission) 
+    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
     #TODO: fuse_tank fields are not saved
+
+    # Sync typed engine state from pare so performance outputs below can be
+    # read from typed state rather than bare pare indices (tasopt-rcy).
+    # pare remains the source of truth during the adapter-walk; this one-time
+    # mirror at ip=1 (the point used for design-scalar propulsion reads) is
+    # cheap (array copies only) and works whether or not size_aircraft! has run.
+    pare_to_engine_state!(ac.missions[imission].points[1].engine,
+                          view(ac.pare, :, 1, imission))
 
     #Save everything in a dict() of dicts()
     d_out = Dict()
@@ -413,7 +421,7 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         
     #Turbomachinery
     d_prop_turb = Dict()
-        d_prop_turb["BPR"] = pare[ieBPR, 1, 1]
+        d_prop_turb["BPR"] = ac.missions[imission].points[1].engine.BPR
         d_prop_turb["Fan_PR"] = pare[iepif, 1, 1]
         d_prop_turb["LPC_PR"] = pare[iepilc, 1, 1]
         d_prop_turb["OPR"] = d_prop_turb["LPC_PR"]*pare[iepihc, 1, 1]
