@@ -114,10 +114,11 @@ mutable struct EngineState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Ambient / flight-condition scalars
     # -----------------------------------------------------------------------
-    M0 ::T   # freestream Mach number              [—]
-    T0 ::T   # freestream static temperature       [K]
-    p0 ::T   # freestream static pressure          [Pa]
-    a0 ::T   # freestream speed of sound           [m/s]
+    M0    ::T   # freestream Mach number              [—]
+    T0    ::T   # freestream static temperature       [K]
+    p0    ::T   # freestream static pressure          [Pa]
+    a0    ::T   # freestream speed of sound           [m/s]
+    Tfuel ::T   # fuel temperature (tank/inlet)       [K]
 
     # -----------------------------------------------------------------------
     # Engine-level performance outputs
@@ -205,7 +206,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st21, st25, st25c, st3, st4
         fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
-        z, z, z, z,                     # M0, T0, p0, a0
+        z, z, z, z, z,                  # M0, T0, p0, a0, Tfuel
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
         z, z, z, z, z, z,              # mbf, mblc, mbhc, pif, pilc, pihc
         z, z,                           # A5fac, A7fac
@@ -237,7 +238,7 @@ const _ENGINE_OWN_FIELDS = (
     :st0, :st18, :st19, :st19c, :st2, :st21, :st25, :st25c,
     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
     :st5, :st6, :st7, :st8, :st9,
-    :M0, :T0, :p0, :a0,
+    :M0, :T0, :p0, :a0, :Tfuel,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
     :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
     :A5fac, :A7fac,

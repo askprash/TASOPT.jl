@@ -81,10 +81,11 @@ function pare_to_engine_state!(eng::EngineState, pare)
     # -----------------------------------------------------------------------
     # Ambient scalars
     # -----------------------------------------------------------------------
-    eng.M0 = pare[ieM0]
-    eng.T0 = pare[ieT0]
-    eng.p0 = pare[iep0]
-    eng.a0 = pare[iea0]
+    eng.M0    = pare[ieM0]
+    eng.T0    = pare[ieT0]
+    eng.p0    = pare[iep0]
+    eng.a0    = pare[iea0]
+    eng.Tfuel = pare[ieTfuel]
 
     # -----------------------------------------------------------------------
     # Station 0 — freestream
@@ -378,10 +379,11 @@ Fields not in `pare` (stations 19c, 25c, 4a, 49c; `hs`, `ss`) are not written.
 """
 function engine_state_to_pare!(eng::EngineState, pare)
     # Ambient scalars
-    pare[ieM0] = eng.M0
-    pare[ieT0] = eng.T0
-    pare[iep0] = eng.p0
-    pare[iea0] = eng.a0
+    pare[ieM0]    = eng.M0
+    pare[ieT0]    = eng.T0
+    pare[iep0]    = eng.p0
+    pare[iea0]    = eng.a0
+    pare[ieTfuel] = eng.Tfuel
 
     # Station 0 — freestream
     _write_total!(pare, ieTt0, ieht0, iept0, iecpt0, ieRt0, eng.st0)

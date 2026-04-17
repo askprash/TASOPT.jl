@@ -231,6 +231,14 @@ parg[igrWfmax] = readfuel("fuel_usability_factor")
 pare[iehvap, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of the fuel
 pare[iehvapcombustor, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of fuel, if vaporized in combustor
 
+# tasopt-3ua: mirror Tfuel to typed engine state for all flight points.
+# Reads directly from pare which was just written, guaranteeing agreement.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        missions_vec[im].points[ip].engine.Tfuel = pare[ieTfuel, ip, im]
+    end
+end
+
 ##Takeoff
 takeoff = readmis("Takeoff")
 dtakeoff = dmis["Takeoff"]

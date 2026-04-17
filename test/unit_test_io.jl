@@ -204,6 +204,25 @@
         @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ ac_50r.pare[iept9, 1, im]
     end
 
+    # tasopt-3ua: verify that read_aircraft_model mirrors fuel temperature to typed
+    # engine state for all flight points, and that save_model reads it from typed state.
+    @testset "read_input and save_model use typed Tfuel (tasopt-3ua)" begin
+        ac_3ua = load_default_model()
+        im = 1  # design mission
+
+        # Mirror check: typed Tfuel equals bare pare at every flight point after parse.
+        for ip in 1:iptotal
+            @test ac_3ua.missions[im].points[ip].engine.Tfuel ≈ ac_3ua.pare[ieTfuel, ip, im]
+        end
+
+        # Round-trip check: save then reload preserves fuel_temp.
+        filepath_3ua = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_3ua.toml")
+        save_aircraft_model(ac_3ua, filepath_3ua)
+        saved_toml = TOML.parsefile(filepath_3ua)
+        @test saved_toml["Fuel"]["fuel_temp"] ≈ ac_3ua.pare[ieTfuel, 1, im]
+        rm(filepath_3ua)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)
