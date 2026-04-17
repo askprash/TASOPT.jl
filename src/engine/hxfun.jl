@@ -1138,6 +1138,90 @@ HXsDict = Dict{String, Dict}(
       "Radiator" => rad_dict
 )
 
+# ---------------------------------------------------------------------------
+# HXPort — typed snapshot of the engine-side inputs for one operating point
+# ---------------------------------------------------------------------------
+
+"""
+    HXPort
+
+Typed snapshot of the engine-side state required to set up a heat-exchanger
+analysis at a single operating point.  Replaces the bare `pare_sl` vector
+that was previously passed into `PrepareHXobjects` and `lambdap_calc`.
+
+Populated from the per-point pare slice by the caller (`hxdesign!`,
+`HXOffDesign!`); the HX module reads only from this struct and never indexes
+`pare` directly.
+"""
+struct HXPort
+    # --- geometry / design constants ---
+    Di     :: Float64   # inner duct diameter [m]          → ieDi
+    Tft    :: Float64   # fuel tank temperature [K]        → ieTft
+    hvap   :: Float64   # fuel latent heat of vaporisation [J/kg] → iehvap
+    # --- mass flows ---
+    mcore  :: Float64   # core mass flow [kg/s]            → iemcore
+    mofft  :: Float64   # offtake mass flow [kg/s]         → iemofft
+    fc     :: Float64   # turbine-cooling mass-flow fraction [—] → iefc
+    ff     :: Float64   # fuel-to-core mass-flow ratio [—] → ieff
+    mfan   :: Float64   # fan total mass flow [kg/s]       → iemfan
+    # --- station total temperatures [K] ---
+    Tt19   :: Float64   # PreCooler process inlet           → ieTt19
+    Tt25   :: Float64   # InterCooler process inlet         → ieTt25
+    Tt49   :: Float64   # Regenerator process inlet         → ieTt49
+    Tt3    :: Float64   # HPCExit / TurbC process inlet     → ieTt3
+    Tt21   :: Float64   # FanExit / Radiator process inlet  → ieTt21
+    Tt4    :: Float64   # Combustor exit (Regen composition) → ieTt4
+    Tfuel  :: Float64   # fuel temperature at combustor [K] → ieTfuel
+    # --- station total pressures [Pa] ---
+    pt19   :: Float64   #                                   → iept19
+    pt25   :: Float64   #                                   → iept25
+    pt49   :: Float64   #                                   → iept49
+    pt3    :: Float64   # also coolant P for PreC/InterC/Regen/TurbC → iept3
+    pt21   :: Float64   #                                   → iept21
+    # --- radiator-specific inputs ---
+    RadCoolantT :: Float64   # radiator coolant inlet temperature [K]  → ieRadiatorCoolantT
+    RadCoolantP :: Float64   # radiator coolant pressure [Pa]           → ieRadiatorCoolantP
+    Qradiator   :: Float64   # radiator heat load [W]                   → ieRadiatorHeat
+    # --- lambdap_calc inputs ---
+    hvapcombustor :: Float64   # effective hvap in combustor [J/kg]  → iehvapcombustor
+    etab          :: Float64   # combustion efficiency [—]            → ieetab
+end
+
+"""
+    HXPort(pare_sl)
+
+Construct an `HXPort` from a 1-D pare slice at a single operating point.
+"""
+function HXPort(pare_sl::AbstractVector{<:Real})
+    HXPort(
+        pare_sl[ieDi],
+        pare_sl[ieTft],
+        pare_sl[iehvap],
+        pare_sl[iemcore],
+        pare_sl[iemofft],
+        pare_sl[iefc],
+        pare_sl[ieff],
+        pare_sl[iemfan],
+        pare_sl[ieTt19],
+        pare_sl[ieTt25],
+        pare_sl[ieTt49],
+        pare_sl[ieTt3],
+        pare_sl[ieTt21],
+        pare_sl[ieTt4],
+        pare_sl[ieTfuel],
+        pare_sl[iept19],
+        pare_sl[iept25],
+        pare_sl[iept49],
+        pare_sl[iept3],
+        pare_sl[iept21],
+        pare_sl[ieRadiatorCoolantT],
+        pare_sl[ieRadiatorCoolantP],
+        pare_sl[ieRadiatorHeat],
+        pare_sl[iehvapcombustor],
+        pare_sl[ieetab],
+    )
+end
+
 """
       hxdesign!(pare, igas, ipdes, HXs_prev)
 
@@ -1161,7 +1245,9 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       pare_sl = view(pare,:, ipdes)
       igas = ac.options.ifuel
       HXs = ac.engine.heat_exchangers
-      
+
+      port = HXPort(pare_sl)   # typed snapshot of engine state at design point
+
       #Initialize Heat Exchanger vector
       Mc_opts = []
 
@@ -1170,7 +1256,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
             #---------------------------------
             # Design exchangers
             #---------------------------------
-            HXgeom, HXgas = PrepareHXobjects(HXs, i, ipdes, imission, igas, pare_sl, type, "sizing")
+            HXgeom, HXgas = PrepareHXobjects(HXs, i, ipdes, imission, igas, port, type, "sizing")
             HXgeom.Δpdes = max(maximum(ac.pare[iept3,:,:]), maximum(ac.pare[ieRadiatorCoolantP,:,:])) #size wall thickness for maximum HPC or coolant pressure
             HXgeom.maxL = HX.maximum_length #HXgeom.maxL is redundant with HX.maximum_length. TODO: make more elegant
 
@@ -1211,9 +1297,9 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
 end #hxdesign!
 
 """
-      PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, pare_sl, type, mode = "off_design")
+      PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, port, type, mode = "off_design")
 
-This function prepares the gas and geometry heat exchanger objects to be used in design or 
+This function prepares the gas and geometry heat exchanger objects to be used in design or
 off design analysis.
 
 !!! details "🔃 Inputs and Outputs"
@@ -1222,25 +1308,25 @@ off design analysis.
     - `idx::Int64`: index for the heat exchanger number
     - `ip::Int64`: mission point index
     - `igas::Int64`: gas index
-    - `pare_sl::Vector{Float64}`: sliced engine array with engine parameters
+    - `port::HXPort`: typed snapshot of the engine state at this operating point
     - `type::String`: heat exchanger type
     - `mode::String`: design or off design indicator
 
     **Outputs:**
     - `HXgeom::HX_tubular`: structure with the HX geometric properties
     - `HXgas::HX_gas`: structure with the gas properties
-"""  
-function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, pare_sl, type, mode = "off_design")
+"""
+function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, port::HXPort, type, mode = "off_design")
       #Initiliaze design geometry and gas property as empty structs
       HXgas = HX_gas()
       HXgeom = HX_tubular()
 
-      #Extract some inputs
-      D_i = pare_sl[ieDi]
-      Tc_ft = pare_sl[ieTft]
+      #Extract some inputs from the typed port
+      D_i = port.Di
+      Tc_ft = port.Tft
       has_recirculation = HeatExchangers[1].has_recirculation
       recircT = HeatExchangers[1].recirculation_temperature
-      h_lat = pare_sl[iehvap]
+      h_lat = port.hvap
 
       if igas == 11 #TODO: add more options
             coolant_name = "ch4"
@@ -1254,10 +1340,10 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, pare_sl, type
       HXgeom.xl_D = 1
       HXgeom.Rfc = 8.815E-05 #Hydrogen gas fouling resistance, m^2*K/W
 
-      mcore = pare_sl[iemcore]
-      mofft = pare_sl[iemofft]
-      fc = pare_sl[iefc] #Extract cooling gas factor
-      ff = pare_sl[ieff]
+      mcore = port.mcore
+      mofft = port.mofft
+      fc    = port.fc
+      ff    = port.ff
 
       if mcore > 0
             fo = mofft / mcore
@@ -1268,78 +1354,81 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, pare_sl, type
       HXgas.fluid_p = "air"
       HXgas.alpha_p = alpha #Use alpha by default, except for Regen
 
-      #Find indices in pare corresponding to HX variables
-      iTp_in = HXsDict[type]["iTp_in"]
-      ipp_in = HXsDict[type]["ipp_in"]
-      ipc_in = HXsDict[type]["ipc_in"]
- 
+      #Resolve station inlet state from the typed port
+      Tp_in, pp_in, pc_in = if type == "PreC"
+            port.Tt19, port.pt19, port.pt3
+      elseif type == "InterC"
+            port.Tt25, port.pt25, port.pt3
+      elseif type == "Regen"
+            port.Tt49, port.pt49, port.pt3
+      elseif type == "TurbC"
+            port.Tt3, port.pt3, port.pt3
+      else # Radiator
+            port.Tt21, port.pt21, port.RadCoolantP
+      end
+
       #Store inputs
       if mode == "sizing"
             HXgas.ε = HeatExchangers[idx].design_effectiveness
             HXgas.Mp_in = HeatExchangers[idx].design_Mach
       end
 
-      HXgas.Tp_in = pare_sl[iTp_in]
-      HXgas.pp_in = pare_sl[ipp_in]
-      HXgas.pc_in = pare_sl[ipc_in]
+      HXgas.Tp_in = Tp_in
+      HXgas.pp_in = pp_in
+      HXgas.pc_in = pc_in
       HXgas.fluid_c = coolant_name
       HXgas.igas_c = igas
       HXgas.mdot_c = mcore * ff #Fuel fraction times core mass flow rate
 
       if type == "PreC" #Compressor Precooler
             HXgeom.is_concentric = true #Concentric
-            HXgeom.D_i = D_i 
-            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W 
+            HXgeom.D_i = D_i
+            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W
             HXgeom.material = StructuralAlloy("Al-2219-T87")
             HXgeom.has_shaft = true #HX contains a shaft
 
-            HXgas.mdot_p = mcore   #Core mass flow 
+            HXgas.mdot_p = mcore   #Core mass flow
 
       elseif type == "InterC" #Compressor Intercooler
             HXgeom.is_concentric = true #Concentric
             HXgeom.D_i = D_i
-            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W 
+            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W
             HXgeom.material = StructuralAlloy("Al-2219-T87")
             HXgeom.has_shaft = true
 
             HXgas.mdot_p = mcore * (1 - fo) #Core mass flow minus offtake
 
       elseif type == "Regen" #Regenerative cooling
-            HXgeom.is_concentric = true 
+            HXgeom.is_concentric = true
             HXgeom.D_i = D_i
-            HXgeom.Rfp = 0.01*0.1761 #Engine exhaust air fouling resistance, m^2*K/W 
+            HXgeom.Rfp = 0.01*0.1761 #Engine exhaust air fouling resistance, m^2*K/W
             HXgeom.material = StructuralAlloy("SS-304") #use stainless steel for regenerative cooler as temp is above melting for Al
 
             HXgas.mdot_p = mcore * (1 - fo) #Core mass flow minus offtake
-            
-            HXgas.alpha_p = lambdap_calc(pare_sl, alpha, igas) #Calculate postcombustion and mixing composition
+
+            HXgas.alpha_p = lambdap_calc(port, alpha, igas) #Calculate postcombustion and mixing composition
 
       elseif type =="TurbC" #Cooling of turbine cooling flow
-            HXgeom.is_concentric = false 
-            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W 
+            HXgeom.is_concentric = false
+            HXgeom.Rfp = 0.001*0.1761 #Compressed air fouling resistance, m^2*K/W
             HXgeom.material = StructuralAlloy("Al-2219-T87")
 
             HXgas.mdot_p = mcore * fc #Only cooling mass flow rate
 
       elseif type == "Radiator" #Radiator to reject residual heat
-            HXgeom.is_concentric = true 
+            HXgeom.is_concentric = true
             HXgeom.D_i = D_i
-            HXgeom.Rfp = 1.761e-4 #Compressed air fouling resistance, m^2*K/W 
+            HXgeom.Rfp = 1.761e-4 #Compressed air fouling resistance, m^2*K/W
             HXgeom.Rfc = 9E-05 #Distilled water fouling resistance, m^2*K/W
             HXgeom.material = StructuralAlloy("Al-2219-T87")
 
-            iTc_in = HXsDict[type]["iTc_in"]
-            imp_in =  HXsDict[type]["imp_in"]
-
             #Calculate coolant mass rate to release required heat
-            HXgas.Tc_in = pare_sl[iTc_in]
-            HXgas.mdot_p = pare_sl[imp_in]
+            HXgas.Tc_in = port.RadCoolantT
+            HXgas.mdot_p = port.mfan
 
             findLiquidCoolant!(HXgas) #Find coolant based on temperature
             if mode == "sizing"
-                  iQheat = HXsDict[type]["iQheat"]
-                  Q = pare_sl[iQheat]
-                  HXgas.mdot_c = radiator_coolant_mass(HXgas, Q) 
+                  HXgas.mdot_c = radiator_coolant_mass(HXgas, port.Qradiator)
             end
       end
 
@@ -1347,18 +1436,18 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, pare_sl, type
             if idx == 1 #At first heat exchanger
                   HXgas.Tc_in = Tc_ft #Coolant temperature is the tank temperature
                   if has_recirculation #There can only be recirculation in the first heat exchanger
-                        HXgeom.has_recirculation = true 
+                        HXgeom.has_recirculation = true
                         HXgas.recircT = recircT
                         HXgas.h_lat = h_lat
                   else
-                        HXgeom.has_recirculation = false 
+                        HXgeom.has_recirculation = false
                   end
-                        
+
             else # For subsequent exchangers
                   HXprev = HeatExchangers[idx - 1] #Get previous heat exchanger struct
                   all_gas_prev = HXprev.HXgas_mission
                   HXgas.Tc_in = all_gas_prev[ip, imission].Tc_out #The inlet temperature is the outlet of previous HX at design point
-                  
+
             end
       end
 
@@ -1397,9 +1486,9 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
       
             for ip = 1:size(pare)[2] #For every point
 
-                  pare_sl = pare[:, ip] #Slice pare with the parameters for the current point
+                  port = HXPort(pare[:, ip])   # typed snapshot for this operating point
 
-                  _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, pare_sl, type)
+                  _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 
                   if HXgasp.mdot_p == 0 #If the mass flow rate in this mission is 0, nothing happens
                         HXgasp.Tp_out = HXgasp.Tp_in
@@ -1409,9 +1498,8 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
                         HXgasp.ε = 0
                   else #Otherwise, call HX off-design routine
                         if type == "Radiator" #If HEX is a radiator
-                              iQheat = HXsDict[type]["iQheat"]
-                              Q = pare_sl[iQheat]
-                              
+                              Q = port.Qradiator
+
                               if Q > 0 #Radiator with non-zero heat
                                     RadiatorOffDesignCalc!(HXgasp, HX.HXgeom, Q)
 
@@ -1831,27 +1919,27 @@ function find_recirculation_power(HXgas, η_i = 1.0)
 end
 
 """
-      lambdap_calc(pare_sl, alpha_in, ifuel)
+      lambdap_calc(port, alpha_in, ifuel)
 
 Calculates the mass fractions of the gases in post-combustion air.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
-    - `pare_sl::Vector{Float64 }`: array slice with engine parameters
+    - `port::HXPort`: typed snapshot of the engine state at this operating point
     - `alpha_in::Vector{Float64}`: vector with process-side gas composition before combustion and mixing
     - `ifuel::Float64`: fuel gas index
-    
+
     **Outputs:**
     - `lambda_p::Vector{Float64}`: vector with process-side gas composition after combustion and mixing
 """
-function lambdap_calc(pare_sl, alpha_in, ifuel)
-      #Extract inputs
-      Tt3 = pare_sl[ieTt3]
-      Ttf = pare_sl[ieTfuel]
-      Tt4 = pare_sl[ieTt4]
-      hvap = pare_sl[iehvapcombustor]
+function lambdap_calc(port::HXPort, alpha_in, ifuel)
+      #Extract inputs from the typed port
+      Tt3 = port.Tt3
+      Ttf = port.Tfuel
+      Tt4 = port.Tt4
+      hvap = port.hvapcombustor
 
-      etab = pare_sl[ieetab]
+      etab = port.etab
       beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
       alpha = deepcopy(alpha_in)
       alpha = push!(alpha, 0.0)
@@ -1879,9 +1967,9 @@ function lambdap_calc(pare_sl, alpha_in, ifuel)
 
       lambdap = zeros(nair)
 
-      mcore = pare_sl[iemcore]
-      mofft = pare_sl[iemofft]
-      fc = pare_sl[iefc] #Extract cooling gas factor
+      mcore = port.mcore
+      mofft = port.mofft
+      fc    = port.fc
 
       if mcore > 0
             fo = mofft / mcore
@@ -1889,7 +1977,7 @@ function lambdap_calc(pare_sl, alpha_in, ifuel)
             fo = 0
       end
 
-      ff = pare_sl[ieff]
+      ff = port.ff
 
       #----- IGV exit mixing
       frac4 = (1.0 - fo - fc + ff) / (1.0 - fo + ff)
