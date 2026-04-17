@@ -12,6 +12,28 @@
 
 end
 
+@testset "ipcruise1 typed state fresh after size_aircraft! (calculate_cruise=false path)" begin
+    # pare_to_engine_state! is now called unconditionally in _mission_iteration!,
+    # so the typed state at ipcruise1 must match pare even when calculate_cruise=false
+    # (the _size_aircraft! path).
+    ac = load_default_model()
+    size_aircraft!(ac; printiter=false)
+
+    im  = 1
+    tol = 1e-12
+    eng_cr = ac.missions[im].points[ipcruise1].engine
+
+    @test eng_cr.TSFC  ≈ ac.pare[ieTSFC,  ipcruise1, im] rtol=tol
+    @test eng_cr.Fe    ≈ ac.pare[ieFe,    ipcruise1, im] rtol=tol
+    @test eng_cr.mfuel ≈ ac.pare[iemfuel, ipcruise1, im] rtol=tol
+
+    # PFEI must be essentially identical whether measured from size_aircraft! or fly_mission!
+    # (same tolerance as the existing "mission" testset uses)
+    pfei_size = ac.parm[imPFEI, im]
+    fly_mission!(ac, im; printTO=false)
+    @test ac.parm[imPFEI, im] ≈ pfei_size
+end
+
 @testset "aircraft missions field" begin
     ac = load_default_model()
     # missions is populated with one entry per N_missions (default input has 2)

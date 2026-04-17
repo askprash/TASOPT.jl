@@ -460,14 +460,14 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Wpay = parg[igWpay]
             
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-            pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
 
       end
+      # Sync typed state unconditionally: pare was written by enginecalc! whether or
+      # not calculate_cruise was true (design path writes pare before calling here).
+      pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
 
       # set cruise-climb climb angle, from fuel burn rate and atmospheric dp/dz
-      # NOTE: reads from pare here since the engine call above is conditional (calculate_cruise);
-      #       typed state for ipcruise1 is guaranteed fresh only when calculate_cruise=true.
-      TSFC = pare[ieTSFC, ip]
+      TSFC = mission.points[ip].engine.TSFC
       V = pare[ieu0, ip]
       p0 = pare[iep0, ip]
       ρ0 = pare[ierho0, ip]
@@ -486,12 +486,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       para[iagamV, ip] = gamVcr1
 
-      Ftotal = pare[ieFe, ip] * parg[igneng]
+      Ftotal = mission.points[ip].engine.Fe * parg[igneng]
 
       cosg = cos(gamVcr1)
 
       FoW[ip] = Ftotal / (BW * cosg) - DoL
-      mfuel = pare[iemfuel, ip]
+      mfuel = mission.points[ip].engine.mfuel
       FFC[ip] = mfuel * gee / (W * V * cosg)
       Vgi[ip] = 1.0 / (V * cosg)
 
