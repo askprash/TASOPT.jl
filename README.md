@@ -59,6 +59,36 @@ Pkg.test("TASOPT")
 If there is an error, it is your responsibility to edit your code and make it work.
 The PR will not be reviewed if the regression or unit test fails. If you find that the tests do not capture the right behavior or are flawed, please raise an issue.
 
+### Regression baseline gate
+
+Regression baseline files (e.g. `test/default_sized.jl`,
+`test/fixtures/engine_sweep_baseline.toml`) are protected against silent
+drift.  Any commit that **modifies** a watched baseline file must include
+the following line in its commit message body:
+
+```
+BASELINE-REGEN: tasopt-<id>
+```
+
+where `<id>` is the beads issue documenting why the baseline changed.
+Commits that **add** a new baseline file do not need the marker.
+
+Run the gate before pushing:
+
+```bash
+./test/tools/regression_gate.sh
+```
+
+Install it as a git pre-push hook so it runs automatically:
+
+```bash
+cp test/tools/regression_gate.sh .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+```
+
+The gate exits non-zero and prints the offending commit(s) if any
+unauthorized baseline modifications are found.
+
 ### Work in branches
 
 Don't commit anything to the main branch. Here's how you create your own fork and branch.  
