@@ -1086,57 +1086,6 @@ function hxobjf(x::Vector{Float64}, HXgas::HX_gas, HXgeom::HX_tubular)
       return Iobj
 end #hxobjf
 
-#Dictionaries with indices for HXs in engine
-PreCDict = Dict{String, Int64}(
-      "iTp_in" => ieTt19,
-      "ipp_in" => iept19,
-      "ipc_in" => iept3,
-      "iDh"    => iePreCDeltah,
-      "iDp"    => iePreCDeltap
-)
-
-InterCDict = Dict{String, Int64}(
-      "iTp_in" => ieTt25,
-      "ipp_in" => iept25,
-      "ipc_in" => iept3,
-      "iDh"    => ieInterCDeltah,
-      "iDp"    => ieInterCDeltap
-)
-
-RegenDict = Dict{String, Int64}(
-      "iTp_in" => ieTt49,
-      "ipp_in" => iept49,
-      "ipc_in" => iept3,
-      "iDh"    => ieRegenDeltah,
-      "iDp"    => ieRegenDeltap
-)
-
-TurbCDict = Dict{String, Int64}(
-      "iTp_in" => ieTt3,
-      "ipp_in" => iept3,
-      "ipc_in" => iept3,
-      "iDh"    => ieTurbCDeltah,
-      "iDp"    => ieTurbCDeltap
-)
-
-rad_dict = Dict(
-      "iTp_in" => ieTt21,
-      "ipp_in" => iept21,
-      "iTc_in" => ieRadiatorCoolantT,
-      "ipc_in" => ieRadiatorCoolantP,
-      "iDh"    => ieRadiatorDeltah,
-      "iDp"    => ieRadiatorDeltap,
-      "imp_in" => iemfan,
-      "iQheat" => ieRadiatorHeat
-      )
-
-HXsDict = Dict{String, Dict}(
-      "PreC" => PreCDict,
-      "InterC" => InterCDict,
-      "Regen" => RegenDict,
-      "TurbC" =>  TurbCDict,
-      "Radiator" => rad_dict
-)
 
 # ---------------------------------------------------------------------------
 # HXPort — typed snapshot of the engine-side inputs for one operating point
@@ -1481,8 +1430,17 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
 
             type = HX.type
 
-            Dh_i = HXsDict[type]["iDh"]
-            Dp_i = HXsDict[type]["iDp"]
+            Dh_i, Dp_i = if type == "PreC"
+                  iePreCDeltah,  iePreCDeltap
+            elseif type == "InterC"
+                  ieInterCDeltah, ieInterCDeltap
+            elseif type == "Regen"
+                  ieRegenDeltah,  ieRegenDeltap
+            elseif type == "TurbC"
+                  ieTurbCDeltah,  ieTurbCDeltap
+            else # Radiator
+                  ieRadiatorDeltah, ieRadiatorDeltap
+            end
       
             for ip = 1:size(pare)[2] #For every point
 
