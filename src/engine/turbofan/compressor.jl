@@ -36,6 +36,7 @@ hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
 | `epol0`     | —     | Maximum polytropic efficiency at the design point  (< 1)      |
 | `epol_min`  | —     | Efficiency floor; output is clamped to this minimum           |
 | `map`       | —     | Composed `CompressorMap` holding 2D interpolation tables       |
+| `windmilling` | —   | Enable windmilling inversion when `pi < 1` (fan only)         |
 | `Ng`        | —     | Warm-start speed guess for the map-inversion solver            |
 | `Rg`        | —     | Warm-start R-line guess for the map-inversion solver           |
 
@@ -51,14 +52,15 @@ This type is agnostic of station numbers; the caller (Newton driver or
 | HPC   | 25c          | 3              | high-pressure compressor  |
 """
 mutable struct Compressor{T<:AbstractFloat}
-    piD      ::T             # design compression pressure ratio  pt_out/pt_in   [—]
-    mbD      ::T             # design corrected mass flow                         [kg/s]
-    NbD      ::T             # design corrected spool speed                       [—]
-    epol0    ::T             # max polytropic efficiency                          [—]
-    epol_min ::T             # efficiency floor  (≥ 0, < 1)                      [—]
-    map      ::CompressorMap # composed map subtype  (FanMap, LPCMap, or HPCMap)
-    Ng       ::Float64       # map-solver speed guess    (mutable solver state)  [—]
-    Rg       ::Float64       # map-solver R-line guess   (mutable solver state)  [—]
+    piD        ::T             # design compression pressure ratio  pt_out/pt_in   [—]
+    mbD        ::T             # design corrected mass flow                         [kg/s]
+    NbD        ::T             # design corrected spool speed                       [—]
+    epol0      ::T             # max polytropic efficiency                          [—]
+    epol_min   ::T             # efficiency floor  (≥ 0, < 1)                      [—]
+    map        ::CompressorMap # composed map subtype  (FanMap, LPCMap, or HPCMap)
+    windmilling::Bool          # enable pi<1 efficiency inversion (fan only)       [—]
+    Ng         ::Float64       # map-solver speed guess    (mutable solver state)  [—]
+    Rg         ::Float64       # map-solver R-line guess   (mutable solver state)  [—]
 end
 
 # ---------------------------------------------------------------------------
@@ -66,15 +68,16 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    Compressor(piD, mbD, NbD, epol0, epol_min, map; Ng=0.5, Rg=2.0)
+    Compressor(piD, mbD, NbD, epol0, epol_min, map; windmilling=false, Ng=0.5, Rg=2.0)
 
 Convenience constructor for a `Compressor` component.
 
 `piD`, `mbD`, `NbD`, `epol0`, and `epol_min` set the design anchors and the
 efficiency floor; `map` is the `CompressorMap` instance (one of `FanMap`,
-`LPCMap`, `HPCMap` from `maps.jl`).  `Ng` and `Rg` are optional warm-start
-guesses for the internal NLsolve map-inversion call (default: 0.5 and 2.0,
-near the map centre).
+`LPCMap`, `HPCMap` from `maps.jl`).  Set `windmilling=true` for the fan stage
+to enable the `pi < 1` efficiency inversion (upstream TASOPT applies this only
+to the fan).  `Ng` and `Rg` are optional warm-start guesses for the internal
+NLsolve map-inversion call (default: 0.5 and 2.0, near the map centre).
 """
 function Compressor(
     piD      ::T,
@@ -83,10 +86,11 @@ function Compressor(
     epol0    ::T,
     epol_min ::T,
     map      ::CompressorMap;
+    windmilling ::Bool   = false,
     Ng       ::Float64 = 0.5,
     Rg       ::Float64 = 2.0,
 ) where {T<:AbstractFloat}
-    Compressor{T}(piD, mbD, NbD, epol0, epol_min, map, Ng, Rg)
+    Compressor{T}(piD, mbD, NbD, epol0, epol_min, map, windmilling, Ng, Rg)
 end
 
 # ---------------------------------------------------------------------------
@@ -171,8 +175,9 @@ function compressor_efficiency(
     end
 
     # 2. Windmilling inversion (pi < 1 → compressor acting as turbine)
-    #    TASOPT convention: use reciprocal efficiency in gas_pratd
-    if Float64(pi) < 1.0
+    #    TASOPT convention: use reciprocal efficiency in gas_pratd.
+    #    Upstream applies this only to the fan; LPC/HPC never windmill.
+    if comp.windmilling && Float64(pi) < 1.0
         epol_pi = (-1.0 / epol^2) * epol_pi
         epol_mb = (-1.0 / epol^2) * epol_mb
         epol    = 1.0 / epol

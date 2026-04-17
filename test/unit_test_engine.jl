@@ -3810,7 +3810,7 @@ isGradient = false
         # reverse-flow / braking mode).  The inverted value must be > 1
         # (since original epol ∈ (0,1) implies 1/epol > 1).
         # ------------------------------------------------------------------
-        fan_wm = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        fan_wm = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap, windmilling=true)
         pi_wm  = 0.9   # below unity → windmilling
         mb_wm  = 0.5 * mbfD
         _, epol_wm, _, _, epol_pi_wm, epol_mb_wm = comp_eff(fan_wm, pi_wm, mb_wm)
@@ -3827,6 +3827,11 @@ isGradient = false
         elseif epol_pi_raw < 0.0
             @test epol_pi_wm > 0.0
         end
+
+        # Verify LPC/HPC do NOT apply windmilling (upstream fan-only behaviour)
+        lpc_nowm = Comp(pilcD, mblcD, NblcD, eplc0, 0.70, LPCMap)
+        _, epol_lpc_nowm, _, _, _, _ = comp_eff(lpc_nowm, 0.9, 0.5 * mblcD)
+        @test epol_lpc_nowm < 1.0   # no inversion: raw efficiency stays < 1
 
         # ------------------------------------------------------------------
         # 8. compressor_exit!: physical invariants

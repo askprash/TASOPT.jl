@@ -242,7 +242,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       epfmin = 0.60
 
       #---- typed compressor component instances (used by compressor_efficiency and compressor_Nb_residual)
-      comp_fan = Compressor(pifD,  mbfD,  NbfD,  epf0,  T(0.60), FanMap)
+      comp_fan = Compressor(pifD,  mbfD,  NbfD,  epf0,  T(0.60), FanMap, windmilling=true)
       comp_lpc = Compressor(pilcD, mblcD, NblcD, eplc0, T(0.70), LPCMap)
       comp_hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
 
