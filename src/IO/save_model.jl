@@ -43,6 +43,8 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
     # cheap (array copies only) and works whether or not size_aircraft! has run.
     pare_to_engine_state!(ac.missions[imission].points[1].engine,
                           view(ac.pare, :, 1, imission))
+    # Alias for typed engine state at the design cruise point (ip=1, tasopt-sxv).
+    eng = ac.missions[imission].points[1].engine
 
     #Save everything in a dict() of dicts()
     d_out = Dict()
@@ -421,10 +423,10 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         
     #Turbomachinery
     d_prop_turb = Dict()
-        d_prop_turb["BPR"] = ac.missions[imission].points[1].engine.BPR
-        d_prop_turb["Fan_PR"] = pare[iepif, 1, 1]
-        d_prop_turb["LPC_PR"] = pare[iepilc, 1, 1]
-        d_prop_turb["OPR"] = d_prop_turb["LPC_PR"]*pare[iepihc, 1, 1]
+        d_prop_turb["BPR"] = eng.BPR
+        d_prop_turb["Fan_PR"] = eng.pif
+        d_prop_turb["LPC_PR"] = eng.pilc
+        d_prop_turb["OPR"] = eng.pilc * eng.pihc
         
         d_prop_turb["diffuser_PR"] = pare[iepid, 1, 1]
         d_prop_turb["burner_PR"] = pare[iepib, 1, 1]
@@ -466,8 +468,8 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_cool["e_film_cooling"] = pare[ieefilm,1,1]
         d_prop_cool["t_film_cooling"] = pare[ietfilm,1,1]
         
-        d_prop_cool["M41"] = pare[ieM4a,1,1]
-        d_prop_cool["cooling_air_V_ratio"] = pare[ieruc,1,1]
+        d_prop_cool["M41"] = eng.design.M4a
+        d_prop_cool["cooling_air_V_ratio"] = eng.design.ruc
     d_prop["Cooling"] = d_prop_cool
 
     #Offtakes
@@ -480,8 +482,8 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_offt["Low_spool_power_offtake_per_pax"] = parg[igPofWpay]*parm[imWperpax, 1]
         d_prop_offt["Low_spool_power_offtake_per_max_mass"] = parg[igPofWMTO]*gee
 
-        d_prop_offt["Tt_offtake_air"] = pare[ieTt9,1,1]
-        d_prop_offt["Pt_offtake_air"] = pare[iept9,1,1]
+        d_prop_offt["Tt_offtake_air"] = eng.st9.Tt
+        d_prop_offt["Pt_offtake_air"] = eng.st9.pt
     d_prop["Offtakes"] = d_prop_offt
 
     #Nozzles

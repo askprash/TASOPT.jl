@@ -17,6 +17,27 @@
         rm(filepath_bpr)
     end
 
+    # tasopt-sxv: verify design-point scalars (Fan_PR, LPC_PR, OPR, M41,
+    # cooling_air_V_ratio, Tt/Pt offtake) are read from typed engine state.
+    @testset "save_model reads design scalars from typed engine state (tasopt-sxv)" begin
+        import TOML
+        filepath_sxv = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_sxv.toml")
+        save_aircraft_model(ac_def, filepath_sxv)
+        saved = TOML.parsefile(filepath_sxv)
+        turb = saved["Propulsion"]["Turbomachinery"]
+        cool = saved["Propulsion"]["Cooling"]
+        offt = saved["Propulsion"]["Offtakes"]
+
+        @test turb["Fan_PR"]  ≈ ac_def.pare[iepif,  1, 1]
+        @test turb["LPC_PR"]  ≈ ac_def.pare[iepilc, 1, 1]
+        @test turb["OPR"]     ≈ ac_def.pare[iepilc, 1, 1] * ac_def.pare[iepihc, 1, 1]
+        @test cool["M41"]               ≈ ac_def.pare[ieM4a,  1, 1]
+        @test cool["cooling_air_V_ratio"] ≈ ac_def.pare[ieruc,   1, 1]
+        @test offt["Tt_offtake_air"]    ≈ ac_def.pare[ieTt9,  1, 1]
+        @test offt["Pt_offtake_air"]    ≈ ac_def.pare[iept9,  1, 1]
+        rm(filepath_sxv)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)
