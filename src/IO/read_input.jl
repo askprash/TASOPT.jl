@@ -862,6 +862,17 @@ if lowercase(propsys) == "tf"
     pare[ieT0, iprotate, :] .= T0TO
     pare[ieT0, iptakeoff, :] .= T0TO
 
+    # tasopt-1v7: mirror Tt4 (all flight points) and takeoff T0 to typed engine state.
+    # Reads directly from pare which was just written, guaranteeing agreement.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            missions_vec[im].points[ip].engine.st4.Tt = pare[ieTt4, ip, im]
+        end
+        missions_vec[im].points[ipstatic].engine.T0  = pare[ieT0, ipstatic, im]
+        missions_vec[im].points[iprotate].engine.T0  = pare[ieT0, iprotate, im]
+        missions_vec[im].points[iptakeoff].engine.T0 = pare[ieT0, iptakeoff, im]
+    end
+
     # Core in clean-flow -> 0; Core ingests KE defect -> 1
     eng_has_BLI_cores = !readprop("core_in_clean_flow")
 
@@ -1034,6 +1045,14 @@ readfnoz(x) = read_input(x, fannoz, dfannoz)
     pare[ieA7fac, iptest, :] .= A7static
     pare[ieA5fac, iptest, :] .= A5static
 
+    # tasopt-1v7: mirror nozzle area schedule to typed engine state for all flight points.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            missions_vec[im].points[ip].engine.A5fac = pare[ieA5fac, ip, im]
+            missions_vec[im].points[ip].engine.A7fac = pare[ieA7fac, ip, im]
+        end
+    end
+
 elseif lowercase(propsys) == "constant_tsfc" #For constant TSFC model
     ROCdes = readprop("rate_of_climb")
     if ROCdes isa AbstractVector
@@ -1044,6 +1063,13 @@ elseif lowercase(propsys) == "constant_tsfc" #For constant TSFC model
     pare[ieTSFC,ipclimb1:ipclimbn,:] .= readprop("climb_TSFC")
     pare[ieTSFC,ipcruise1:ipcruisen,:] .= readprop("cruise_TSFC")
     pare[ieTSFC,ipdescent1:ipdescentn,:] .= readprop("descent_TSFC")
+
+    # tasopt-1v7: mirror TSFC schedule to typed engine state.
+    for im in 1:nmisx
+        for ip in vcat(ipclimb1:ipclimbn, ipcruise1:ipcruisen, ipdescent1:ipdescentn)
+            missions_vec[im].points[ip].engine.TSFC = pare[ieTSFC, ip, im]
+        end
+    end
 
 else #unrecognized input
     @warn("The engine type is not recognized")

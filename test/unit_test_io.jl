@@ -123,6 +123,36 @@
         rm(filepath_dw7)
     end
 
+    # tasopt-1v7: verify that read_aircraft_model populates typed per-point engine
+    # state for Tt4, T0 (takeoff), and nozzle area factors at input time.
+    # Typed state must agree with pare immediately after parsing — no sizing needed.
+    @testset "read_input populates per-point engine state from input (tasopt-1v7)" begin
+        ac_1v7 = load_default_model()
+        im = 1  # design mission
+
+        # Tt4 at all key flight points: cruise, takeoff
+        @test ac_1v7.missions[im].points[ipcruise1].engine.st4.Tt ≈ ac_1v7.pare[ieTt4, ipcruise1, im]
+        @test ac_1v7.missions[im].points[ipstatic].engine.st4.Tt  ≈ ac_1v7.pare[ieTt4, ipstatic,  im]
+        @test ac_1v7.missions[im].points[iptakeoff].engine.st4.Tt ≈ ac_1v7.pare[ieTt4, iptakeoff, im]
+        @test ac_1v7.missions[im].points[ipclimb1].engine.st4.Tt  ≈ ac_1v7.pare[ieTt4, ipclimb1,  im]
+
+        # T0 at takeoff flight points
+        @test ac_1v7.missions[im].points[ipstatic].engine.T0  ≈ ac_1v7.pare[ieT0, ipstatic,  im]
+        @test ac_1v7.missions[im].points[iprotate].engine.T0  ≈ ac_1v7.pare[ieT0, iprotate,  im]
+        @test ac_1v7.missions[im].points[iptakeoff].engine.T0 ≈ ac_1v7.pare[ieT0, iptakeoff, im]
+
+        # Nozzle area factors at representative flight points
+        @test ac_1v7.missions[im].points[ipstatic].engine.A5fac   ≈ ac_1v7.pare[ieA5fac, ipstatic,   im]
+        @test ac_1v7.missions[im].points[ipcruise1].engine.A5fac  ≈ ac_1v7.pare[ieA5fac, ipcruise1,  im]
+        @test ac_1v7.missions[im].points[ipclimb1].engine.A5fac   ≈ ac_1v7.pare[ieA5fac, ipclimb1,   im]
+        @test ac_1v7.missions[im].points[ipdescent1].engine.A5fac ≈ ac_1v7.pare[ieA5fac, ipdescent1, im]
+
+        @test ac_1v7.missions[im].points[ipstatic].engine.A7fac   ≈ ac_1v7.pare[ieA7fac, ipstatic,   im]
+        @test ac_1v7.missions[im].points[ipcruise1].engine.A7fac  ≈ ac_1v7.pare[ieA7fac, ipcruise1,  im]
+        @test ac_1v7.missions[im].points[ipclimb1].engine.A7fac   ≈ ac_1v7.pare[ieA7fac, ipclimb1,   im]
+        @test ac_1v7.missions[im].points[ipdescent1].engine.A7fac ≈ ac_1v7.pare[ieA7fac, ipdescent1, im]
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)
