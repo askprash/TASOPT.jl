@@ -1420,7 +1420,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dhlt_mf = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_mf +
                       (BPR * ht21_mf + Pom_mf +
                        BPR_mf * (ht21 - ht2)) * dlfac
-            dhlt_ml = (ht25 - ht19c + BPR * (ht21 - ht2)) * dlfac_ml +
+            dhlt_ml = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_ml +
                       (ht25_ml + BPR_ml * (ht21 - ht2) + Pom_ml) * dlfac
             dhlt_mh = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_mh
             dhlt_Tb = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac_Tb
