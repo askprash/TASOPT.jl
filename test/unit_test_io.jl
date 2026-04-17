@@ -17,6 +17,55 @@
         rm(filepath_bpr)
     end
 
+    # tasopt-86a: verify the 21 design constants newly migrated from bare pare
+    # reads to eng.design.* are saved correctly.
+    @testset "save_model reads expanded design constants from typed state (tasopt-86a)" begin
+        import TOML
+        filepath_86a = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_86a.toml")
+        save_aircraft_model(ac_def, filepath_86a)
+        saved = TOML.parsefile(filepath_86a)
+        turb = saved["Propulsion"]["Turbomachinery"]
+        comb = saved["Propulsion"]["Combustor"]
+        cool = saved["Propulsion"]["Cooling"]
+
+        # Pressure ratios
+        @test turb["diffuser_PR"]    ≈ ac_def.pare[iepid,    1, 1]
+        @test turb["burner_PR"]      ≈ ac_def.pare[iepib,    1, 1]
+        @test turb["fan_nozzle_PR"]  ≈ ac_def.pare[iepifn,   1, 1]
+        @test turb["core_nozzle_PR"] ≈ ac_def.pare[iepitn,   1, 1]
+
+        # Polytropic efficiencies
+        @test turb["fan_eta_poly"]   ≈ ac_def.pare[ieepolf,  1, 1]
+        @test turb["LPC_eta_poly"]   ≈ ac_def.pare[ieepollc, 1, 1]
+        @test turb["HPC_eta_poly"]   ≈ ac_def.pare[ieepolhc, 1, 1]
+        @test turb["HPT_eta_poly"]   ≈ ac_def.pare[ieepolht, 1, 1]
+        @test turb["LPT_eta_poly"]   ≈ ac_def.pare[ieepollt, 1, 1]
+
+        # Fan map constants
+        @test turb["FPR0"]           ≈ ac_def.pare[iepifK,   1, 1]
+        @test turb["Kf_polyeff"]     ≈ ac_def.pare[ieepfK,   1, 1]
+
+        # Duct Mach numbers
+        @test turb["M2"]             ≈ ac_def.pare[ieM2,     1, 1]
+        @test turb["M25"]            ≈ ac_def.pare[ieM25,    1, 1]
+
+        # Spool losses
+        @test turb["low_spool_loss"]  ≈ ac_def.pare[ieepsl,  1, 1]
+        @test turb["high_spool_loss"] ≈ ac_def.pare[ieepsh,  1, 1]
+
+        # Combustion efficiency
+        @test comb["combustion_efficiency"] ≈ ac_def.pare[ieetab, 1, 1]
+
+        # Cooling design parameters
+        @test cool["hot_streak_T_allowance"] ≈ ac_def.pare[iedTstrk, 1, 1]
+        @test cool["M_turbine_blade_exit"]   ≈ ac_def.pare[ieMtexit, 1, 1]
+        @test cool["St"]                     ≈ ac_def.pare[ieStA,    1, 1]
+        @test cool["e_film_cooling"]         ≈ ac_def.pare[ieefilm,  1, 1]
+        @test cool["t_film_cooling"]         ≈ ac_def.pare[ietfilm,  1, 1]
+
+        rm(filepath_86a)
+    end
+
     # tasopt-sxv: verify design-point scalars (Fan_PR, LPC_PR, OPR, M41,
     # cooling_air_V_ratio, Tt/Pt offtake) are read from typed engine state.
     @testset "save_model reads design scalars from typed engine state (tasopt-sxv)" begin

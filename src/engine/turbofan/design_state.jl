@@ -94,6 +94,55 @@ mutable struct DesignState{T<:AbstractFloat}
     # Prescribed Mach number at the start-of-mixing station 4a
     # (bridges the momentum-weighted mixing from station 4 → 41)
     M4a    ::T
+
+    # -----------------------------------------------------------------------
+    # Component pressure ratios — frozen design inputs (iepid..iepitn)
+    # -----------------------------------------------------------------------
+    pid    ::T   # diffuser total-pressure ratio
+    pib    ::T   # burner total-pressure ratio
+    pifn   ::T   # fan nozzle total-pressure ratio
+    pitn   ::T   # core nozzle total-pressure ratio
+
+    # -----------------------------------------------------------------------
+    # Polytropic efficiencies — frozen design inputs (ieepolf..ieepollt)
+    # -----------------------------------------------------------------------
+    epolf  ::T   # fan polytropic efficiency
+    epollc ::T   # LPC polytropic efficiency
+    epolhc ::T   # HPC polytropic efficiency
+    epolht ::T   # HPT polytropic efficiency
+    epollt ::T   # LPT polytropic efficiency
+
+    # -----------------------------------------------------------------------
+    # Fan map constants — frozen design inputs (iepifK, ieepfK)
+    # -----------------------------------------------------------------------
+    pifK   ::T   # fan pressure ratio at design corrected speed (FPR0)
+    epfK   ::T   # fan polytropic efficiency factor (Kf)
+
+    # -----------------------------------------------------------------------
+    # Duct design Mach numbers — frozen inputs (ieM2, ieM25)
+    # -----------------------------------------------------------------------
+    M2     ::T   # fan-face (station 2) design Mach number
+    M25    ::T   # HPC-inlet (station 25) design Mach number
+
+    # -----------------------------------------------------------------------
+    # Spool mechanical losses — frozen inputs (ieepsl, ieepsh)
+    # -----------------------------------------------------------------------
+    epsl   ::T   # LP spool mechanical loss fraction
+    epsh   ::T   # HP spool mechanical loss fraction
+
+    # -----------------------------------------------------------------------
+    # Combustion efficiency — frozen design input (ieetab)
+    # -----------------------------------------------------------------------
+    etab   ::T   # combustor adiabatic efficiency
+
+    # -----------------------------------------------------------------------
+    # Cooling design parameters — frozen inputs (iedTstrk..ietfilm)
+    # -----------------------------------------------------------------------
+    dTstrk ::T   # hot-streak temperature allowance [K]
+    Mtexit ::T   # design Mach number at turbine blade exit
+    StA    ::T   # Stanton number times blade area (St × A)
+    efilm  ::T   # film cooling effectiveness
+    tfilm  ::T   # film cooling thickness parameter
 end
 
 """
@@ -113,6 +162,13 @@ function DesignState{T}() where {T<:AbstractFloat}
         zv, zv,          # epsrow, Tmrow
         z,               # fc
         z, z,            # ruc, M4a
+        z, z, z, z,      # pid, pib, pifn, pitn
+        z, z, z, z, z,   # epolf, epollc, epolhc, epolht, epollt
+        z, z,            # pifK, epfK
+        z, z,            # M2, M25
+        z, z,            # epsl, epsh
+        z,               # etab
+        z, z, z, z, z,   # dTstrk, Mtexit, StA, efilm, tfilm
     )
 end
 

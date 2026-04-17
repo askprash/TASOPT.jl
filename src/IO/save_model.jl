@@ -428,25 +428,25 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_turb["LPC_PR"] = eng.pilc
         d_prop_turb["OPR"] = eng.pilc * eng.pihc
         
-        d_prop_turb["diffuser_PR"] = pare[iepid, 1, 1]
-        d_prop_turb["burner_PR"] = pare[iepib, 1, 1]
-        d_prop_turb["fan_nozzle_PR"] = pare[iepifn, 1, 1]
-        d_prop_turb["core_nozzle_PR"] = pare[iepitn, 1, 1]
-        
-        d_prop_turb["fan_eta_poly"] = pare[ieepolf, 1, 1]
-        d_prop_turb["LPC_eta_poly"] = pare[ieepollc, 1, 1]
-        d_prop_turb["HPC_eta_poly"] = pare[ieepolhc, 1, 1]
-        d_prop_turb["HPT_eta_poly"] = pare[ieepolht, 1, 1]
-        d_prop_turb["LPT_eta_poly"] = pare[ieepollt, 1, 1]
-        
-        d_prop_turb["FPR0"] = pare[iepifK, 1, 1]
-        d_prop_turb["Kf_polyeff"] = pare[ieepfK, 1, 1]
-        
-        d_prop_turb["M2"] = pare[ieM2, 1, 1]
-        d_prop_turb["M25"] = pare[ieM25, 1, 1]
-        
-        d_prop_turb["low_spool_loss"] = pare[ieepsl, 1, 1]
-        d_prop_turb["high_spool_loss"] = pare[ieepsh, 1, 1]
+        d_prop_turb["diffuser_PR"] = eng.design.pid
+        d_prop_turb["burner_PR"] = eng.design.pib
+        d_prop_turb["fan_nozzle_PR"] = eng.design.pifn
+        d_prop_turb["core_nozzle_PR"] = eng.design.pitn
+
+        d_prop_turb["fan_eta_poly"] = eng.design.epolf
+        d_prop_turb["LPC_eta_poly"] = eng.design.epollc
+        d_prop_turb["HPC_eta_poly"] = eng.design.epolhc
+        d_prop_turb["HPT_eta_poly"] = eng.design.epolht
+        d_prop_turb["LPT_eta_poly"] = eng.design.epollt
+
+        d_prop_turb["FPR0"] = eng.design.pifK
+        d_prop_turb["Kf_polyeff"] = eng.design.epfK
+
+        d_prop_turb["M2"] = eng.design.M2
+        d_prop_turb["M25"] = eng.design.M25
+
+        d_prop_turb["low_spool_loss"] = eng.design.epsl
+        d_prop_turb["high_spool_loss"] = eng.design.epsh
 
         d_prop_turb["gear_ratio"] = parg[igGearf]
         d_prop_turb["HTR_fan"] = parg[igHTRf]
@@ -456,17 +456,17 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #Combustor
     d_prop_comb = Dict()
-        d_prop_comb["combustion_efficiency"] = pare[ieetab,1,1]
+        d_prop_comb["combustion_efficiency"] = eng.design.etab
     d_prop["Combustor"] = d_prop_comb
 
     #Cooling
     d_prop_cool = Dict()
-        d_prop_cool["hot_streak_T_allowance"] = pare[iedTstrk,1,1]
-        d_prop_cool["M_turbine_blade_exit"] = pare[ieMtexit,1,1]
-        d_prop_cool["St"] = pare[ieStA,1,1]
+        d_prop_cool["hot_streak_T_allowance"] = eng.design.dTstrk
+        d_prop_cool["M_turbine_blade_exit"] = eng.design.Mtexit
+        d_prop_cool["St"] = eng.design.StA
 
-        d_prop_cool["e_film_cooling"] = pare[ieefilm,1,1]
-        d_prop_cool["t_film_cooling"] = pare[ietfilm,1,1]
+        d_prop_cool["e_film_cooling"] = eng.design.efilm
+        d_prop_cool["t_film_cooling"] = eng.design.tfilm
         
         d_prop_cool["M41"] = eng.design.M4a
         d_prop_cool["cooling_air_V_ratio"] = eng.design.ruc

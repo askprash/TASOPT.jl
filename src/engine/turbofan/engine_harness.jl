@@ -277,6 +277,44 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.etalt = pare[ieetalt]
 
     # -----------------------------------------------------------------------
+    # Design-constant scalars needed by save_model (tasopt-86a)
+    # Component pressure ratios
+    # -----------------------------------------------------------------------
+    eng.design.pid    = pare[iepid]
+    eng.design.pib    = pare[iepib]
+    eng.design.pifn   = pare[iepifn]
+    eng.design.pitn   = pare[iepitn]
+
+    # Polytropic efficiencies
+    eng.design.epolf  = pare[ieepolf]
+    eng.design.epollc = pare[ieepollc]
+    eng.design.epolhc = pare[ieepolhc]
+    eng.design.epolht = pare[ieepolht]
+    eng.design.epollt = pare[ieepollt]
+
+    # Fan map constants
+    eng.design.pifK   = pare[iepifK]
+    eng.design.epfK   = pare[ieepfK]
+
+    # Duct design Mach numbers
+    eng.design.M2     = pare[ieM2]
+    eng.design.M25    = pare[ieM25]
+
+    # Spool losses
+    eng.design.epsl   = pare[ieepsl]
+    eng.design.epsh   = pare[ieepsh]
+
+    # Combustion efficiency
+    eng.design.etab   = pare[ieetab]
+
+    # Cooling design parameters
+    eng.design.dTstrk = pare[iedTstrk]
+    eng.design.Mtexit = pare[ieMtexit]
+    eng.design.StA    = pare[ieStA]
+    eng.design.efilm  = pare[ieefilm]
+    eng.design.tfilm  = pare[ietfilm]
+
+    # -----------------------------------------------------------------------
     # Overall propulsion efficiencies (tasopt-j9l.63.2)
     # No pare backing — derived from scalar pare fields that ARE stored.
     # Formula: eta_overall = gee * u0 / (TSFC * hfuel)   [≡ Fe*u0/(mdotf*hfuel)]
