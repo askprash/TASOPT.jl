@@ -415,8 +415,19 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop["Tt4_frac_bottom_of_climb"] = parg[igfTt4CL1]
         d_prop["Tt4_frac_top_of_climb"] = parg[igfTt4CLn]
         
-        d_prop["Tt4_cruise"] = pare[ieTt4,ipcruise1,:]
-        d_prop["Tt4_takeoff"] =  pare[ieTt4,ipstatic,:]
+        # Tt4 at cruise and takeoff across all missions (tasopt-dw7).
+        # Sync per mission at the two reference flight points; eng.Tt4 = eng.st4.Tt.
+        nmissions = size(ac.pare, 3)
+        d_prop["Tt4_cruise"]  = [begin
+            pare_to_engine_state!(ac.missions[im].points[ipcruise1].engine,
+                                  view(ac.pare, :, ipcruise1, im))
+            ac.missions[im].points[ipcruise1].engine.Tt4
+        end for im in 1:nmissions]
+        d_prop["Tt4_takeoff"] = [begin
+            pare_to_engine_state!(ac.missions[im].points[ipstatic].engine,
+                                  view(ac.pare, :, ipstatic, im))
+            ac.missions[im].points[ipstatic].engine.Tt4
+        end for im in 1:nmissions]
 
         d_prop["core_in_clean_flow"] = !engine.model.has_BLI_cores
             #expression negates bool, see read_input.jl
@@ -488,25 +499,34 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #Nozzles
     d_prop_nozz = Dict()
+        # Sync the 7 nozzle-schedule flight points for mission 1 (tasopt-dw7).
+        # A5fac/A7fac are per-point schedule inputs; reading from typed state
+        # after sync is equivalent to the former bare pare[ieA5fac/ieA7fac, ip, 1].
+        for ip in (ipstatic, iprotate, ipcutback, ipclimb1, ipclimbn, ipdescent1, ipdescentn)
+            pare_to_engine_state!(ac.missions[imission].points[ip].engine,
+                                  view(ac.pare, :, ip, imission))
+        end
+        _noz_eng(ip) = ac.missions[imission].points[ip].engine
+
         #core nozzle
         d_prop_cnoz = Dict()
-            d_prop_cnoz["static"] = pare[ieA5fac, ipstatic,1]
-            d_prop_cnoz["rotation"] = pare[ieA5fac, iprotate,1]
-            d_prop_cnoz["cutback"] = pare[ieA5fac, ipcutback,1]
-            d_prop_cnoz["climbstart"] = pare[ieA5fac,ipclimb1,1]
-            d_prop_cnoz["climbend"] = pare[ieA5fac,ipclimbn,1]
-            d_prop_cnoz["descentstart"] = pare[ieA5fac,ipdescent1,1]
-            d_prop_cnoz["descentend"] = pare[ieA5fac,ipdescentn,1]
+            d_prop_cnoz["static"]       = _noz_eng(ipstatic).A5fac
+            d_prop_cnoz["rotation"]     = _noz_eng(iprotate).A5fac
+            d_prop_cnoz["cutback"]      = _noz_eng(ipcutback).A5fac
+            d_prop_cnoz["climbstart"]   = _noz_eng(ipclimb1).A5fac
+            d_prop_cnoz["climbend"]     = _noz_eng(ipclimbn).A5fac
+            d_prop_cnoz["descentstart"] = _noz_eng(ipdescent1).A5fac
+            d_prop_cnoz["descentend"]   = _noz_eng(ipdescentn).A5fac
         d_prop_nozz["core_nozzle_area"] = d_prop_cnoz
         #fan nozzle
         d_prop_fnoz = Dict()
-            d_prop_fnoz["static"] = pare[ieA7fac, ipstatic,1]
-            d_prop_fnoz["rotation"] = pare[ieA7fac, iprotate,1]
-            d_prop_fnoz["cutback"] = pare[ieA7fac, ipcutback,1]
-            d_prop_fnoz["climbstart"] = pare[ieA7fac,ipclimb1,1]
-            d_prop_fnoz["climbend"] = pare[ieA7fac,ipclimbn,1]
-            d_prop_fnoz["descentstart"] = pare[ieA7fac,ipdescent1,1]
-            d_prop_fnoz["descentend"] = pare[ieA7fac,ipdescentn,1]
+            d_prop_fnoz["static"]       = _noz_eng(ipstatic).A7fac
+            d_prop_fnoz["rotation"]     = _noz_eng(iprotate).A7fac
+            d_prop_fnoz["cutback"]      = _noz_eng(ipcutback).A7fac
+            d_prop_fnoz["climbstart"]   = _noz_eng(ipclimb1).A7fac
+            d_prop_fnoz["climbend"]     = _noz_eng(ipclimbn).A7fac
+            d_prop_fnoz["descentstart"] = _noz_eng(ipdescent1).A7fac
+            d_prop_fnoz["descentend"]   = _noz_eng(ipdescentn).A7fac
         d_prop_nozz["fan_nozzle_area"] = d_prop_fnoz
     d_prop["Nozzles"] = d_prop_nozz
     

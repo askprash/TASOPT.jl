@@ -87,6 +87,42 @@
         rm(filepath_sxv)
     end
 
+    # tasopt-dw7: verify per-point nozzle area factors and Tt4 are saved from
+    # typed per-point engine state rather than bare pare reads.
+    @testset "save_model reads nozzle schedule and Tt4 from typed state (tasopt-dw7)" begin
+        import TOML
+        filepath_dw7 = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_dw7.toml")
+        save_aircraft_model(ac_def, filepath_dw7)
+        saved = TOML.parsefile(filepath_dw7)
+        prop  = saved["Propulsion"]
+        cnoz  = prop["Nozzles"]["core_nozzle_area"]
+        fnoz  = prop["Nozzles"]["fan_nozzle_area"]
+
+        # Core nozzle area schedule — each flight point must match pare[ieA5fac, ip, 1]
+        @test cnoz["static"]       ≈ ac_def.pare[ieA5fac, ipstatic,    1]
+        @test cnoz["rotation"]     ≈ ac_def.pare[ieA5fac, iprotate,    1]
+        @test cnoz["cutback"]      ≈ ac_def.pare[ieA5fac, ipcutback,   1]
+        @test cnoz["climbstart"]   ≈ ac_def.pare[ieA5fac, ipclimb1,    1]
+        @test cnoz["climbend"]     ≈ ac_def.pare[ieA5fac, ipclimbn,    1]
+        @test cnoz["descentstart"] ≈ ac_def.pare[ieA5fac, ipdescent1,  1]
+        @test cnoz["descentend"]   ≈ ac_def.pare[ieA5fac, ipdescentn,  1]
+
+        # Fan nozzle area schedule — same 7 flight points
+        @test fnoz["static"]       ≈ ac_def.pare[ieA7fac, ipstatic,    1]
+        @test fnoz["rotation"]     ≈ ac_def.pare[ieA7fac, iprotate,    1]
+        @test fnoz["cutback"]      ≈ ac_def.pare[ieA7fac, ipcutback,   1]
+        @test fnoz["climbstart"]   ≈ ac_def.pare[ieA7fac, ipclimb1,    1]
+        @test fnoz["climbend"]     ≈ ac_def.pare[ieA7fac, ipclimbn,    1]
+        @test fnoz["descentstart"] ≈ ac_def.pare[ieA7fac, ipdescent1,  1]
+        @test fnoz["descentend"]   ≈ ac_def.pare[ieA7fac, ipdescentn,  1]
+
+        # Tt4 at cruise and takeoff — saved as vectors over missions
+        @test prop["Tt4_cruise"][1]  ≈ ac_def.pare[ieTt4, ipcruise1, 1]
+        @test prop["Tt4_takeoff"][1] ≈ ac_def.pare[ieTt4, ipstatic,  1]
+
+        rm(filepath_dw7)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)

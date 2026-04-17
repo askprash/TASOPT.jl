@@ -257,6 +257,13 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.mfuel = pare[iemfuel]
 
     # -----------------------------------------------------------------------
+    # Per-point nozzle area schedule factors (tasopt-dw7)
+    # Inputs set by read_input.jl; never written by tfcalc!/tfsize!.
+    # -----------------------------------------------------------------------
+    eng.A5fac = pare[ieA5fac]
+    eng.A7fac = pare[ieA7fac]
+
+    # -----------------------------------------------------------------------
     # Compressor map operating points (tasopt-drd)
     # Written by tfcalc! EXIT block after off-design Newton solve.
     # -----------------------------------------------------------------------

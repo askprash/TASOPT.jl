@@ -145,6 +145,16 @@ mutable struct EngineState{T<:AbstractFloat}
     pihc ::T   # HPC pressure ratio        [—]
 
     # -----------------------------------------------------------------------
+    # Per-point nozzle area schedule factors (tasopt-dw7)
+    # A5fac: core nozzle throat area relative to design value  [—]
+    # A7fac: fan  nozzle throat area relative to design value  [—]
+    # Set by read_input.jl for each flight point; synced from
+    # pare[ieA5fac] / pare[ieA7fac] via pare_to_engine_state!.
+    # -----------------------------------------------------------------------
+    A5fac ::T   # core nozzle area factor             [—]
+    A7fac ::T   # fan  nozzle area factor             [—]
+
+    # -----------------------------------------------------------------------
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
     # Written by tfcalc! EXIT blocks; backed by pare[ieetaf..ieetalt].
     # -----------------------------------------------------------------------
@@ -198,6 +208,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         z, z, z, z,                     # M0, T0, p0, a0
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
         z, z, z, z, z, z,              # mbf, mblc, mbhc, pif, pilc, pihc
+        z, z,                           # A5fac, A7fac
         z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
         z, z, z,                        # eta_thermal, eta_prop, eta_overall
         DesignState{T}(),               # design
@@ -229,6 +240,7 @@ const _ENGINE_OWN_FIELDS = (
     :M0, :T0, :p0, :a0,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
     :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
+    :A5fac, :A7fac,
     :etaf, :etalc, :etahc, :etaht, :etalt,
     :eta_thermal, :eta_prop, :eta_overall,
     :design,
