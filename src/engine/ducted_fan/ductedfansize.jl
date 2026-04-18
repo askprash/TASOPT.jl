@@ -115,6 +115,10 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       pt2 = pt18
       Tt2 = Tt18
 
+      # Fan compressor component — design anchors: pifD = pif (sizing point IS design point),
+      # mbfD = 1.0 (corrected flow normalised to design), NbD = 1.0.
+      _comp_fan = Compressor(pif, 1.0, 1.0, epf0, 0.60, FanMap)
+
       npass = 60
 
       for ipass = 1:npass
@@ -145,14 +149,10 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
 
 
             # ===============================================================
-            #---- fan flow 2-7
-            pifD = pif
-            mbfD = 1.0
-            mf = 1.0
+            #---- fan flow 2-7 via shared Compressor component (efficiency map only;
+            #     gas_prat preserves exact FP evaluation order of the original sizing code)
+            _, epf, _, _, _, _ = compressor_efficiency(_comp_fan, pif, 1.0)
 
-            _, epf, _, _, _, _, _, _ = 
-            calculate_compressor_speed_and_efficiency(FanMap, pif, mf, pifD, mbfD, 1.0, epf0)
-  
             pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pif, epf)
 
