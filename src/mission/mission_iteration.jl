@@ -69,6 +69,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iemu0, ip] = μ0
       pare[ieM0, ip] = 0.0
       pare[ieu0, ip] = 0.0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0   = p0;  eng_ip.T0  = T0;  eng_ip.a0  = a0
+      eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0;  eng_ip.M0  = 0.0;  eng_ip.u0  = 0.0
 
       para[iaMach, ip] = 0.0
       para[iaCL, ip] = 0.0
@@ -81,6 +84,11 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iea0, iprotate:ipclimb1] .= a0
       pare[ierho0, iprotate:ipclimb1] .= ρ0
       pare[iemu0, iprotate:ipclimb1] .= μ0
+      for jp = iprotate:ipclimb1
+            eng_jp = mission.points[jp].engine
+            eng_jp.p0 = p0;  eng_jp.T0 = T0;  eng_jp.a0 = a0
+            eng_jp.rho0 = ρ0;  eng_jp.mu0 = μ0
+      end
       para[iaWbuoy, iprotate:ipclimb1] .= 0.0
 
 
@@ -102,6 +110,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iemu0, ip] = mu0
       pare[ieM0, ip] = Mach
       pare[ieu0, ip] = Mach * a0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
       para[iaReunit, ip] = Mach * a0 * rho0 / mu0
 
       # End-of-descent altitude conditions
@@ -119,6 +130,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iea0, ip] = a0
       pare[ierho0, ip] = rho0
       pare[iemu0, ip] = mu0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0
       para[iaWbuoy, ip] = 0.0
 
       # interpolate CL over climb points, 
@@ -154,24 +168,29 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       CLTO = para[iaclpmax, iptakeoff] * cosL^2
       # [prash] I think the assumption here is that Wcruise/WTO~1 and
       # just scaling it with rho and CL to get an initial estimate for V
-      VTO = pare[ieu0, ipcruise1] *
-            sqrt(pare[ierho0, ipcruise1] / pare[ierho0, iptakeoff]) *
+      VTO = mission.points[ipcruise1].engine.u0 *
+            sqrt(mission.points[ipcruise1].engine.rho0 / mission.points[iptakeoff].engine.rho0) *
             sqrt(para[iaCL, ipcruise1] / CLTO)
-      ReTO = VTO * pare[ierho0, iptakeoff] / pare[iemu0, iptakeoff]
+      ReTO = VTO * mission.points[iptakeoff].engine.rho0 / mission.points[iptakeoff].engine.mu0
       pare[ieu0, iprotate:ipclimb1] .= VTO
+      for jp = iprotate:ipclimb1
+            mission.points[jp].engine.u0 = VTO
+      end
       para[iaReunit, iprotate:ipclimb1] .= ReTO
       @inbounds for ip = ipclimb1+1:ipclimbn
             frac = float(ip - ipclimb1) / float(ipclimbn - ipclimb1)
-            V = VTO * (1.0 - frac) + pare[ieu0, ipcruise1] * frac
+            V = VTO * (1.0 - frac) + mission.points[ipcruise1].engine.u0 * frac
             Re = ReTO * (1.0 - frac) + para[iaReunit, ipcruise1] * frac
             pare[ieu0, ip] = V
+            mission.points[ip].engine.u0 = V
             para[iaReunit, ip] = Re
       end
       @inbounds for ip = ipdescent1:ipdescentn
             frac = float(ip - ipdescent1) / float(ipdescentn - ipdescent1)
-            V = VTO * frac + pare[ieu0, ipcruisen] * (1.0 - frac)
+            V = VTO * frac + mission.points[ipcruisen].engine.u0 * (1.0 - frac)
             Re = ReTO * frac + para[iaReunit, ipcruisen] * (1.0 - frac)
             pare[ieu0, ip] = V
+            mission.points[ip].engine.u0 = V
             para[iaReunit, ip] = Re
       end
 
@@ -185,15 +204,17 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       CLmax = clpmax * cosL^2
 
       #---- Vs stall speed (takeoff condition)
-      rho0 = pare[ierho0, ip]
-      a0 = pare[iea0, ip]
+      rho0 = mission.points[ip].engine.rho0
+      a0   = mission.points[ip].engine.a0
       S = wing.layout.S
       Vstall = sqrt(2.0 * WTO / (rho0 * S * CLmax))
       Mstall = Vstall / a0
       pare[ieu0, ip] = Vstall
       pare[ieM0, ip] = Mstall
+      mission.points[ip].engine.u0 = Vstall
+      mission.points[ip].engine.M0 = Mstall
       para[iaMach, ip] = Mstall
-      para[iaReunit, ip] = Vstall * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = Vstall * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
 
       #---- V2 speed per FAR-25  (takeoff,cutback,climb1 condition)
       V2 = Vstall * 1.2
@@ -203,8 +224,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       ip = iptakeoff
       pare[ieu0, ip] = V2
       pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
 
       #---- set pitch trim by adjusting CLh
@@ -228,8 +251,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       ip = ipcutback
       pare[ieu0, ip] = V2
       pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       para[iaxCG, ip] = xCG2
       para[iaxCP, ip] = xCP2
@@ -239,8 +264,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       ip = ipclimb1
       pare[ieu0, ip] = V2
       pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       para[iaxCG, ip] = xCG2
       para[iaxCP, ip] = xCP2
@@ -252,8 +279,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       Vrat = sqrt(para[iafracW, ip] / para[iafracW, ipclimb1])
       pare[ieu0, ip] = V2 * Vrat
       pare[ieM0, ip] = M2 * Vrat
+      mission.points[ip].engine.u0 = V2 * Vrat
+      mission.points[ip].engine.M0 = M2 * Vrat
       para[iaMach, ip] = M2 * Vrat
-      para[iaReunit, ip] = V2 * Vrat * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * Vrat * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       #
       # ============================================================================
@@ -278,6 +307,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             pare[iea0, ip] = a0
             pare[ierho0, ip] = rho0
             pare[iemu0, ip] = mu0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0
 
             rhocab = max(parg[igpcabin], p0) / (RSL * Tref)
             para[iaWbuoy, ip] = (rhocab - rho0) * gee * parg[igcabVol]
@@ -286,8 +318,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #---- set climb Tt4's from fractions
       fT1 = parg[igfTt4CL1]
       fTn = parg[igfTt4CLn]
-      Tt4TO = pare[ieTt4, iptakeoff]
-      Tt4CR = pare[ieTt4, ipcruise1]
+      Tt4TO = mission.points[iptakeoff].engine.st4.Tt
+      Tt4CR = mission.points[ipcruise1].engine.st4.Tt
       @inbounds for ip = ipclimb1:ipclimbn
             frac = float(ip - ipclimb1) /
                    float(ipclimbn - ipclimb1)
@@ -537,6 +569,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iemu0, ip] = μ0
       pare[ieM0, ip] = Mach
       pare[ieu0, ip] = Mach * a0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
       para[iaReunit, ip] = Mach * a0 * ρ0 / μ0
       para[iaalt, ip] = altd
 
@@ -616,6 +651,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             pare[iemu0, ip] = mu0
             pare[ieM0, ip] = Mach
             pare[ieu0, ip] = Mach * a0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
             para[iaReunit, ip] = Mach * a0 * rho0 / mu0
 
             rhocab = max(parg[igpcabin], p0) / (RSL * Tref)
@@ -636,6 +674,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare[iemu0, ip] = pare[iemu0, ipcruisen]
       pare[ieM0, ip] = pare[ieM0, ipcruisen]
       pare[ieu0, ip] = pare[ieu0, ipcruisen]
+      let src = mission.points[ipcruisen].engine, dst = mission.points[ip].engine
+            dst.p0 = src.p0;  dst.T0 = src.T0;  dst.a0 = src.a0
+            dst.rho0 = src.rho0;  dst.mu0 = src.mu0;  dst.M0 = src.M0;  dst.u0 = src.u0
+      end
 
       para[iaMach, ip] = para[iaMach, ipcruisen]
       para[iaReunit, ip] = para[iaReunit, ipcruisen]
@@ -673,6 +715,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             pare[iea0, ip] = a0
             pare[ierho0, ip] = ρ0
             pare[iemu0, ip] = μ0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0
 
             para[iaRange, ip] = R
             para[iaalt, ip] = alt
