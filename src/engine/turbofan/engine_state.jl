@@ -123,26 +123,23 @@ mutable struct EngineState{T<:AbstractFloat}
     Tfuel ::T   # fuel temperature (tank/inlet)       [K]
 
     # -----------------------------------------------------------------------
-    # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2)
-    # Written to EngineState by HXOffDesign!/resetHXs (tasopt-j9l.41.2).
-    # Read by tfcalc! via the eng_hx parameter (tasopt-dti): tfcalc! overrides
-    # the 9 HX delta fields in its fresh EngineState from the per-point typed
-    # state, so bare pare writes are no longer needed for correctness.
-    # Bare pare slots and pare_to_engine_state! sync retained until tasopt-w82
-    # removes them.
+    # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2 / tasopt-w82)
+    # Written to EngineState by HXOffDesign!/resetHXs.
+    # Read by tfcalc! via the eng_hx parameter (tasopt-dti).
+    # Legacy pare slots (iePreCDeltah etc.) removed in tasopt-w82.
     # -----------------------------------------------------------------------
-    PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]  → iePreCDeltah
-    PreCDeltap    ::T   # pre-cooler pressure delta     [Pa]    → iePreCDeltap
-    InterCDeltah  ::T   # inter-cooler enthalpy delta   [J/kg]  → ieInterCDeltah
-    InterCDeltap  ::T   # inter-cooler pressure delta   [Pa]    → ieInterCDeltap
-    RegenDeltah   ::T   # regen-cooler enthalpy delta   [J/kg]  → ieRegenDeltah
-    RegenDeltap   ::T   # regen-cooler pressure delta   [Pa]    → ieRegenDeltap
-    TurbCDeltah   ::T   # turbine-cooler enthalpy delta [J/kg]  → ieTurbCDeltah
-    TurbCDeltap   ::T   # turbine-cooler pressure delta [Pa]    → ieTurbCDeltap
-    RadiatorDeltah ::T  # radiator enthalpy delta       [J/kg]  → ieRadiatorDeltah
-    RadiatorDeltap ::T  # radiator pressure delta       [Pa]    → ieRadiatorDeltap
-    HXrecircP     ::T   # HX recirculation pump power   [W]     → ieHXrecircP
-    hvapcombustor ::T   # effective hvap in combustor   [J/kg]  → iehvapcombustor
+    PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]
+    PreCDeltap    ::T   # pre-cooler pressure delta     [Pa]
+    InterCDeltah  ::T   # inter-cooler enthalpy delta   [J/kg]
+    InterCDeltap  ::T   # inter-cooler pressure delta   [Pa]
+    RegenDeltah   ::T   # regen-cooler enthalpy delta   [J/kg]
+    RegenDeltap   ::T   # regen-cooler pressure delta   [Pa]
+    TurbCDeltah   ::T   # turbine-cooler enthalpy delta [J/kg]
+    TurbCDeltap   ::T   # turbine-cooler pressure delta [Pa]
+    RadiatorDeltah ::T  # radiator enthalpy delta       [J/kg]
+    RadiatorDeltap ::T  # radiator pressure delta       [Pa]
+    HXrecircP     ::T   # HX recirculation pump power   [W]
+    hvapcombustor ::T   # effective hvap in combustor   [J/kg]
 
     # -----------------------------------------------------------------------
     # Engine-level performance outputs

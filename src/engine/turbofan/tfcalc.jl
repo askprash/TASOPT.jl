@@ -9,8 +9,8 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
     - `eng_hx::EngineState`: per-point typed engine state supplying HX delta inputs
       (hvapcombustor, PreCDeltah/p, InterCDeltah/p, RegenDeltah/p, TurbCDeltah, HXrecircP).
       Populated by `resetHXs`/`HXOffDesign!` before this call. These fields override the
-      corresponding values built by `pare_to_engine_state!` so that HX delta reads come
-      from typed state rather than bare pare.
+      values built by `pare_to_engine_state!` so that HX delta reads come from typed state
+      (tasopt-dti / tasopt-w82).
     - `opt_calc_call::CalcMode.T`:
       - `CalcMode.Sizing`: call on-design sizing routine `tfsize!`
       - `CalcMode.FixedTt4OffDes`: call off-design analysis routine `tfoper!` with specified Tt4

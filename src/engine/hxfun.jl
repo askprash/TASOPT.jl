@@ -1431,18 +1431,6 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
 
             type = HX.type
 
-            Dh_i, Dp_i = if type == "PreC"
-                  iePreCDeltah,  iePreCDeltap
-            elseif type == "InterC"
-                  ieInterCDeltah, ieInterCDeltap
-            elseif type == "Regen"
-                  ieRegenDeltah,  ieRegenDeltap
-            elseif type == "TurbC"
-                  ieTurbCDeltah,  ieTurbCDeltap
-            else # Radiator
-                  ieRadiatorDeltah, ieRadiatorDeltap
-            end
-
             for ip = 1:size(pare)[2] #For every point
 
                   eng = mission_points[ip].engine
@@ -1478,18 +1466,26 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
                   if i == 1 && has_recirculation #If there is recirculation in the HX
                         #Store power drawn by recirculation to use it in the engine
                         P_recirc = find_recirculation_power(HXgasp)
-                        pare[ieHXrecircP, ip] =  P_recirc
                         eng.HXrecircP = P_recirc
                         HXgasp.P_recirc = P_recirc
                   end
 
                   HXgas_mis[ip] = HXgasp
 
-                  #Store output in pare and typed state (tasopt-j9l.41.2)
-                  new_Δh = (1 - rlx) * pare[Dh_i, ip] + rlx * HXgasp.Δh_p
-                  new_Δp = (1 - rlx) * pare[Dp_i, ip] + rlx * HXgasp.Δp_p
-                  pare[Dh_i, ip] = new_Δh
-                  pare[Dp_i, ip] = new_Δp
+                  #Store output in typed state (tasopt-w82)
+                  old_Δh, old_Δp = if type == "PreC"
+                        eng.PreCDeltah,  eng.PreCDeltap
+                  elseif type == "InterC"
+                        eng.InterCDeltah, eng.InterCDeltap
+                  elseif type == "Regen"
+                        eng.RegenDeltah,  eng.RegenDeltap
+                  elseif type == "TurbC"
+                        eng.TurbCDeltah,  eng.TurbCDeltap
+                  else # Radiator
+                        eng.RadiatorDeltah, eng.RadiatorDeltap
+                  end
+                  new_Δh = (1 - rlx) * old_Δh + rlx * HXgasp.Δh_p
+                  new_Δp = (1 - rlx) * old_Δp + rlx * HXgasp.Δp_p
                   if type == "PreC"
                         eng.PreCDeltah = new_Δh;  eng.PreCDeltap = new_Δp
                   elseif type == "InterC"
@@ -1524,8 +1520,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
             end
 
             if (has_recirculation)  #Currently, non-zero heat of vaporization is only accounted for if there is recirculation
-                  pare[iehvapcombustor, :, :] .= 0.0 #Fuel is vaporized in HX
-                  for ip in eachindex(mission_points)  # typed state (tasopt-j9l.41.2)
+                  for ip in eachindex(mission_points)  # fuel is vaporized in HX (tasopt-w82)
                         mission_points[ip].engine.hvapcombustor = 0.0
                   end
             end
@@ -1574,23 +1569,7 @@ function resetHXs(pare, mission_points)
       #Reset fuel temperature
       pare[ieTfuel, :] = pare[ieTft, :] #Fuel tank temperature
 
-      #Reset enthalpy differences and pressure differences in engine
-      pare[iePreCDeltah, :] .= 0.0
-      pare[iePreCDeltap, :] .= 0.0
-      pare[ieInterCDeltah, :] .= 0.0
-      pare[ieInterCDeltap, :] .= 0.0
-      pare[ieTurbCDeltah, :] .= 0.0
-      pare[ieTurbCDeltap, :] .= 0.0
-      pare[ieRegenDeltah, :] .= 0.0
-      pare[ieRegenDeltap, :] .= 0.0
-      pare[ieRadiatorDeltah, :] .= 0.0
-      pare[ieRadiatorDeltap, :] .= 0.0
-      pare[ieHXrecircP, :] .= 0.0
-
-      #Reset heat of vaporization in combustor
-      pare[iehvapcombustor, :, :] = pare[iehvap, :, :]
-
-      # Dual-write typed state (tasopt-j9l.41.2)
+      # Reset typed EngineState for every mission point (tasopt-w82)
       npoints = size(pare, 2)
       for ip in 1:npoints
             eng = mission_points[ip].engine

@@ -226,7 +226,6 @@ has_centerbox_fuel  = readfuel("fuel_in_wingcen")
 parg[igrWfmax] = readfuel("fuel_usability_factor")
 hvap_init = readfuel("fuel_enthalpy_vaporization")
 pare[iehvap, :, :] .= hvap_init          #Heat of vaporization of the fuel
-pare[iehvapcombustor, :, :] .= hvap_init #Heat of vaporization of fuel, if vaporized in combustor
 
 # tasopt-3ua: mirror Tfuel to typed engine state for all flight points.
 # Reads directly from pare which was just written, guaranteeing agreement.

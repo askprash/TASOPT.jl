@@ -90,29 +90,6 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.Tfuel = pare[ieTfuel]
 
     # -----------------------------------------------------------------------
-    # Heat-exchanger delta outputs (tasopt-7vz)
-    # Written by HXOffDesign! / resetHXs into pare; mirrored here so the
-    # fresh EngineState built by pare_to_engine_state! carries correct values
-    # for callers other than tfcalc!.
-    # NOTE: tfcalc! now overrides these 9 fields from the per-point EngineState
-    # eng_hx (tasopt-dti), so the pare-based copies below are redundant for
-    # tfcalc!'s use. They can be removed once bare pare writes are dropped in
-    # tasopt-w82 (when the pare slots themselves go away).
-    # -----------------------------------------------------------------------
-    eng.PreCDeltah    = pare[iePreCDeltah]
-    eng.PreCDeltap    = pare[iePreCDeltap]
-    eng.InterCDeltah  = pare[ieInterCDeltah]
-    eng.InterCDeltap  = pare[ieInterCDeltap]
-    eng.RegenDeltah   = pare[ieRegenDeltah]
-    eng.RegenDeltap   = pare[ieRegenDeltap]
-    eng.TurbCDeltah   = pare[ieTurbCDeltah]
-    eng.TurbCDeltap   = pare[ieTurbCDeltap]
-    eng.RadiatorDeltah = pare[ieRadiatorDeltah]
-    eng.RadiatorDeltap = pare[ieRadiatorDeltap]
-    eng.HXrecircP     = pare[ieHXrecircP]
-    eng.hvapcombustor = pare[iehvapcombustor]
-
-    # -----------------------------------------------------------------------
     # Station 0 — freestream
     # -----------------------------------------------------------------------
     _fill_total!(eng.st0, pare, ieTt0, ieht0, iept0, iecpt0, ieRt0)
