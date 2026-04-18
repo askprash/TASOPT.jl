@@ -245,4 +245,184 @@
         @test pare[iePfan,iprotate,1] ≈ 1.0000000000384096e7
         @test ac.engine.data.FC_heat[iprotate,1] ≈ 6.64805697887804e6
     end
+
+    # =========================================================================
+    # run_ducted_fan_design_point / pare_to_ducted_fan_state! (tasopt-3gk)
+    # =========================================================================
+    @testset "Ducted fan harness" begin
+        import TOML
+        # ------------------------------------------------------------------
+        # Recreate the fuel-cell ducted-fan aircraft from scratch.
+        # Mirrors the "Ducted fan with fuel cell" setup above but also sets
+        # para[iaalt/iaMach] and parm[imaltTO/imT0TO] required by the harness.
+        # ------------------------------------------------------------------
+        ac_h = TASOPT.load_default_model()
+        pare_h = ac_h.pare
+        parg_h = ac_h.parg
+
+        enginecalc_h! = TASOPT.engine.calculate_fuel_cell_with_ducted_fan!
+        engineweight_h! = TASOPT.engine.fuel_cell_with_ducted_fan_weight!
+        enginemodel_h = TASOPT.engine.FuelCellDuctedFan(
+            "fuel_cell_with_ducted_fan", enginecalc_h!, "nasa", engineweight_h!, false)
+        pare_h[iePfanmax,:,:] .= 10e6
+
+        fcdata_h = TASOPT.engine.FuelCellDuctedFanData(2)
+        fcdata_h.type = "HT-PEMFC"
+        fcdata_h.current_density[iprotate,:] .= 1e4
+        fcdata_h.FC_temperature .= 453.15
+        fcdata_h.FC_pressure .= 3e5
+        fcdata_h.water_concentration_anode .= 0.1
+        fcdata_h.water_concentration_cathode .= 0.1
+        fcdata_h.λ_H2 .= 3.0
+        fcdata_h.λ_O2 .= 3.0
+        fcdata_h.thickness_membrane = 100e-6
+        fcdata_h.thickness_anode    = 250e-6
+        fcdata_h.thickness_cathode  = 250e-6
+        fcdata_h.design_voltage = 200.0
+        pare_h[ieRadiatorepsilon,:,:] .= 0.7
+        pare_h[ieRadiatorMp,:,:]      .= 0.12
+        pare_h[ieDi,:,:]              .= 0.4
+        ac_h.para[iaROCdes, ipclimb1:ipclimbn, :] .= 500 * ft_to_m / 60
+
+        engine_h = TASOPT.engine.Engine(enginemodel_h, fcdata_h,
+                                        Vector{TASOPT.engine.HeatExchanger}())
+        ac_h.engine = engine_h
+
+        pare_h[ieRadiatorCoolantT,:,:] = engine_h.data.FC_temperature[:,:]
+        pare_h[ieRadiatorCoolantP,:,:] = engine_h.data.FC_pressure[:,:]
+        pare_h[ieRadiatorHeat,:,:]     = engine_h.data.FC_heat[:,:]
+
+        # Design-point engine inputs at ipcruise1
+        pare_h[ieFe,    ipcruise1, 1] = 16981.808185580507
+        parg_h[igneng]  = 2
+        ac_h.wing.layout.S = 81.25043040696103
+        pare_h[ieFsp,   ipcruise1, 1] = 0.5268888878557653
+        pare_h[iepif,   ipcruise1, 1] = 1.685
+        pare_h[iepid,   ipcruise1, 1] = 0.998
+        pare_h[iepifn,  ipcruise1, 1] = 0.98
+        pare_h[ieepolf, ipcruise1, 1] = 0.8948
+        pare_h[iepifK,  ipcruise1, 1] = 1.685
+        pare_h[ieepfK,  ipcruise1, 1] = -0.077
+        pare_h[ieM2,    ipcruise1, 1] = 0.6
+
+        # Fields required by run_ducted_fan_design_point: altitude and Mach.
+        # 10668 m ≈ FL350 standard-day matches the manually-set T0/p0 above.
+        ac_h.para[iaalt,  ipcruise1, 1] = 10668.0
+        ac_h.para[iaMach, ipcruise1, 1] = 0.8
+        # parm defaults from default_input.toml: imaltTO=0 (sea level), imT0TO=288.2K
+
+        # ------------------------------------------------------------------
+        # run_ducted_fan_design_point
+        # ------------------------------------------------------------------
+        df = TASOPT.engine.run_ducted_fan_design_point(ac_h)
+
+        # Ambient scalars: physically plausible cruise conditions
+        @test df.M0 ≈ 0.8       rtol=1e-8
+        @test df.T0 > 200.0                 # stratosphere static temp, K
+        @test df.p0 > 1e4                   # cruise static pressure, Pa
+        @test df.a0 > 280.0                 # speed of sound, m/s
+
+        # Performance: sensible values at design thrust
+        @test df.Fe   ≈ 16981.808185580507 rtol=1e-10
+        @test df.Pfan > 0.0
+        @test df.mfan > 0.0
+        @test 0.0 < df.etaf < 1.0
+
+        # Fan pressure ratio > 1 (compression work)
+        @test df.pif > 1.0
+
+        # Design areas are positive
+        @test df.A2 > 0.0
+        @test df.A7 > 0.0
+
+        # Fan mass flow stored in st2.mdot
+        @test df.st2.mdot > 0.0
+
+        # Thermodynamic invariant: fan adds enthalpy → Tt rises
+        @test df.st21.Tt > df.st2.Tt    # fan exit hotter than inlet
+
+        # Fan nozzle is adiabatic: Tt7 ≈ Tt21
+        @test df.st7.Tt ≈ df.st21.Tt rtol=1e-8
+
+        # Nozzle ideally expanded at design point: p_exit ≈ p0
+        @test df.st8.ps ≈ df.p0 rtol=1e-6
+
+        # Round-trip consistency: DuctedFanState values match pare directly
+        @test df.Fe   ≈ pare_h[ieFe,   ipcruise1, 1] rtol=1e-12
+        @test df.Pfan ≈ pare_h[iePfan, ipcruise1, 1] rtol=1e-12
+        @test df.A2   ≈ pare_h[ieA2,   ipcruise1, 1] rtol=1e-12
+        @test df.A7   ≈ pare_h[ieA7,   ipcruise1, 1] rtol=1e-12
+        @test df.pif  ≈ pare_h[iepif,  ipcruise1, 1] rtol=1e-12
+        @test df.etaf ≈ pare_h[ieetaf, ipcruise1, 1] rtol=1e-12
+        @test df.st2.Tt ≈ pare_h[ieTt2, ipcruise1, 1] rtol=1e-12
+
+        # ------------------------------------------------------------------
+        # pare_to_ducted_fan_state! round-trip: fresh state matches harness
+        # ------------------------------------------------------------------
+        df2 = TASOPT.engine.DuctedFanState{Float64}()
+        TASOPT.engine.pare_to_ducted_fan_state!(df2, view(ac_h.pare, :, ipcruise1, 1))
+        @test df2.Fe   ≈ df.Fe   rtol=1e-12
+        @test df2.pif  ≈ df.pif  rtol=1e-12
+        @test df2.A2   ≈ df.A2   rtol=1e-12
+        @test df2.st21.Tt ≈ df.st21.Tt rtol=1e-12
+
+        # ------------------------------------------------------------------
+        # run_ducted_fan_sweep — single-point off-design at design conditions.
+        # At the design point, off-design should reproduce the design-point state.
+        # ------------------------------------------------------------------
+        states = TASOPT.engine.run_ducted_fan_sweep(ac_h; ip_range=ipcruise1:ipcruise1)
+
+        @test haskey(states, ipcruise1)
+        df_sweep = states[ipcruise1]
+        @test df_sweep.Fe   ≈ df.Fe   rtol=1e-6
+        @test df_sweep.pif  ≈ df.pif  rtol=1e-6
+        @test df_sweep.etaf ≈ df.etaf rtol=1e-6
+
+        # ------------------------------------------------------------------
+        # write_ducted_fan_sweep_toml — valid TOML with expected structure.
+        # ------------------------------------------------------------------
+        buf = IOBuffer()
+        TASOPT.engine.write_ducted_fan_sweep_toml(buf, states, ipcruise1:ipcruise1, ac_h)
+        toml_str = String(take!(buf))
+        toml_data = TOML.parse(toml_str)
+
+        @test haskey(toml_data, "points")
+        @test length(toml_data["points"]) == 1
+        pt = toml_data["points"][1]
+        @test pt["ip"] == ipcruise1
+        @test pt["Fe_N"] ≈ df.Fe rtol=1e-10
+
+        # Station subtables present
+        @test haskey(pt, "stations")
+        @test haskey(pt["stations"], "st2")
+        @test haskey(pt["stations"], "st7")
+        @test pt["stations"]["st2"]["Tt"] ≈ df.st2.Tt rtol=1e-10
+        @test pt["stations"]["st7"]["Tt"] ≈ df.st7.Tt rtol=1e-10
+
+        # ------------------------------------------------------------------
+        # Regression baseline: compare against pinned fixture.
+        # If this fails, regenerate with:
+        #   julia --project=. test/generate_ducted_fan_baseline.jl
+        # ------------------------------------------------------------------
+        baseline_path = TASOPT.engine.DUCTED_FAN_BASELINE_PATH
+        if isfile(baseline_path)
+            bl = TOML.parsefile(baseline_path)
+            bl_pt = bl["points"][1]
+
+            @test bl_pt["ip"] == ipcruise1
+            @test bl_pt["Fe_N"]        ≈ df.Fe   rtol=1e-10
+            @test bl_pt["etaf"]        ≈ df.etaf rtol=1e-10
+            @test bl_pt["Pfan_W"]      ≈ df.Pfan rtol=1e-10
+            @test bl_pt["pif"]         ≈ df.pif  rtol=1e-10
+            @test bl_pt["mfan_kg_s"]   ≈ df.mfan rtol=1e-10
+
+            bl_st2 = bl_pt["stations"]["st2"]
+            @test bl_st2["Tt"] ≈ df.st2.Tt rtol=1e-10
+            @test bl_st2["pt"] ≈ df.st2.pt rtol=1e-10
+
+            bl_st7 = bl_pt["stations"]["st7"]
+            @test bl_st7["Tt"] ≈ df.st7.Tt rtol=1e-10
+            @test bl_st7["u"]  ≈ df.st7.u  rtol=1e-10
+        end
+    end  # Ducted fan harness
 end

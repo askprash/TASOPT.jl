@@ -32,6 +32,9 @@ export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_fr
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!
+export DuctedFanState, pare_to_ducted_fan_state!
+export run_ducted_fan_design_point, run_ducted_fan_sweep
+export write_ducted_fan_sweep_toml, DUCTED_FAN_BASELINE_PATH, regenerate_ducted_fan_baseline
 
 export gassum, gassumd, gas_prat, gas_delh, gas_delhd, gas_burn, gas_burnd, gas_mach, gas_machd, gas_mass, gasfuel, fuelLHV, gasPr
 export hxdesign!, radiator_design!, hxweight, resetHXs, HXOffDesign!, RadiatorOffDesign!, check_HX_overwriting
@@ -81,6 +84,7 @@ include("ducted_fan/ductedfancalc.jl")
 include("ducted_fan/ductedfansize.jl")
 include("ducted_fan/ductedfanoper.jl")
 include("ducted_fan/ductedfanweight.jl")
+include("ducted_fan/ducted_fan_harness.jl")
 
 #Fuel cell models
 include("PEMfuelcell.jl")
