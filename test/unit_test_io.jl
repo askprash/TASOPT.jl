@@ -343,6 +343,41 @@
         rm(filepath_j44_tf)
     end
 
+    # tasopt-j9l.62: verify that read_input populates Gearf/HTRf/HTRlc/HTRhc into typed
+    # engine DesignState, and that save_aircraft_model reads them from there (not parg).
+    @testset "turbomachinery geometry in typed DesignState (tasopt-j9l.62)" begin
+        import TOML
+
+        # --- read side: typed fields match known default_input.toml constants ---
+        eng_d = ac_def.missions[1].points[1].engine
+        @test eng_d.design.Gearf  ≈ 1.0   # default: direct-drive
+        @test eng_d.design.HTRf   ≈ 0.30
+        @test eng_d.design.HTRlc  ≈ 0.60
+        @test eng_d.design.HTRhc  ≈ 0.80
+
+        # uniform across all flight points and missions
+        for im in 1:size(ac_def.pare, 3)
+            for ip in 1:size(ac_def.pare, 2)
+                e = ac_def.missions[im].points[ip].engine
+                @test e.design.Gearf  == eng_d.design.Gearf
+                @test e.design.HTRf   == eng_d.design.HTRf
+                @test e.design.HTRlc  == eng_d.design.HTRlc
+                @test e.design.HTRhc  == eng_d.design.HTRhc
+            end
+        end
+
+        # --- write side: save_aircraft_model writes from typed state ---
+        filepath_j62 = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_j9l62.toml")
+        save_aircraft_model(ac_def, filepath_j62)
+        saved_j62 = TOML.parsefile(filepath_j62)
+        pt = saved_j62["Propulsion"]["Turbomachinery"]
+        @test pt["gear_ratio"] ≈ eng_d.design.Gearf
+        @test pt["HTR_fan"]   ≈ eng_d.design.HTRf
+        @test pt["HTR_LPC"]   ≈ eng_d.design.HTRlc
+        @test pt["HTR_HPC"]   ≈ eng_d.design.HTRhc
+        rm(filepath_j62)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)

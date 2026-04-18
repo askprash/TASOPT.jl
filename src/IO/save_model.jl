@@ -459,10 +459,10 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_turb["low_spool_loss"] = eng.design.epsl
         d_prop_turb["high_spool_loss"] = eng.design.epsh
 
-        d_prop_turb["gear_ratio"] = parg[igGearf]
-        d_prop_turb["HTR_fan"] = parg[igHTRf]
-        d_prop_turb["HTR_LPC"] = parg[igHTRlc]
-        d_prop_turb["HTR_HPC"] = parg[igHTRhc]
+        d_prop_turb["gear_ratio"] = eng.design.Gearf
+        d_prop_turb["HTR_fan"] = eng.design.HTRf
+        d_prop_turb["HTR_LPC"] = eng.design.HTRlc
+        d_prop_turb["HTR_HPC"] = eng.design.HTRhc
     d_prop["Turbomachinery"] = d_prop_turb
 
     #Combustor

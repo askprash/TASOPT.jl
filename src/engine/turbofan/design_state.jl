@@ -131,6 +131,14 @@ mutable struct DesignState{T<:AbstractFloat}
     epsh   ::T   # HP spool mechanical loss fraction
 
     # -----------------------------------------------------------------------
+    # Turbomachinery geometry — frozen TOML inputs (parg[igGearf/igHTRf/...])
+    # -----------------------------------------------------------------------
+    Gearf  ::T   # fan gear ratio (Nl/Nf); 1 = direct-drive
+    HTRf   ::T   # fan hub-to-tip radius ratio
+    HTRlc  ::T   # LPC hub-to-tip radius ratio
+    HTRhc  ::T   # HPC hub-to-tip radius ratio
+
+    # -----------------------------------------------------------------------
     # Combustion efficiency — frozen design input (ieetab)
     # -----------------------------------------------------------------------
     etab   ::T   # combustor adiabatic efficiency
@@ -173,6 +181,7 @@ function DesignState{T}() where {T<:AbstractFloat}
         z, z,            # pifK, epfK
         z, z,            # M2, M25
         z, z,            # epsl, epsh
+        z, z, z, z,     # Gearf, HTRf, HTRlc, HTRhc
         z,               # etab
         z, z, z, z, z,   # dTstrk, Mtexit, StA, efilm, tfilm
         z, z,            # fc0, dehtdfc

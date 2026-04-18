@@ -978,6 +978,17 @@ parg[igHTRf] = HTRf
 parg[igHTRlc] = HTRlc
 parg[igHTRhc] = HTRhc
 
+# tasopt-j9l.62: populate turbomachinery geometry into typed engine state.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        eng = missions_vec[im].points[ip].engine
+        eng.design.Gearf = Gearf
+        eng.design.HTRf  = HTRf
+        eng.design.HTRlc = HTRlc
+        eng.design.HTRhc = HTRhc
+    end
+end
+
 # Cooling
 cool = readprop("Cooling")
 dcool = dprop["Cooling"]
