@@ -204,6 +204,51 @@
         @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ ac_50r.pare[iept9, 1, im]
     end
 
+    # tasopt-j9l.43: verify that read_input directly populates typed design-point engine
+    # state, and that the values match the known defaults from default_input.toml.
+    # This pins the data-flow: typed state must be populated at parse time from the TOML
+    # values, not merely be consistent with pare (which the tasopt-50r test already checks).
+    @testset "read_input direct-populates design-point engine state (tasopt-j9l.43)" begin
+        ac_j43 = load_default_model()
+        im = 1
+        eng_d = ac_j43.missions[im].points[ipcruise1].engine.design
+
+        # Turbomachinery component pressure ratios (default_input.toml values)
+        @test eng_d.pid    ≈ 0.998
+        @test eng_d.pib    ≈ 0.94
+        @test eng_d.pifn   ≈ 0.98
+        @test eng_d.pitn   ≈ 0.989
+
+        # Polytropic efficiencies
+        @test eng_d.epolf  ≈ 0.8948
+        @test eng_d.epollc ≈ 0.88
+        @test eng_d.epolhc ≈ 0.87
+        @test eng_d.epolht ≈ 0.889
+        @test eng_d.epollt ≈ 0.899
+
+        # Combustion efficiency, duct Mach numbers, spool losses
+        @test eng_d.etab   ≈ 0.98
+        @test eng_d.M2     ≈ 0.60
+        @test eng_d.M25    ≈ 0.60
+        @test eng_d.epsl   ≈ 0.01
+        @test eng_d.epsh   ≈ 0.022
+
+        # Cooling design constants
+        @test eng_d.M4a    ≈ 0.9
+        @test eng_d.ruc    ≈ 0.15
+        @test eng_d.Mtexit ≈ 1.0
+        @test eng_d.StA    ≈ 0.09
+        @test eng_d.efilm  ≈ 0.70
+        @test eng_d.tfilm  ≈ 0.30
+        @test eng_d.fc0     ≈ 0.0
+        @test eng_d.dehtdfc ≈ 0.0
+
+        # Offtake discharge conditions (typed st9)
+        eng_pt = ac_j43.missions[im].points[ipcruise1].engine
+        @test eng_pt.st9.Tt ≈ 300.0
+        @test eng_pt.st9.pt ≈ 30e3
+    end
+
     # tasopt-3ua: verify that read_aircraft_model mirrors fuel temperature to typed
     # engine state for all flight points, and that save_model reads it from typed state.
     @testset "read_input and save_model use typed Tfuel (tasopt-3ua)" begin

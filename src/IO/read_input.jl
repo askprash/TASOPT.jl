@@ -936,30 +936,29 @@ pare[ieM25, :, :] .= M25
 pare[ieepsl, :, :] .= epsl
 pare[ieepsh, :, :] .= epsh
 
-# tasopt-50r: mirror turbomachinery design scalars and initial per-point PRs/BPR
-# to typed engine state. Reads from pare immediately after writing to guarantee
-# agreement. Design constants (pid, pib, etc.) are uniform across ip — read from ip=1.
+# tasopt-j9l.43: populate typed engine state directly from local variables.
+# All turbomachinery design constants are scalar TOML inputs, uniform across ip/im.
 for im in 1:nmisx
     for ip in 1:iptotal
         eng = missions_vec[im].points[ip].engine
-        eng.design.pid    = pare[iepid,    1, im]
-        eng.design.pib    = pare[iepib,    1, im]
-        eng.design.pifn   = pare[iepifn,   1, im]
-        eng.design.pitn   = pare[iepitn,   1, im]
-        eng.design.epolf  = pare[ieepolf,  1, im]
-        eng.design.epollc = pare[ieepollc, 1, im]
-        eng.design.epolhc = pare[ieepolhc, 1, im]
-        eng.design.epolht = pare[ieepolht, 1, im]
-        eng.design.epollt = pare[ieepollt, 1, im]
-        eng.design.etab   = pare[ieetab,   1, im]
-        eng.design.M2     = pare[ieM2,     1, im]
-        eng.design.M25    = pare[ieM25,    1, im]
-        eng.design.epsl   = pare[ieepsl,   1, im]
-        eng.design.epsh   = pare[ieepsh,   1, im]
-        eng.pif  = pare[iepif,  ip, im]
-        eng.pilc = pare[iepilc, ip, im]
-        eng.pihc = pare[iepihc, ip, im]
-        eng.BPR  = pare[ieBPR,  ip, im]
+        eng.design.pid    = pid
+        eng.design.pib    = pib
+        eng.design.pifn   = pifn
+        eng.design.pitn   = pitn
+        eng.design.epolf  = epolf
+        eng.design.epollc = epollc
+        eng.design.epolhc = epolhc
+        eng.design.epolht = epolht
+        eng.design.epollt = epollt
+        eng.design.etab   = etab
+        eng.design.M2     = M2
+        eng.design.M25    = M25
+        eng.design.epsl   = epsl
+        eng.design.epsh   = epsh
+        eng.pif  = pif
+        eng.pilc = pilc
+        eng.pihc = pihc
+        eng.BPR  = BPR
     end
 end
 
@@ -991,23 +990,24 @@ readcool(x) = read_input(x, cool, dcool)
     pare[ietfilm, :, :] .= tfilm
 
     #HPT cooled efficiency
-    pare[iedehtdfc,:,:] .= readcool("HPT_efficiency_derivative_with_cooling")
-    pare[iefc0,:,:] .= readcool("baseline_cooling_fraction")
+    dehtdfc = readcool("HPT_efficiency_derivative_with_cooling")
+    fc0     = readcool("baseline_cooling_fraction")
+    pare[iedehtdfc,:,:] .= dehtdfc
+    pare[iefc0,:,:] .= fc0
 
-    # tasopt-50r: mirror cooling design scalars to typed DesignState.
-    # Uniform across ip — read from ip=1 for each mission.
+    # tasopt-j9l.43: populate typed DesignState directly from local variables.
     for im in 1:nmisx
         for ip in 1:iptotal
             eng = missions_vec[im].points[ip].engine
-            eng.design.M4a    = pare[ieM4a,    1, im]
-            eng.design.ruc    = pare[ieruc,    1, im]
-            eng.design.dTstrk = pare[iedTstrk, 1, im]
-            eng.design.Mtexit = pare[ieMtexit, 1, im]
-            eng.design.StA    = pare[ieStA,    1, im]
-            eng.design.efilm  = pare[ieefilm,  1, im]
-            eng.design.tfilm  = pare[ietfilm,  1, im]
-            eng.design.fc0     = pare[iefc0,     1, im]
-            eng.design.dehtdfc = pare[iedehtdfc, 1, im]
+            eng.design.M4a    = M41
+            eng.design.ruc    = ruc
+            eng.design.dTstrk = dTstrk
+            eng.design.Mtexit = Mtexit
+            eng.design.StA    = StA
+            eng.design.efilm  = efilm
+            eng.design.tfilm  = tfilm
+            eng.design.fc0     = fc0
+            eng.design.dehtdfc = dehtdfc
         end
     end
 
@@ -1029,13 +1029,12 @@ readoff(x) = read_input(x, off, doff)
     pare[ieTt9, :, :] .= Ttdischarge
     pare[iept9, :, :] .= Ptdischarge
 
-    # tasopt-50r: mirror offtake discharge conditions to typed engine state.
-    # Uniform across ip — read from ip=1 for each mission.
+    # tasopt-j9l.43: populate typed engine state directly from local variables.
     for im in 1:nmisx
         for ip in 1:iptotal
             eng = missions_vec[im].points[ip].engine
-            eng.st9.Tt = pare[ieTt9, 1, im]
-            eng.st9.pt = pare[iept9, 1, im]
+            eng.st9.Tt = Ttdischarge
+            eng.st9.pt = Ptdischarge
         end
     end
 
