@@ -93,6 +93,9 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     guess[2] = mf
     guess[3] = Mi
 
+    # Inlet component (diffuser pressure ratio + BLI parameters); captured by closure.
+    _inl = Inlet(pid; Kinl=Float64(Kinl), eng_has_BLI_cores=(iBLIc != 0))
+
     #This function returns the residual of the non-linear engine problem. it
     #can also return the engine performance results.
     function DuctedFanOffDesign(x; iPspec = false, store_data = false)
@@ -127,47 +130,20 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         at0 = sqrt(Tt0 * Rt0 * cpt0 / (cpt0 - Rt0))
 
         # ===============================================================
-        #---- diffuser flow 0-2
-        Tt18 = Tt0
-        st18 = st0
-        ht18 = ht0
-        cpt18 = cpt0
-        Rt18 = Rt0
-        pt18 = pt0 * pid
-
-        if (u0 == 0.0)
-            #----- static case... no BL defect
-            sbfan = 0.0
-
-        else
-            #----- account for inlet BLI defect via mass-averaged entropy
-            a2sq = at0^2 / (1.0 + 0.5 * (gam0 - 1.0) * Mi^2)
-
-            if (iBLIc == 0)
-                #------ BL mixes with fan flow only
-                #c      mmix    = mf*sqrt(Tref/Tt2) * pt2   /pref
-                #c      mmix_mf =    sqrt(Tref/Tt2) * pt2   /pref
-                #c      mmix_Mi = mf*sqrt(Tref/Tt2) * pt2_Mi/pref
-
-                mmix = mf * sqrt(Tref / Tt0) * pt0 / pref
-                
-                sbfan = Kinl * gam0 / (mmix * a2sq)
-
-            else
-                
-                mmix = mf * sqrt(Tref / Tt0) * pt0 / pref +
-                        ml * sqrt(Tref / Tt0) * pt0 / pref
-                
-                sbfan = Kinl * gam0 / (mmix * a2sq)
-            end
-        end
-
-        Tt2 = Tt18
-        ht2 = ht18
-        st2 = st18
-        cpt2 = cpt18
-        Rt2 = Rt18
-        pt2 = pt18 * exp(-sbfan)
+        #---- diffuser (0→18) and BLI entropy mixing (18→2) via shared Inlet component
+        _fs0  = FlowStation{Float64}(Tt0, ht0, pt0, cpt0, Rt0,
+                    SVector{5,Float64}(alpha[1], alpha[2], alpha[3], alpha[4], alpha[5]))
+        _fs0.st = st0
+        _fs18 = FlowStation{Float64}()
+        _fs2  = FlowStation{Float64}()
+        _fs19 = FlowStation{Float64}()
+        inlet_diffuser!(_fs18, _fs0, _inl)
+        inlet_bli_mixing!(_fs2, _fs19, _fs18, _fs0, _inl,
+                          mf, 0.0, Mi, at0, gam0, Tref, pref)
+        Tt18, ht18, pt18, cpt18, Rt18 =
+            _fs18.Tt, _fs18.ht, _fs18.pt, _fs18.cpt, _fs18.Rt
+        Tt2, ht2, st2, cpt2, Rt2, pt2 =
+            _fs2.Tt, _fs2.ht, _fs2.st, _fs2.cpt, _fs2.Rt, _fs2.pt
 
         p2, T2, h2, s2, cp2, R2 = gas_mach(alpha, nair,
                 pt2, Tt2, ht2, st2, cpt2, Rt2, 0.0, Mi, 1.0)
@@ -177,14 +153,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         rho2 = p2 / (R2 * T2)
         # ===============================================================
         #---- Fan flow flow 2-21
-        Tt18 = Tt0
-        st18 = st0
-        ht18 = ht0
-        cpt18 = cpt0
-        Rt18 = Rt0
-        pt18 = pt0 * pid
-
-        _, epf, _, _, _, _, _, _ = 
+        _, epf, _, _, _, _, _, _ =
             calculate_compressor_speed_and_efficiency(FanMap, pf, mf, pifD, mbfD, 1.0, epf0)
   
         if (pf < 1.0)
