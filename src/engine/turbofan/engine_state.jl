@@ -203,6 +203,43 @@ mutable struct EngineState{T<:AbstractFloat}
     eta_overall ::T   # overall efficiency    [—]
 
     # -----------------------------------------------------------------------
+    # Per-point operating outputs (tasopt-j9l.45.1)
+    # Written by tfcalc! common EXIT block; dual-write alongside pare[ie*].
+    # Backed by pare[ieConvFail], pare[iehfuel..ieKinl], pare[ieNf..ieNbhc],
+    # pare[ieepf..ieeplt].
+    # -----------------------------------------------------------------------
+    ConvFail ::T   # convergence failure flag: 0.0 = converged, 1.0 = failed [—]
+    hfuel    ::T   # fuel specific enthalpy                                    [J/kg]
+    ff       ::T   # fuel-to-air ratio                                         [—]
+    mofft    ::T   # mass offtake per engine                                   [kg/s]
+    Pofft    ::T   # power offtake per engine                                  [W]
+    Phiinl   ::T   # BLI ingested momentum-excess flux per engine              [W]
+    Kinl     ::T   # BLI ingested kinetic-energy flux per engine               [W]
+
+    # -----------------------------------------------------------------------
+    # Spool speeds (tasopt-j9l.45.1)
+    # Written by tfcalc! common EXIT block.
+    # Backed by pare[ieNf], pare[ieN1], pare[ieN2], pare[ieNbf..ieNbhc].
+    # -----------------------------------------------------------------------
+    Nf   ::T   # fan physical spool speed (normalised by design)           [—]
+    N1   ::T   # LP spool physical speed (normalised by design)            [—]
+    N2   ::T   # HP spool physical speed (normalised by design)            [—]
+    Nbf  ::T   # fan corrected spool speed (normalised)                    [—]
+    Nblc ::T   # LPC corrected spool speed (normalised)                    [—]
+    Nbhc ::T   # HPC corrected spool speed (normalised)                    [—]
+
+    # -----------------------------------------------------------------------
+    # Component polytropic loss fractions (tasopt-j9l.45.1)
+    # Returned by tfsize!/tfoper!; written by tfcalc! common EXIT block.
+    # Backed by pare[ieepf..ieeplt].
+    # -----------------------------------------------------------------------
+    epf  ::T   # fan polytropic loss fraction                              [—]
+    eplc ::T   # LPC polytropic loss fraction                              [—]
+    ephc ::T   # HPC polytropic loss fraction                              [—]
+    epht ::T   # HPT polytropic loss fraction                              [—]
+    eplt ::T   # LPT polytropic loss fraction                              [—]
+
+    # -----------------------------------------------------------------------
     # Frozen design-point state (set by tfsize!, read by tfoper!)
     # -----------------------------------------------------------------------
     design ::DesignState{T}
@@ -235,6 +272,9 @@ function EngineState{T}() where {T<:AbstractFloat}
         z, z,                           # A5fac, A7fac
         z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
         z, z, z,                        # eta_thermal, eta_prop, eta_overall
+        z, z, z, z, z, z, z,           # ConvFail, hfuel, ff, mofft, Pofft, Phiinl, Kinl
+        z, z, z, z, z, z,              # Nf, N1, N2, Nbf, Nblc, Nbhc
+        z, z, z, z, z,                  # epf, eplc, ephc, epht, eplt
         DesignState{T}(),               # design
     )
 end
@@ -270,6 +310,9 @@ const _ENGINE_OWN_FIELDS = (
     :A5fac, :A7fac,
     :etaf, :etalc, :etahc, :etaht, :etalt,
     :eta_thermal, :eta_prop, :eta_overall,
+    :ConvFail, :hfuel, :ff, :mofft, :Pofft, :Phiinl, :Kinl,
+    :Nf, :N1, :N2, :Nbf, :Nblc, :Nbhc,
+    :epf, :eplc, :ephc, :epht, :eplt,
     :design,
 )
 

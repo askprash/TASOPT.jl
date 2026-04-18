@@ -178,6 +178,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         #--------------------------------------------------------------------------
         #Engine model convergence
         pare[ieConvFail] = 0.0 #Converged by default
+        eng.ConvFail = 0.0
 
         # #--------------------------------------------------------------------------
         if opt_calc_call == CalcMode.Sizing
@@ -718,6 +719,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 if (!Lconv)
                         #@warn "Convergence failed on operating point: $ip"
                         pare[ieConvFail] = 1.0 #Store convergence failure
+                        eng_offdes.ConvFail = 1.0
                 end
 
                 fo = mofft / mcore
@@ -727,7 +729,9 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 N2 = Nbhc * sqrt(Tt25c / Tref)
 
                 pare[ieM2] = M2
+                eng_offdes.design.M2 = M2
                 pare[ieM25] = M25
+                eng_offdes.design.M25 = M25
 
                 # Fe: mode-dependent (tasopt-j9l.52).
                 # FixedTt4OffDes: Fe is a COMPUTED OUTPUT → write bare (engine_state_to_pare!
@@ -768,25 +772,25 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         # pare[ieTSFC] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.TSFC
         # pare[ieFsp]  removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.Fsp
         # pare[iemcore] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.st2.mdot
-        pare[iehfuel] = hfuel
-        pare[ieff] = ff
-        pare[iemofft] = mofft
-        pare[iePofft] = Pofft
-        pare[iePhiinl] = Phiinl
-        pare[ieKinl] = Kinl
+        pare[iehfuel] = hfuel;   eng.hfuel  = hfuel
+        pare[ieff] = ff;         eng.ff     = ff
+        pare[iemofft] = mofft;   eng.mofft  = mofft
+        pare[iePofft] = Pofft;   eng.Pofft  = Pofft
+        pare[iePhiinl] = Phiinl; eng.Phiinl = Phiinl
+        pare[ieKinl] = Kinl;     eng.Kinl   = Kinl
 
-        pare[ieNf] = Nbf * sqrt(Tt2 / Tref)
-        pare[ieN1] = Nblc * sqrt(Tt19c / Tref)
-        pare[ieN2] = Nbhc * sqrt(Tt25c / Tref)
-        pare[ieNbf] = Nbf
-        pare[ieNblc] = Nblc
-        pare[ieNbhc] = Nbhc
-        pare[iembf] = mbf
-        pare[iemblc] = mblc
-        pare[iembhc] = mbhc
-        pare[iepif] = pif
-        pare[iepilc] = pilc
-        pare[iepihc] = pihc
+        pare[ieNf]   = Nbf  * sqrt(Tt2   / Tref); eng.Nf   = Nbf  * sqrt(Tt2   / Tref)
+        pare[ieN1]   = Nblc * sqrt(Tt19c / Tref); eng.N1   = Nblc * sqrt(Tt19c / Tref)
+        pare[ieN2]   = Nbhc * sqrt(Tt25c / Tref); eng.N2   = Nbhc * sqrt(Tt25c / Tref)
+        pare[ieNbf]  = Nbf;  eng.Nbf  = Nbf
+        pare[ieNblc] = Nblc; eng.Nblc = Nblc
+        pare[ieNbhc] = Nbhc; eng.Nbhc = Nbhc
+        pare[iembf]  = mbf;  eng.mbf  = mbf
+        pare[iemblc] = mblc; eng.mblc = mblc
+        pare[iembhc] = mbhc; eng.mbhc = mbhc
+        pare[iepif]  = pif;  eng.pif  = pif
+        pare[iepilc] = pilc; eng.pilc = pilc
+        pare[iepihc] = pihc; eng.pihc = pihc
 
         # Stations and performance scalars written by engine_state_to_pare! (tasopt-j9l.16-52):
         # st0/st18/st19 total state: written via eng.st0/st18/st19
@@ -817,11 +821,11 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         # iemcore: written via eng.st2.mdot (tasopt-j9l.52)
         # iemfuel: written via eng.mfuel (tasopt-j9l.52)
 
-        pare[ieepf] = epf
-        pare[ieeplc] = eplc
-        pare[ieephc] = ephc
-        pare[ieepht] = epht
-        pare[ieeplt] = eplt
+        pare[ieepf]  = epf;  eng.epf  = epf
+        pare[ieeplc] = eplc; eng.eplc = eplc
+        pare[ieephc] = ephc; eng.ephc = ephc
+        pare[ieepht] = epht; eng.epht = epht
+        pare[ieeplt] = eplt; eng.eplt = eplt
 
         # pare[ieetaf..ieetalt] removed (tasopt-j9l.63.1): written by engine_state_to_pare! via eng.etaf..etalt
         # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
