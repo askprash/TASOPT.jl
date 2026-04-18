@@ -3,7 +3,7 @@ ducted_fan_harness.jl — Ducted-fan engine-standalone runners.
 
 Provides:
 - `DuctedFanState`: typed container for one ducted-fan operating point.
-- `pare_to_ducted_fan_state!`: populate DuctedFanState from a pare slice.
+- `pare_to_ducted_fan_state!`: populate DuctedFanState from a pare slice or typed EngineState.
 - `run_ducted_fan_design_point`: single-point sizing runner.
 - `run_ducted_fan_sweep`: multi-point off-design sweep.
 - `write_ducted_fan_sweep_toml`: serialize sweep to TOML regression baseline.
@@ -169,6 +169,8 @@ Fields written by `ductedfancalc!` (design or off-design):
 - Station static (ps, Ts, Rs, cps, u): stations 2, 7, 8.
 - Station area (A): stations 2, 7, 8.
 - Station mass flow (mdot): station 2 (set to `mfan`).
+
+See also the typed-state overload `pare_to_ducted_fan_state!(state, eng_ip::EngineState)`.
 """
 function pare_to_ducted_fan_state!(state::DuctedFanState, pare)
     # -----------------------------------------------------------------------
@@ -248,6 +250,142 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, pare)
     return state
 end
 
+"""
+    pare_to_ducted_fan_state!(state, eng_ip::EngineState) -> state
+
+Typed-state overload: populate a `DuctedFanState` from a typed `EngineState`
+(`ac.missions[imission].points[ip].engine`) after a successful `ductedfancalc!`
+call.  Reads exclusively from the typed surface; no bare `pare` access.
+
+`ductedfancalc!` dual-writes every output field to both `pare` and the typed
+`EngineState`, so this overload and the `pare` overload yield identical values.
+
+Used internally by `run_ducted_fan_design_point` and `run_ducted_fan_sweep`
+(tasopt-j9l.45.15).  The `pare` overload is retained for backward compatibility
+and for the test round-trip check in `unit_test_ductedfan.jl`.
+"""
+function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
+    # -----------------------------------------------------------------------
+    # Ambient
+    # -----------------------------------------------------------------------
+    state.M0 = eng_ip.M0
+    state.T0 = eng_ip.T0
+    state.p0 = eng_ip.p0
+    state.a0 = eng_ip.a0
+    state.u0 = eng_ip.st0.u
+
+    # -----------------------------------------------------------------------
+    # Performance
+    # -----------------------------------------------------------------------
+    state.Fe   = eng_ip.Fe
+    state.Fsp  = eng_ip.Fsp
+    state.TSEC = eng_ip.TSEC
+    state.TSFC = eng_ip.TSFC
+    state.Pfan = eng_ip.Pfan
+    state.mfan = eng_ip.mfan
+    state.etaf = eng_ip.etaf
+    state.epf  = eng_ip.epf
+
+    # -----------------------------------------------------------------------
+    # Fan map operating point
+    # -----------------------------------------------------------------------
+    state.pif  = eng_ip.pif
+    state.mbf  = eng_ip.mbf
+    state.Nbf  = eng_ip.Nbf
+
+    # -----------------------------------------------------------------------
+    # Design anchors
+    # -----------------------------------------------------------------------
+    state.pifD = eng_ip.design.pifD
+    state.mbfD = eng_ip.design.mbfD
+    state.NbfD = eng_ip.design.NbfD
+    state.A2   = eng_ip.design.A2
+    state.A7   = eng_ip.design.A7
+
+    # -----------------------------------------------------------------------
+    # Station 0 — freestream (total + u)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st0
+        state.st0.Tt  = st.Tt
+        state.st0.ht  = st.ht
+        state.st0.pt  = st.pt
+        state.st0.cpt = st.cpt
+        state.st0.Rt  = st.Rt
+        state.st0.u   = st.u
+    end
+
+    # -----------------------------------------------------------------------
+    # Station 18 — FanFaceOuter (total only)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st18
+        state.st18.Tt  = st.Tt
+        state.st18.ht  = st.ht
+        state.st18.pt  = st.pt
+        state.st18.cpt = st.cpt
+        state.st18.Rt  = st.Rt
+    end
+
+    # -----------------------------------------------------------------------
+    # Station 2 — FanFace (total + static + A2 + mfan)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st2
+        state.st2.Tt  = st.Tt
+        state.st2.ht  = st.ht
+        state.st2.pt  = st.pt
+        state.st2.cpt = st.cpt
+        state.st2.Rt  = st.Rt
+        state.st2.ps  = st.ps
+        state.st2.Ts  = st.Ts
+        state.st2.Rs  = st.Rs
+        state.st2.cps = st.cps
+        state.st2.u   = st.u
+    end
+    state.st2.A    = eng_ip.design.A2
+    state.st2.mdot = eng_ip.mfan
+
+    # -----------------------------------------------------------------------
+    # Station 21 — FanExit (total only)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st21
+        state.st21.Tt  = st.Tt
+        state.st21.ht  = st.ht
+        state.st21.pt  = st.pt
+        state.st21.cpt = st.cpt
+        state.st21.Rt  = st.Rt
+    end
+
+    # -----------------------------------------------------------------------
+    # Station 7 — FanNozzle (total + static + A7)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st7
+        state.st7.Tt  = st.Tt
+        state.st7.ht  = st.ht
+        state.st7.pt  = st.pt
+        state.st7.cpt = st.cpt
+        state.st7.Rt  = st.Rt
+        state.st7.ps  = st.ps
+        state.st7.Ts  = st.Ts
+        state.st7.Rs  = st.Rs
+        state.st7.cps = st.cps
+        state.st7.u   = st.u
+    end
+    state.st7.A = eng_ip.design.A7
+
+    # -----------------------------------------------------------------------
+    # Station 8 — FanNozzleExit (static + A8 only; no total in EngineState)
+    # -----------------------------------------------------------------------
+    let st = eng_ip.st8
+        state.st8.ps  = st.ps
+        state.st8.Ts  = st.Ts
+        state.st8.Rs  = st.Rs
+        state.st8.cps = st.cps
+        state.st8.u   = st.u
+        state.st8.A   = st.A
+    end
+
+    return state
+end
+
 # ---------------------------------------------------------------------------
 # run_ducted_fan_design_point
 # ---------------------------------------------------------------------------
@@ -308,11 +446,19 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     ac.para[iaReunit, ip, imission] = Mach * as.a * as.ρ / as.μ
 
     # -----------------------------------------------------------------------
-    # Sync bare pare → typed EngineState so ductedfancalc! can read ambient
-    # conditions and design constants from typed state (tasopt-j9l.45.3).
+    # Dual-write ambient conditions directly to typed EngineState so that
+    # ductedfancalc! can read them from the typed surface (tasopt-j9l.45.15).
+    # Eliminates the pare_to_engine_state! blanket sync used previously.
     # -----------------------------------------------------------------------
-    pare_to_engine_state!(ac.missions[imission].points[ip].engine,
-                          view(ac.pare, :, ip, imission))
+    let eng_ip = ac.missions[imission].points[ip].engine
+        eng_ip.p0    = as.p
+        eng_ip.T0    = as.T
+        eng_ip.a0    = as.a
+        eng_ip.rho0  = as.ρ
+        eng_ip.mu0   = as.μ
+        eng_ip.M0    = Mach
+        eng_ip.st0.u = Mach * as.a
+    end
 
     # -----------------------------------------------------------------------
     # Run ducted-fan design-point sizing.
@@ -320,10 +466,12 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     ac.engine.enginecalc!(ac, "design", imission, ip, true)
 
     # -----------------------------------------------------------------------
-    # Read converged pare column → typed DuctedFanState.
+    # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
+    # ductedfancalc! dual-writes every output to both pare and typed state,
+    # so reading from typed state gives identical values to the bare pare path.
     # -----------------------------------------------------------------------
     state = DuctedFanState{Float64}()
-    pare_to_ducted_fan_state!(state, view(ac.pare, :, ip, imission))
+    pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
     return state
 end
 
@@ -371,12 +519,17 @@ function run_ducted_fan_sweep(ac;
                               initializes_engine::Bool=false)
     states = Dict{Int, DuctedFanState{Float64}}()
     for ip in ip_range
-        # Sync bare pare → typed EngineState before each call (tasopt-j9l.45.3).
+        # Sync bare pare → typed EngineState before each call.
+        # Needed because the caller pre-populates ambient conditions in bare pare
+        # (tasopt-j9l.45.3); blanket sync ensures ductedfancalc! reads correct
+        # ambient + design constants from typed state.
         pare_to_engine_state!(ac.missions[imission].points[ip].engine,
                               view(ac.pare, :, ip, imission))
         ac.engine.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
+        # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
+        # ductedfancalc! dual-writes outputs, so typed state is authoritative.
         state = DuctedFanState{Float64}()
-        pare_to_ducted_fan_state!(state, view(ac.pare, :, ip, imission))
+        pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
         states[ip] = state
     end
     return states
