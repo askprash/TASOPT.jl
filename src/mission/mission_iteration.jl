@@ -306,6 +306,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       FFC = zeros(Float64, iptotal)
       Vgi = zeros(Float64, iptotal)
 
+      # Pre-sync atmospheric and prior-iteration engine state into typed EngineState
+      # for all climb points, so that in-loop freestream reads come from typed state.
+      for ip = ipclimb1:ipclimbn
+            pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
+      end
+
       # integrate trajectory over climb
       @inbounds for ip = ipclimb1:ipclimbn
             if (Ldebug)
@@ -315,9 +321,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             # velocity calculation from CL, Weight, altitude
             W = para[iafracW, ip] * WMTO
             CL = para[iaCL, ip]
-            ρ = pare[ierho0, ip]
-            μ = pare[iemu0, ip]
-            Vsound = pare[iea0, ip]
+            ρ = mission.points[ip].engine.rho0
+            μ = mission.points[ip].engine.mu0
+            Vsound = mission.points[ip].engine.a0
             cosg = cos(para[iagamV, ip])
             BW = W + para[iaWbuoy, ip]
             Wpay = parg[igWpay]
@@ -379,7 +385,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             if (ip > ipclimb1)
                   # Corrector step
                   dh = para[iaalt, ip] - para[iaalt, ip-1]
-                  dVsq = pare[ieu0, ip]^2 - pare[ieu0, ip-1]^2
+                  dVsq = mission.points[ip].engine.u0^2 - mission.points[ip-1].engine.u0^2
 
                   FoWavg = 0.5 * (FoW[ip] + FoW[ip-1])
                   FFCavg = 0.5 * (FFC[ip] + FFC[ip-1])
@@ -405,15 +411,16 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
                   W = para[iafracW, ip+1] * WMTO   # Initial weight fractions have been set in _size_aircraft!
                   CL = para[iaCL, ip+1]
-                  ρ = pare[ierho0, ip+1]
+                  ρ = mission.points[ip+1].engine.rho0
                   cosg = cos(para[iagamV, ip+1])
 
                   BW = W + para[iaWbuoy, ip+1]
 
                   V = sqrt(2 * BW * cosg / (ρ * S * CL))
                   pare[ieu0, ip+1] = V
+                  mission.points[ip+1].engine.u0 = V
                   dh = para[iaalt, ip+1] - para[iaalt, ip]
-                  dVsq = pare[ieu0, ip+1]^2 - pare[ieu0, ip]^2
+                  dVsq = mission.points[ip+1].engine.u0^2 - mission.points[ip].engine.u0^2
 
                   dR = (dh + 0.5 * dVsq / gee) / FoW[ip]
                   dt = dR * Vgi[ip]
@@ -468,9 +475,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       # set cruise-climb climb angle, from fuel burn rate and atmospheric dp/dz
       TSFC = mission.points[ip].engine.TSFC
-      V = pare[ieu0, ip]
-      p0 = pare[iep0, ip]
-      ρ0 = pare[ierho0, ip]
+      V  = mission.points[ip].engine.u0
+      p0 = mission.points[ip].engine.p0
+      ρ0 = mission.points[ip].engine.rho0
       DoL = para[iaCD, ip] / para[iaCL, ip]
       W = para[iafracW, ip] * WMTO
       BW = W + para[iaWbuoy, ip]
@@ -551,9 +558,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
       TSFC = mission.points[ip].engine.TSFC
 
-      V = pare[ieu0, ip]
+      V  = mission.points[ip].engine.u0
       p0 = mission.points[ip].engine.p0
-      ρ0 = pare[ierho0, ip]
+      ρ0 = mission.points[ip].engine.rho0
       DoL = para[iaCD, ip] / para[iaCL, ip]
 
       gamVcr2 = DoL * p0 * TSFC / (ρ0 * gee * V - p0 * TSFC)
@@ -669,6 +676,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       end
       para[iaWbuoy, ipdescentn] = 0.0
 
+      # Pre-sync atmospheric and prior-iteration engine state into typed EngineState
+      # for all descent points, so that in-loop freestream reads come from typed state.
+      for ip = ipdescent1:ipdescentn
+            pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
+      end
+
       # integrate time and weight over descent
       for ip = ipdescent1:ipdescentn
 
@@ -678,12 +691,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             W = para[iafracW, ip] * WMTO
             BW = W + para[iaWbuoy, ip]
             CL = para[iaCL, ip]
-            rho = pare[ierho0, ip]
+            rho = mission.points[ip].engine.rho0
             V = sqrt(2.0 * BW * cosg / (rho * S * CL))
-            Mach = V / pare[iea0, ip]
+            Mach = V / mission.points[ip].engine.a0
 
             para[iaMach, ip] = Mach
-            para[iaReunit, ip] = V * rho / pare[iemu0, ip]
+            para[iaReunit, ip] = V * rho / mission.points[ip].engine.mu0
 
             pare[ieu0, ip] = V
             pare[ieM0, ip] = Mach
@@ -767,7 +780,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             if (ip > ipdescent1)
                   #  corrector integration step, approximate trapezoidal
                   dh = para[iaalt, ip] - para[iaalt, ip-1]
-                  dVsq = pare[ieu0, ip]^2 - pare[ieu0, ip-1]^2
+                  dVsq = mission.points[ip].engine.u0^2 - mission.points[ip-1].engine.u0^2
 
                   FoWavg = 0.5 * (FoW[ip] + FoW[ip-1])
                   FFCavg = 0.5 * (FFC[ip] + FFC[ip-1])
@@ -791,12 +804,13 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   BW = W + para[iaWbuoy, ip+1]
 
                   CL = para[iaCL, ip+1]
-                  rho = pare[ierho0, ip+1]
+                  rho = mission.points[ip+1].engine.rho0
                   V = sqrt(2 * BW * cosg / (rho * S * CL))
                   pare[ieu0, ip+1] = V
+                  mission.points[ip+1].engine.u0 = V
 
                   dh = para[iaalt, ip+1] - para[iaalt, ip]
-                  dVsq = pare[ieu0, ip+1]^2 - pare[ieu0, ip]^2
+                  dVsq = mission.points[ip+1].engine.u0^2 - mission.points[ip].engine.u0^2
 
                   dR = para[iaRange, ip] - para[iaRange, ip-1]
                   dt = dR * Vgi[ip]

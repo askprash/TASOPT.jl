@@ -118,6 +118,8 @@ mutable struct EngineState{T<:AbstractFloat}
     T0    ::T   # freestream static temperature       [K]
     p0    ::T   # freestream static pressure          [Pa]
     a0    ::T   # freestream speed of sound           [m/s]
+    rho0  ::T   # freestream density                  [kg/m³]
+    mu0   ::T   # freestream dynamic viscosity        [Pa·s]
     Tfuel ::T   # fuel temperature (tank/inlet)       [K]
 
     # -----------------------------------------------------------------------
@@ -225,7 +227,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st21, st25, st25c, st3, st4
         fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
-        z, z, z, z, z,                  # M0, T0, p0, a0, Tfuel
+        z, z, z, z, z, z, z,             # M0, T0, p0, a0, rho0, mu0, Tfuel
         z, z, z, z, z, z, z, z,        # HX Δh/Δp: PreC, InterC, Regen, TurbC
         z, z, z, z,                     # HX Δh/Δp: Radiator, recircP, hvapcombustor
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
@@ -259,7 +261,7 @@ const _ENGINE_OWN_FIELDS = (
     :st0, :st18, :st19, :st19c, :st2, :st21, :st25, :st25c,
     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
     :st5, :st6, :st7, :st8, :st9,
-    :M0, :T0, :p0, :a0, :Tfuel,
+    :M0, :T0, :p0, :a0, :rho0, :mu0, :Tfuel,
     :PreCDeltah, :PreCDeltap, :InterCDeltah, :InterCDeltap,
     :RegenDeltah, :RegenDeltap, :TurbCDeltah, :TurbCDeltap,
     :RadiatorDeltah, :RadiatorDeltap, :HXrecircP, :hvapcombustor,

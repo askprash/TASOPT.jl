@@ -85,6 +85,8 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.T0    = pare[ieT0]
     eng.p0    = pare[iep0]
     eng.a0    = pare[iea0]
+    eng.rho0  = pare[ierho0]
+    eng.mu0   = pare[iemu0]
     eng.Tfuel = pare[ieTfuel]
 
     # -----------------------------------------------------------------------
