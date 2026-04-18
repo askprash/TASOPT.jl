@@ -672,10 +672,7 @@ function plot_details(ac::aircraft; imission::Int=1)
     # For subplot 3
     h     = [para[iaalt,ipclimb1:ipcruisen]; 0.0]./ft_to_m./1000 # show in 1000s of ft.
     R     = [para[iaRange,ipclimb1:ipcruisen]; para[iaRange, ipdescentn]]./nmi_to_m
-    deNOx = pare[iedeNOx, :]
     fracW = [para[iafracW, ipclimb1:ipcruisen]; para[iafracW, ipdescentn]]
-    mdotf = pare[iemdotf, :]
-    mdotH2O = pare[iemdotf, :].*9.0
     gamV = [para[iagamV, ipclimb1:ipcruisen]; para[iagamV, ipdescentn]]
 
     bar_width = 0.2
