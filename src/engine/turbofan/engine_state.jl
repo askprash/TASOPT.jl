@@ -153,6 +153,15 @@ mutable struct EngineState{T<:AbstractFloat}
     mfuel ::T   # total fuel mass flow (all engines) [kg/s]
 
     # -----------------------------------------------------------------------
+    # Ducted-fan performance outputs (tasopt-j9l.45.3)
+    # Written by ductedfancalc! EXIT block; backed by pare[iePfan], pare[ieTSEC],
+    # pare[iemfan].  Zero for turbofan missions.
+    # -----------------------------------------------------------------------
+    Pfan  ::T   # fan shaft power                  [W]
+    TSEC  ::T   # thrust-specific energy consumption [J/N]
+    mfan  ::T   # fan total mass flow              [kg/s]
+
+    # -----------------------------------------------------------------------
     # Compressor map operating points (tasopt-drd)
     # Written by tfcalc! EXIT block; read back via pare_to_engine_state!.
     # Synced to pare before off-design calls via engine_state_to_pare!.
@@ -173,8 +182,9 @@ mutable struct EngineState{T<:AbstractFloat}
     # Set by read_input.jl for each flight point; synced from
     # pare[ieA5fac] / pare[ieA7fac] via pare_to_engine_state!.
     # -----------------------------------------------------------------------
-    A5fac ::T   # core nozzle area factor             [—]
-    A7fac ::T   # fan  nozzle area factor             [—]
+    A5fac   ::T   # core nozzle area factor             [—]
+    A7fac   ::T   # fan  nozzle area factor             [—]
+    Pfanmax ::T   # maximum fan shaft power (per-point input) [W]
 
     # -----------------------------------------------------------------------
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
@@ -268,8 +278,9 @@ function EngineState{T}() where {T<:AbstractFloat}
         z, z, z, z, z, z, z, z,        # HX Δh/Δp: PreC, InterC, Regen, TurbC
         z, z, z, z,                     # HX Δh/Δp: Radiator, recircP, hvapcombustor
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
+        z, z, z,                        # Pfan, TSEC, mfan
         z, z, z, z, z, z,              # mbf, mblc, mbhc, pif, pilc, pihc
-        z, z,                           # A5fac, A7fac
+        z, z, z,                        # A5fac, A7fac, Pfanmax
         z, z, z, z, z,                  # etaf, etalc, etahc, etaht, etalt
         z, z, z,                        # eta_thermal, eta_prop, eta_overall
         z, z, z, z, z, z, z,           # ConvFail, hfuel, ff, mofft, Pofft, Phiinl, Kinl
@@ -306,8 +317,9 @@ const _ENGINE_OWN_FIELDS = (
     :RegenDeltah, :RegenDeltap, :TurbCDeltah, :TurbCDeltap,
     :RadiatorDeltah, :RadiatorDeltap, :HXrecircP, :hvapcombustor,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
+    :Pfan, :TSEC, :mfan,
     :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
-    :A5fac, :A7fac,
+    :A5fac, :A7fac, :Pfanmax,
     :etaf, :etalc, :etahc, :etaht, :etalt,
     :eta_thermal, :eta_prop, :eta_overall,
     :ConvFail, :hfuel, :ff, :mofft, :Pofft, :Phiinl, :Kinl,

@@ -24,10 +24,16 @@ In the off-design case, it computes the power and thrust requirements for each m
     - Updated ducted fan performance parameters (`pare`)
     - Updated engine size and power requirements during the design phase
 """
-function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initializes_engine, iterw = 0) 
+function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initializes_engine, iterw = 0)
     #Unpack aircraft data
     parg, _, para, pare, _, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
     fcdata = ac.engine.data #Extract fuel cell data
+
+    # Sync bare pare → typed EngineState for the current ip before ductedfancalc!
+    # reads from it (tasopt-j9l.45.3). Callers that already sync (mission_iteration.jl)
+    # pay a small redundant copy; callers that do not (standalone tests) need this.
+    pare_to_engine_state!(ac.missions[imission].points[ip].engine,
+                          view(ac.pare, :, ip, imission))
 
     if case == "design"
         #Design ducted fan for start of cruise

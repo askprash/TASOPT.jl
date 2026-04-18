@@ -261,11 +261,19 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.mfuel = pare[iemfuel]
 
     # -----------------------------------------------------------------------
+    # Ducted-fan performance outputs (tasopt-j9l.45.3)
+    # -----------------------------------------------------------------------
+    eng.Pfan  = pare[iePfan]
+    eng.TSEC  = pare[ieTSEC]
+    eng.mfan  = pare[iemfan]
+
+    # -----------------------------------------------------------------------
     # Per-point nozzle area schedule factors (tasopt-dw7)
     # Inputs set by read_input.jl; never written by tfcalc!/tfsize!.
     # -----------------------------------------------------------------------
-    eng.A5fac = pare[ieA5fac]
-    eng.A7fac = pare[ieA7fac]
+    eng.A5fac   = pare[ieA5fac]
+    eng.A7fac   = pare[ieA7fac]
+    eng.Pfanmax = pare[iePfanmax]
 
     # -----------------------------------------------------------------------
     # Compressor map operating points (tasopt-drd)
@@ -499,6 +507,12 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieFsp]   = eng.Fsp
     pare[ieBPR]   = eng.BPR
     pare[iemfuel] = eng.mfuel
+
+    # Ducted-fan performance outputs (tasopt-j9l.45.3)
+    pare[iePfan]  = eng.Pfan
+    pare[ieTSEC]  = eng.TSEC
+    pare[iemfan]  = eng.mfan
+    # Pfanmax is an input (set by read_input.jl); not written back.
 
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
     pare[ieetaf]  = eng.etaf

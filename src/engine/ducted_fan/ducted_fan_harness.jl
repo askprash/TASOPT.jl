@@ -308,6 +308,13 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     ac.para[iaReunit, ip, imission] = Mach * as.a * as.ρ / as.μ
 
     # -----------------------------------------------------------------------
+    # Sync bare pare → typed EngineState so ductedfancalc! can read ambient
+    # conditions and design constants from typed state (tasopt-j9l.45.3).
+    # -----------------------------------------------------------------------
+    pare_to_engine_state!(ac.missions[imission].points[ip].engine,
+                          view(ac.pare, :, ip, imission))
+
+    # -----------------------------------------------------------------------
     # Run ducted-fan design-point sizing.
     # -----------------------------------------------------------------------
     ac.engine.enginecalc!(ac, "design", imission, ip, true)
@@ -364,6 +371,9 @@ function run_ducted_fan_sweep(ac;
                               initializes_engine::Bool=false)
     states = Dict{Int, DuctedFanState{Float64}}()
     for ip in ip_range
+        # Sync bare pare → typed EngineState before each call (tasopt-j9l.45.3).
+        pare_to_engine_state!(ac.missions[imission].points[ip].engine,
+                              view(ac.pare, :, ip, imission))
         ac.engine.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
         state = DuctedFanState{Float64}()
         pare_to_ducted_fan_state!(state, view(ac.pare, :, ip, imission))
