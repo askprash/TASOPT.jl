@@ -123,9 +123,12 @@ mutable struct EngineState{T<:AbstractFloat}
     Tfuel ::T   # fuel temperature (tank/inlet)       [K]
 
     # -----------------------------------------------------------------------
-    # Heat-exchanger delta outputs (tasopt-7vz)
-    # Written by HXOffDesign! → pare[ie*]; mirrored here via
-    # pare_to_engine_state! / engine_state_to_pare!.
+    # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2)
+    # Written to EngineState by HXOffDesign!/resetHXs (tasopt-j9l.41.2) AND
+    # mirrored from pare via pare_to_engine_state! (needed because
+    # read_input.jl inits hvapcombustor through pare before HXOffDesign! runs).
+    # engine_state_to_pare! sync removed in tasopt-j9l.41.3 (redundant since
+    # HXOffDesign! dual-writes pare directly).
     # Read by tfcalc! as inputs to the next tfsize!/tfoper! call.
     # -----------------------------------------------------------------------
     PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]  → iePreCDeltah

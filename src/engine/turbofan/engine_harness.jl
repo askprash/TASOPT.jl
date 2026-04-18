@@ -93,6 +93,9 @@ function pare_to_engine_state!(eng::EngineState, pare)
     # Heat-exchanger delta outputs (tasopt-7vz)
     # Written by HXOffDesign! / resetHXs into pare; mirrored here so
     # typed EngineState carries the full HX interface output.
+    # Note: hvapcombustor is also initialized in read_input.jl via pare before
+    # HXOffDesign! runs, so this sync cannot be removed until that init path
+    # also writes to typed state directly (tasopt-w82).
     # -----------------------------------------------------------------------
     eng.PreCDeltah    = pare[iePreCDeltah]
     eng.PreCDeltap    = pare[iePreCDeltap]
@@ -405,19 +408,10 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[iea0]    = eng.a0
     pare[ieTfuel] = eng.Tfuel
 
-    # Heat-exchanger delta outputs (tasopt-7vz)
-    pare[iePreCDeltah]    = eng.PreCDeltah
-    pare[iePreCDeltap]    = eng.PreCDeltap
-    pare[ieInterCDeltah]  = eng.InterCDeltah
-    pare[ieInterCDeltap]  = eng.InterCDeltap
-    pare[ieRegenDeltah]   = eng.RegenDeltah
-    pare[ieRegenDeltap]   = eng.RegenDeltap
-    pare[ieTurbCDeltah]   = eng.TurbCDeltah
-    pare[ieTurbCDeltap]   = eng.TurbCDeltap
-    pare[ieRadiatorDeltah] = eng.RadiatorDeltah
-    pare[ieRadiatorDeltap] = eng.RadiatorDeltap
-    pare[ieHXrecircP]     = eng.HXrecircP
-    pare[iehvapcombustor] = eng.hvapcombustor
+    # Heat-exchanger delta outputs (tasopt-j9l.41.3)
+    # Removed: HXOffDesign!/resetHXs write directly to pare (tasopt-j9l.41.2),
+    # so syncing EngineState→pare here is redundant. Bare pare writes preserved
+    # in hxfun.jl until ductedfancalc.jl migration (tasopt-j9l.41.4).
 
     # Station 0 — freestream
     _write_total!(pare, ieTt0, ieht0, iept0, iecpt0, ieRt0, eng.st0)
