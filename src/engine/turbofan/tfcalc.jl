@@ -92,20 +92,20 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         epsh = pare[ieepsh]
         epsrow = zeros(ncrowx)
         Tmrow = zeros(ncrowx)
-        hvap = pare[iehvapcombustor] #Enthalpy of vaporization of fuel
+        hvap = eng.hvapcombustor #Enthalpy of vaporization of fuel
 
         #Effect of cooling on HPT efficiency
         epht_fc = pare[iedehtdfc]
         fc0 = fc0 = pare[iefc0]
 
         #Heat exchanger variables
-        Δh_PreC = pare[iePreCDeltah]
-        Δh_InterC = pare[ieInterCDeltah]
-        Δh_Regen = pare[ieRegenDeltah]
-        Δh_TurbC = pare[ieTurbCDeltah]
-        Δp_PreC = pare[iePreCDeltap]
-        Δp_InterC = pare[ieInterCDeltap]
-        Δp_Regen = pare[ieRegenDeltap]
+        Δh_PreC = eng.PreCDeltah
+        Δh_InterC = eng.InterCDeltah
+        Δh_Regen = eng.RegenDeltah
+        Δh_TurbC = eng.TurbCDeltah
+        Δp_PreC = eng.PreCDeltap
+        Δp_InterC = eng.InterCDeltap
+        Δp_Regen = eng.RegenDeltap
 
         if opt_cooling == CoolingOpt.FixedCoolingFlowRatio
                 ncrow = ncrowx
@@ -148,7 +148,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         #- - - - - - - - - - - - - - - - - - - - - - - 
 
         #---- mass and power offtakes
-        Pofft_HX = pare[ieHXrecircP] #power offtakes to drive heat exchanger recirculation per engine
+        Pofft_HX = eng.HXrecircP #power offtakes to drive heat exchanger recirculation per engine
         mofft = (mofWpay * Wpay + mofWMTO * WMTO) / neng
         Pofft = (PofWpay * Wpay + PofWMTO * WMTO) / neng + Pofft_HX
 
