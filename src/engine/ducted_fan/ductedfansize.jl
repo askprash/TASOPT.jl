@@ -97,13 +97,15 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       at0 = sqrt(Tt0 * Rt0 * cpt0 / (cpt0 - Rt0))
 
       # ===============================================================
-      #---- diffuser flow 0-2
-      Tt18 = Tt0
-      st18 = st0
-      ht18 = ht0
-      cpt18 = cpt0
-      Rt18 = Rt0
-      pt18 = pt0 * pid
+      #---- diffuser flow 0-2 via shared Inlet component
+      _inl  = Inlet(pid)
+      _fs0  = FlowStation{Float64}(Tt0, ht0, pt0, cpt0, Rt0,
+                  SVector{5,Float64}(alpha[1], alpha[2], alpha[3], alpha[4], alpha[5]))
+      _fs0.st = st0  # entropy-complement not accepted by the 6-arg constructor
+      _fs18 = FlowStation{Float64}()
+      inlet_diffuser!(_fs18, _fs0, _inl)
+      Tt18, ht18, pt18, cpt18, Rt18, st18 =
+          _fs18.Tt, _fs18.ht, _fs18.pt, _fs18.cpt, _fs18.Rt, _fs18.st
 
       #---- initial guesses for station 2 and 1.9
       pt2 = pt18
