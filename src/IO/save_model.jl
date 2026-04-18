@@ -543,6 +543,17 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_weight["weight_model"] = engine.model.weight_model_name
     d_prop["Weight"] = d_prop_weight
 
+    # TSFC schedule — written only for constant_TSFC engine (tasopt-j9l.44).
+    # For turbofan models TSFC is computed, not an input parameter; only the
+    # constant_TSFC model reads these keys from TOML on load.
+    if options.opt_prop_sys_arch == PropSysArch.ConstantTSFC
+        d_prop["climb_TSFC"]   = ac.missions[imission].points[ipclimb1].engine.TSFC
+        d_prop["cruise_TSFC"]  = ac.missions[imission].points[ipcruise1].engine.TSFC
+        d_prop["descent_TSFC"] = ac.missions[imission].points[ipdescent1].engine.TSFC
+        # rate_of_climb is in aero state [m/s]; Speed() is a no-op for plain floats.
+        d_prop["rate_of_climb"] = para[iaROCdes, ipclimb1, imission]
+    end
+
     d_out["Propulsion"] = d_prop
     #--end Propulsion----------------
 

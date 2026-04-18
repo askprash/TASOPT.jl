@@ -286,6 +286,63 @@
         @test ac_j61.missions[im].points[ipcruise1].engine.hvapcombustor ≈ 0.0
     end
 
+    # tasopt-j9l.44: verify that save_model writes the constant_TSFC schedule (climb/cruise/descent
+    # TSFC and rate_of_climb) from typed engine state when the engine architecture is ConstantTSFC.
+    # The round-trip must preserve all four TOML keys under [Propulsion].
+    @testset "save_model writes constant_TSFC schedule from typed state (tasopt-j9l.44)" begin
+        import TOML
+        ac_ctsfc = load_default_model()
+        im = 1  # design mission
+
+        # Patch architecture to ConstantTSFC.
+        ac_ctsfc.options.opt_prop_sys_arch = PropSysArch.ConstantTSFC
+
+        # Inject known TSFC schedule into typed state AND pare per-point.
+        # save_aircraft_model calls pare_to_engine_state! for several points
+        # (nozzle sync, Tt4 sync) which overwrites typed state from pare; so both
+        # must agree for the assertion to hold after save.
+        tsfc_climb   = 1.8e-4  # [kg/N/s = 1/s for consistent units]
+        tsfc_cruise  = 1.6e-4
+        tsfc_descent = 2.1e-4
+        roc_ms       = 500 * 0.3048 / 60  # 500 ft/min → m/s
+
+        for ip in ipclimb1:ipclimbn
+            ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_climb
+            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_climb
+        end
+        for ip in ipcruise1:ipcruisen
+            ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_cruise
+            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_cruise
+        end
+        for ip in ipdescent1:ipdescentn
+            ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_descent
+            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_descent
+        end
+        ac_ctsfc.para[iaROCdes, ipclimb1:ipclimbn, im] .= roc_ms
+
+        # Save and parse the TOML.
+        filepath_j44 = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_j9l44.toml")
+        save_aircraft_model(ac_ctsfc, filepath_j44)
+        saved = TOML.parsefile(filepath_j44)
+        prop  = saved["Propulsion"]
+
+        @test prop["climb_TSFC"]   ≈ tsfc_climb
+        @test prop["cruise_TSFC"]  ≈ tsfc_cruise
+        @test prop["descent_TSFC"] ≈ tsfc_descent
+        @test prop["rate_of_climb"] ≈ roc_ms
+
+        # Turbofan default must NOT write TSFC schedule keys.
+        filepath_j44_tf = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_j9l44_tf.toml")
+        save_aircraft_model(load_default_model(), filepath_j44_tf)
+        saved_tf = TOML.parsefile(filepath_j44_tf)
+        @test !haskey(saved_tf["Propulsion"], "climb_TSFC")
+        @test !haskey(saved_tf["Propulsion"], "cruise_TSFC")
+        @test !haskey(saved_tf["Propulsion"], "descent_TSFC")
+
+        rm(filepath_j44)
+        rm(filepath_j44_tf)
+    end
+
     filepath_rewrite = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_rewrite.toml")
     save_aircraft_model(ac_def, filepath_rewrite)
     ac_reread = read_aircraft_model(filepath_rewrite)
