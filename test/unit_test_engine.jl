@@ -2884,8 +2884,12 @@ isGradient = false
         baseline_pts = baseline["points"]
         @test length(baseline_pts) == n_pts
 
-        # ---- Comparison tolerance: one part per trillion ----
-        rtol_tol = 1e-12
+        # ---- Comparison tolerance ----
+        # 1e-10 (one part per ten billion) is robust to cross-platform FP
+        # differences (Newton solver accumulates ~1e-11 across architectures)
+        # while still catching any real numerical regression (logic changes
+        # produce differences orders of magnitude larger).
+        rtol_tol = 1e-10
 
         # Collect all failures; report in one actionable block at the end.
         failures = String[]
