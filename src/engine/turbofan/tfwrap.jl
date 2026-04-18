@@ -34,8 +34,9 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             initializes_engine_firstiter  = false
         end
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, 
-            options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
 
         # store engine design-point parameters for all operating points
         parg[igA5] = pare[ieA5, ip] / pare[ieA5fac, ip]
@@ -74,13 +75,16 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         end
         opt_cooling = CoolingOpt.FixedCoolingFlowRatio
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
-        
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
     elseif case == "cooling_sizing"
         opt_calc_call = CalcMode.FixedTt4OffDes
         opt_cooling = CoolingOpt.FixedTmetal
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
         # Tmetal was specified... set blade row cooling flow ratios for all points
         for jp = 1:iptotal

@@ -125,10 +125,11 @@ mutable struct EngineState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2)
     # Written to EngineState by HXOffDesign!/resetHXs (tasopt-j9l.41.2).
-    # Bare pare slots maintained for tfcalc! compatibility (see tasopt-w83).
-    # pare_to_engine_state! mirrors these from pare so tfcalc!'s fresh
-    # EngineState has correct values (tasopt-j9l.41.1).
-    # Read by tfcalc! as inputs to the next tfsize!/tfoper! call.
+    # Read by tfcalc! via the eng_hx parameter (tasopt-dti): tfcalc! overrides
+    # the 9 HX delta fields in its fresh EngineState from the per-point typed
+    # state, so bare pare writes are no longer needed for correctness.
+    # Bare pare slots and pare_to_engine_state! sync retained until tasopt-w82
+    # removes them.
     # -----------------------------------------------------------------------
     PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]  → iePreCDeltah
     PreCDeltap    ::T   # pre-cooler pressure delta     [Pa]    → iePreCDeltap

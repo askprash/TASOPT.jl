@@ -1,11 +1,16 @@
-""" 
-    tfcalc!(wing, engine, parg, para, pare, ip, ifuel, opt_calc_call, opt_cooling, initializes_engine)
+"""
+    tfcalc!(wing, engine, parg, para, pare, eng_hx, ip, ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
 Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis function
 [`tfoper!`](@ref) for one operating point `ip`.
 
 !!! details "🔃 Inputs and Outputs"
     **Input:**
+    - `eng_hx::EngineState`: per-point typed engine state supplying HX delta inputs
+      (hvapcombustor, PreCDeltah/p, InterCDeltah/p, RegenDeltah/p, TurbCDeltah, HXrecircP).
+      Populated by `resetHXs`/`HXOffDesign!` before this call. These fields override the
+      corresponding values built by `pare_to_engine_state!` so that HX delta reads come
+      from typed state rather than bare pare.
     - `opt_calc_call::CalcMode.T`:
       - `CalcMode.Sizing`: call on-design sizing routine `tfsize!`
       - `CalcMode.FixedTt4OffDes`: call off-design analysis routine `tfoper!` with specified Tt4
@@ -19,7 +24,7 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
       - `true`: initialize variables for iteration in `tfoper!`
       - `false`: use current variables as initial guesses in `tfoper!`
 """
-function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifuel::Int64,
+function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::EngineState, ip::Int64, ifuel::Int64,
         opt_calc_call::CalcMode.T, opt_cooling::CoolingOpt.T, initializes_engine::Bool)
 
         # ── ENTRY: build typed EngineState from pare once, shared by both paths ─
@@ -28,6 +33,21 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, ip::Int64, ifu
         # each constructing their own copy.
         eng = EngineState{Float64}()
         pare_to_engine_state!(eng, pare)
+
+        # ── HX delta override: read per-point typed state (tasopt-dti) ─────────
+        # eng_hx is the per-mission-point EngineState populated by resetHXs /
+        # HXOffDesign! before this call.  Override the fields built from bare
+        # pare above so that tfcalc! depends only on typed state for HX deltas.
+        # This is the prerequisite for removing bare pare writes (tasopt-w82).
+        eng.hvapcombustor = eng_hx.hvapcombustor
+        eng.PreCDeltah    = eng_hx.PreCDeltah
+        eng.PreCDeltap    = eng_hx.PreCDeltap
+        eng.InterCDeltah  = eng_hx.InterCDeltah
+        eng.InterCDeltap  = eng_hx.InterCDeltap
+        eng.RegenDeltah   = eng_hx.RegenDeltah
+        eng.RegenDeltap   = eng_hx.RegenDeltap
+        eng.TurbCDeltah   = eng_hx.TurbCDeltah
+        eng.HXrecircP     = eng_hx.HXrecircP
 
         Lprint = false
 

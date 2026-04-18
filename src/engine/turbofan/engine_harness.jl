@@ -91,10 +91,13 @@ function pare_to_engine_state!(eng::EngineState, pare)
 
     # -----------------------------------------------------------------------
     # Heat-exchanger delta outputs (tasopt-7vz)
-    # Written by HXOffDesign! / resetHXs into pare; mirrored here so
-    # tfcalc!'s fresh EngineState (built via pare_to_engine_state! at tfcalc.jl:30)
-    # carries the correct HX interface inputs. Cannot remove until tfcalc! is
-    # migrated to read HX delta fields from per-point EngineState (tasopt-w83).
+    # Written by HXOffDesign! / resetHXs into pare; mirrored here so the
+    # fresh EngineState built by pare_to_engine_state! carries correct values
+    # for callers other than tfcalc!.
+    # NOTE: tfcalc! now overrides these 9 fields from the per-point EngineState
+    # eng_hx (tasopt-dti), so the pare-based copies below are redundant for
+    # tfcalc!'s use. They can be removed once bare pare writes are dropped in
+    # tasopt-w82 (when the pare slots themselves go away).
     # -----------------------------------------------------------------------
     eng.PreCDeltah    = pare[iePreCDeltah]
     eng.PreCDeltap    = pare[iePreCDeltap]
