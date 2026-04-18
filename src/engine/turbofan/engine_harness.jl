@@ -88,6 +88,24 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.Tfuel = pare[ieTfuel]
 
     # -----------------------------------------------------------------------
+    # Heat-exchanger delta outputs (tasopt-7vz)
+    # Written by HXOffDesign! / resetHXs into pare; mirrored here so
+    # typed EngineState carries the full HX interface output.
+    # -----------------------------------------------------------------------
+    eng.PreCDeltah    = pare[iePreCDeltah]
+    eng.PreCDeltap    = pare[iePreCDeltap]
+    eng.InterCDeltah  = pare[ieInterCDeltah]
+    eng.InterCDeltap  = pare[ieInterCDeltap]
+    eng.RegenDeltah   = pare[ieRegenDeltah]
+    eng.RegenDeltap   = pare[ieRegenDeltap]
+    eng.TurbCDeltah   = pare[ieTurbCDeltah]
+    eng.TurbCDeltap   = pare[ieTurbCDeltap]
+    eng.RadiatorDeltah = pare[ieRadiatorDeltah]
+    eng.RadiatorDeltap = pare[ieRadiatorDeltap]
+    eng.HXrecircP     = pare[ieHXrecircP]
+    eng.hvapcombustor = pare[iehvapcombustor]
+
+    # -----------------------------------------------------------------------
     # Station 0 — freestream
     # -----------------------------------------------------------------------
     _fill_total!(eng.st0, pare, ieTt0, ieht0, iept0, iecpt0, ieRt0)
@@ -384,6 +402,20 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[iep0]    = eng.p0
     pare[iea0]    = eng.a0
     pare[ieTfuel] = eng.Tfuel
+
+    # Heat-exchanger delta outputs (tasopt-7vz)
+    pare[iePreCDeltah]    = eng.PreCDeltah
+    pare[iePreCDeltap]    = eng.PreCDeltap
+    pare[ieInterCDeltah]  = eng.InterCDeltah
+    pare[ieInterCDeltap]  = eng.InterCDeltap
+    pare[ieRegenDeltah]   = eng.RegenDeltah
+    pare[ieRegenDeltap]   = eng.RegenDeltap
+    pare[ieTurbCDeltah]   = eng.TurbCDeltah
+    pare[ieTurbCDeltap]   = eng.TurbCDeltap
+    pare[ieRadiatorDeltah] = eng.RadiatorDeltah
+    pare[ieRadiatorDeltap] = eng.RadiatorDeltap
+    pare[ieHXrecircP]     = eng.HXrecircP
+    pare[iehvapcombustor] = eng.hvapcombustor
 
     # Station 0 — freestream
     _write_total!(pare, ieTt0, ieht0, iept0, iecpt0, ieRt0, eng.st0)

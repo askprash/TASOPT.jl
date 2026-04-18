@@ -121,6 +121,25 @@ mutable struct EngineState{T<:AbstractFloat}
     Tfuel ::T   # fuel temperature (tank/inlet)       [K]
 
     # -----------------------------------------------------------------------
+    # Heat-exchanger delta outputs (tasopt-7vz)
+    # Written by HXOffDesign! → pare[ie*]; mirrored here via
+    # pare_to_engine_state! / engine_state_to_pare!.
+    # Read by tfcalc! as inputs to the next tfsize!/tfoper! call.
+    # -----------------------------------------------------------------------
+    PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]  → iePreCDeltah
+    PreCDeltap    ::T   # pre-cooler pressure delta     [Pa]    → iePreCDeltap
+    InterCDeltah  ::T   # inter-cooler enthalpy delta   [J/kg]  → ieInterCDeltah
+    InterCDeltap  ::T   # inter-cooler pressure delta   [Pa]    → ieInterCDeltap
+    RegenDeltah   ::T   # regen-cooler enthalpy delta   [J/kg]  → ieRegenDeltah
+    RegenDeltap   ::T   # regen-cooler pressure delta   [Pa]    → ieRegenDeltap
+    TurbCDeltah   ::T   # turbine-cooler enthalpy delta [J/kg]  → ieTurbCDeltah
+    TurbCDeltap   ::T   # turbine-cooler pressure delta [Pa]    → ieTurbCDeltap
+    RadiatorDeltah ::T  # radiator enthalpy delta       [J/kg]  → ieRadiatorDeltah
+    RadiatorDeltap ::T  # radiator pressure delta       [Pa]    → ieRadiatorDeltap
+    HXrecircP     ::T   # HX recirculation pump power   [W]     → ieHXrecircP
+    hvapcombustor ::T   # effective hvap in combustor   [J/kg]  → iehvapcombustor
+
+    # -----------------------------------------------------------------------
     # Engine-level performance outputs
     # Written by tfcalc! EXIT blocks and flushed to pare via
     # engine_state_to_pare!.  Read back from pare via pare_to_engine_state!.
@@ -207,6 +226,8 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
         z, z, z, z, z,                  # M0, T0, p0, a0, Tfuel
+        z, z, z, z, z, z, z, z,        # HX Δh/Δp: PreC, InterC, Regen, TurbC
+        z, z, z, z,                     # HX Δh/Δp: Radiator, recircP, hvapcombustor
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
         z, z, z, z, z, z,              # mbf, mblc, mbhc, pif, pilc, pihc
         z, z,                           # A5fac, A7fac
@@ -239,6 +260,9 @@ const _ENGINE_OWN_FIELDS = (
     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
     :st5, :st6, :st7, :st8, :st9,
     :M0, :T0, :p0, :a0, :Tfuel,
+    :PreCDeltah, :PreCDeltap, :InterCDeltah, :InterCDeltap,
+    :RegenDeltah, :RegenDeltap, :TurbCDeltah, :TurbCDeltap,
+    :RadiatorDeltah, :RadiatorDeltap, :HXrecircP, :hvapcombustor,
     :TSFC, :Fe, :Fsp, :BPR, :mfuel,
     :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
     :A5fac, :A7fac,
