@@ -30,7 +30,9 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         # ── ENTRY: build typed EngineState from pare once, shared by both paths ─
         # Ambient scalars and all station thermodynamics are populated here so
         # that the sizing and off-design branches can alias `eng` rather than
-        # each constructing their own copy.
+        # each constructing their own copy.  Bare pare[ie*] input reads that
+        # previously followed this block have been removed (tasopt-j9l.45.2);
+        # all inputs are now read from `eng.*` below.
         eng = EngineState{Float64}()
         pare_to_engine_state!(eng, pare)
 
@@ -69,54 +71,54 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         Wpay = parg[igWpay]
         WMTO = parg[igWMTO]
 
-        TSFC = pare[ieTSFC]
-        Fsp = pare[ieFsp]
-        hfuel = pare[iehfuel]
-        Tfuel = pare[ieTfuel]
-        Tt4 = pare[ieTt4]
-        BPR = pare[ieBPR]
-        pif = pare[iepif]
-        pilc = pare[iepilc]
-        pihc = pare[iepihc]
-        pid = pare[iepid]
-        pib = pare[iepib]
-        pifn = pare[iepifn]
-        pitn = pare[iepitn]
-        epolf = pare[ieepolf]
-        epollc = pare[ieepollc]
-        epolhc = pare[ieepolhc]
-        epolht = pare[ieepolht]
-        epollt = pare[ieepollt]
-        etab = pare[ieetab]
-        M2 = pare[ieM2]
-        M25 = pare[ieM25]
-        # Ambient / freestream scalars — read from typed state (not pare).
+        TSFC   = eng.TSFC
+        Fsp    = eng.Fsp
+        hfuel  = eng.hfuel
+        Tfuel  = eng.Tfuel
+        Tt4    = eng.Tt4
+        BPR    = eng.BPR
+        pif    = eng.pif
+        pilc   = eng.pilc
+        pihc   = eng.pihc
+        pid    = eng.design.pid
+        pib    = eng.design.pib
+        pifn   = eng.design.pifn
+        pitn   = eng.design.pitn
+        epolf  = eng.design.epolf
+        epollc = eng.design.epollc
+        epolhc = eng.design.epolhc
+        epolht = eng.design.epolht
+        epollt = eng.design.epollt
+        etab   = eng.design.etab
+        M2     = eng.design.M2
+        M25    = eng.design.M25
+        # Ambient / freestream scalars — read from typed state.
         # Tt0/ht0/pt0/cpt0/Rt0 are computed outputs of tfsize!/tfoper! and are
         # not pre-read here; they are assigned from the returned tuple below.
-        M0   = eng.M0
-        T0   = eng.T0
-        p0   = eng.p0
-        a0   = eng.a0
-        u0   = eng.st0.u
-        rho0 = pare[ierho0]   # not in EngineState; used only for BLI
-        mu0  = pare[iemu0]    # not in EngineState
+        M0    = eng.M0
+        T0    = eng.T0
+        p0    = eng.p0
+        a0    = eng.a0
+        u0    = eng.st0.u
+        rho0  = eng.rho0
+        mu0   = eng.mu0
         mcore = eng.st2.mdot
-        dTstrk = pare[iedTstrk]
-        StA = pare[ieStA]
-        Mtexit = pare[ieMtexit]
-        M4a = eng.design.M4a   # tasopt-j9l.54: frozen design input via DesignState
-        ruc = eng.design.ruc   # tasopt-j9l.54: frozen design input via DesignState
-        efilm = pare[ieefilm]
-        tfilm = pare[ietfilm]
-        epsl = pare[ieepsl]
-        epsh = pare[ieepsh]
+        dTstrk = eng.design.dTstrk
+        StA    = eng.design.StA
+        Mtexit = eng.design.Mtexit
+        M4a = eng.design.M4a
+        ruc = eng.design.ruc
+        efilm  = eng.design.efilm
+        tfilm  = eng.design.tfilm
+        epsl   = eng.design.epsl
+        epsh   = eng.design.epsh
         epsrow = zeros(ncrowx)
-        Tmrow = zeros(ncrowx)
-        hvap = eng.hvapcombustor #Enthalpy of vaporization of fuel
+        Tmrow  = zeros(ncrowx)
+        hvap   = eng.hvapcombustor
 
         #Effect of cooling on HPT efficiency
-        epht_fc = pare[iedehtdfc]
-        fc0 = fc0 = pare[iefc0]
+        epht_fc = eng.design.dehtdfc
+        fc0     = eng.design.fc0
 
         #Heat exchanger variables
         Δh_PreC = eng.PreCDeltah
@@ -172,8 +174,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         mofft = (mofWpay * Wpay + mofWMTO * WMTO) / neng
         Pofft = (PofWpay * Wpay + PofWMTO * WMTO) / neng + Pofft_HX
 
-        Tt9 = pare[ieTt9]
-        pt9 = pare[iept9]
+        Tt9 = eng.st9.Tt
+        pt9 = eng.st9.pt
 
         #--------------------------------------------------------------------------
         #Engine model convergence
@@ -190,7 +192,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 # DesignState from local variables, then project back to pare.
                 eng_design = eng
 
-                Fe = pare[ieFe]
+                Fe = eng.Fe
 
                 if (Lprint)
                         println("TFSIZE  M0 p0 =", M0, p0)
@@ -504,26 +506,26 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                         M25 = 1.0
                 else
                         #------ use existing state variables as initial guesses
-                        mbf = pare[iembf]
-                        mblc = pare[iemblc]
-                        mbhc = pare[iembhc]
-                        pif = max(pare[iepif], 1.1)
-                        pilc = max(pare[iepilc], 1.1)
-                        pihc = max(pare[iepihc], 1.1)
-                        pt5 = pare[iept5]
-                        M2 = pare[ieM2]
-                        M25 = pare[ieM25]
+                        mbf  = eng.mbf
+                        mblc = eng.mblc
+                        mbhc = eng.mbhc
+                        pif  = max(eng.pif,  1.1)
+                        pilc = max(eng.pilc, 1.1)
+                        pihc = max(eng.pihc, 1.1)
+                        pt5  = eng.st5.pt
+                        M2   = eng.design.M2
+                        M25  = eng.design.M25
                 end
 
                 Fe = 0.0
-                Tt4 = pare[ieTt4]
+                Tt4 = eng.Tt4
 
                 if opt_calc_call == CalcMode.FixedTt4OffDes
                         #------ specified Tt4 -- Fe will be computed
                         nothing; #nothing special is done
                 elseif opt_calc_call == CalcMode.FixedFeOffDes
                         #------ specified Fe -- Tt4 will be computed (set initial guess here)
-                        Fe = pare[ieFe]
+                        Fe = eng.Fe
                 end
 
                 if (Lprint)

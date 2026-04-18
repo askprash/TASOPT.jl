@@ -88,6 +88,7 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.rho0  = pare[ierho0]
     eng.mu0   = pare[iemu0]
     eng.Tfuel = pare[ieTfuel]
+    eng.hfuel = pare[iehfuel]
 
     # -----------------------------------------------------------------------
     # Station 0 — freestream
