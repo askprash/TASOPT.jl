@@ -292,7 +292,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             frac = float(ip - ipclimb1) /
                    float(ipclimbn - ipclimb1)
             Tfrac = fT1 * (1.0 - frac) + fTn * frac
-            pare[ieTt4, ip] = Tt4TO * (1.0 - Tfrac) + Tt4CR * Tfrac
+            Tt4_ip = Tt4TO * (1.0 - Tfrac) + Tt4CR * Tfrac
+            mission.points[ip].engine.st4.Tt = Tt4_ip  # typed state first (tasopt-j9l.60)
+            pare[ieTt4, ip] = Tt4_ip
       end
       #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       #---- initial values for range, time, weight fraction
@@ -335,6 +337,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             para[iaMach, ip] = Mach
             para[iaReunit, ip] = V * ρ / μ
 
+            mission.points[ip].engine.u0 = V      # typed state first (tasopt-j9l.60)
+            mission.points[ip].engine.M0 = Mach
             pare[ieu0, ip] = V
             pare[ieM0, ip] = Mach
 
@@ -342,7 +346,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   Wf = W - Wzero
                   rfuel = Wf / parg[igWfuel]
                   opt_trim_var = TrimVar.CLHtail
-                  balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var; 
+                  balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
 
                   if (ip == ipclimb1)
@@ -463,7 +467,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             W = para[iafracW, ip] * WMTO
             BW = W + para[iaWbuoy, ip]
             F = BW * (DoL + para[iagamV, ip])
-            pare[ieFe, ip] = F / parg[igneng] #Store required thrust for engine calcs
+            mission.points[ip].engine.Fe = F / parg[igneng]   # typed state first (tasopt-j9l.60)
+            pare[ieFe, ip] = mission.points[ip].engine.Fe     # Store required thrust for engine calcs
             Wpay = parg[igWpay]
             
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
@@ -552,7 +557,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       W = para[iafracW, ip] * WMTO
       BW = W + para[iaWbuoy, ip]
       Ftotal = BW * (DoL + para[iagamV, ip])
-      pare[ieFe, ip] = Ftotal / parg[igneng]
+      mission.points[ip].engine.Fe = Ftotal / parg[igneng]   # typed state first (tasopt-j9l.60)
+      pare[ieFe, ip] = mission.points[ip].engine.Fe
 
       eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
       pare_to_engine_state!(mission.points[ip].engine, view(pare, :, ip))
@@ -698,6 +704,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             para[iaMach, ip] = Mach
             para[iaReunit, ip] = V * rho / mission.points[ip].engine.mu0
 
+            mission.points[ip].engine.u0 = V      # typed state first (tasopt-j9l.60)
+            mission.points[ip].engine.M0 = Mach
             pare[ieu0, ip] = V
             pare[ieM0, ip] = Mach
 
@@ -705,7 +713,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Wf = W - Wzero
             rfuel = Wf / parg[igWfuel]
             opt_trim_var = TrimVar.CLHtail
-            balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var; 
+            balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
 
             if (ip == ipdescentn)
@@ -722,7 +730,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             cosg = cos(gamVde)
             DoL = para[iaCD, ip] / para[iaCL, ip]
             Fspec = BW * (sing + cosg * DoL)
-            pare[ieFe, ip] = Fspec / parg[igneng]
+            mission.points[ip].engine.Fe = Fspec / parg[igneng]   # typed state first (tasopt-j9l.60)
+            pare[ieFe, ip] = mission.points[ip].engine.Fe
 
             if initializes_engine
                   # Back-propagate compressor map operating points from the previous
@@ -748,16 +757,20 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                                              #on descent, where the engine is at lower throttle
 
                   # make better estimate for new Tt4, adjusted for new ambient T0
-                  # Read previous-point station temps from typed state; current T0
-                  # from pare (set above by the descent freestream initialisation).
+                  # Read previous-point station temps and current T0/p0 from typed state
+                  # (populated by the pre-sync loop added in tasopt-j9l.42).
                   dTburn = prev_eng.st4.Tt - prev_eng.st3.Tt
                   OTR    = prev_eng.st3.Tt / prev_eng.st2.Tt
-                  Tt3    = pare[ieT0, ip] * OTR
-                  pare[ieTt4, ip] = Tt3 + dTburn + 50.0
+                  Tt3    = cur_eng.T0 * OTR
+                  Tt4_init = Tt3 + dTburn + 50.0
+                  cur_eng.st4.Tt  = Tt4_init         # typed state first (tasopt-j9l.60)
+                  pare[ieTt4, ip] = Tt4_init
 
                   # make better estimate for new pt5, adjusted for new ambient p0
                   # Read previous-point pt5 and p0 from typed state.
-                  pare[iept5, ip] = prev_eng.st5.pt * pare[iep0, ip] / prev_eng.p0
+                  pt5_init        = prev_eng.st5.pt * cur_eng.p0 / prev_eng.p0
+                  cur_eng.st5.pt  = pt5_init          # typed state first (tasopt-j9l.60)
+                  pare[iept5, ip] = pt5_init
 
             end
 
