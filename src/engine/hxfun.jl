@@ -1132,16 +1132,17 @@ struct HXPort
     RadCoolantP :: Float64   # radiator coolant pressure [Pa]           → ieRadiatorCoolantP
     Qradiator   :: Float64   # radiator heat load [W]                   → ieRadiatorHeat
     # --- lambdap_calc inputs ---
-    hvapcombustor :: Float64   # effective hvap in combustor [J/kg]  → iehvapcombustor
+    hvapcombustor :: Float64   # effective hvap in combustor [J/kg]
     etab          :: Float64   # combustion efficiency [—]            → ieetab
 end
 
 """
-    HXPort(pare_sl)
+    HXPort(pare_sl, hvapcombustor)
 
 Construct an `HXPort` from a 1-D pare slice at a single operating point.
+`hvapcombustor` is passed explicitly from typed EngineState (tasopt-w82).
 """
-function HXPort(pare_sl::AbstractVector{<:Real})
+function HXPort(pare_sl::AbstractVector{<:Real}, hvapcombustor::Real)
     HXPort(
         pare_sl[ieDi],
         pare_sl[ieTft],
@@ -1166,7 +1167,7 @@ function HXPort(pare_sl::AbstractVector{<:Real})
         pare_sl[ieRadiatorCoolantT],
         pare_sl[ieRadiatorCoolantP],
         pare_sl[ieRadiatorHeat],
-        pare_sl[iehvapcombustor],
+        hvapcombustor,
         pare_sl[ieetab],
     )
 end
@@ -1195,7 +1196,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       igas = ac.options.ifuel
       HXs = ac.engine.heat_exchangers
 
-      port = HXPort(pare_sl)   # typed snapshot of engine state at design point
+      port = HXPort(pare_sl, ac.missions[imission].points[ipdes].engine.hvapcombustor)   # typed snapshot of engine state at design point
 
       #Initialize Heat Exchanger vector
       Mc_opts = []
@@ -1441,10 +1442,11 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
             else # Radiator
                   ieRadiatorDeltah, ieRadiatorDeltap
             end
-      
+
             for ip = 1:size(pare)[2] #For every point
 
-                  port = HXPort(pare[:, ip])   # typed snapshot for this operating point
+                  eng = mission_points[ip].engine
+                  port = HXPort(pare[:, ip], eng.hvapcombustor)   # typed snapshot for this operating point
 
                   _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 
@@ -1477,7 +1479,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
                         #Store power drawn by recirculation to use it in the engine
                         P_recirc = find_recirculation_power(HXgasp)
                         pare[ieHXrecircP, ip] =  P_recirc
-                        mission_points[ip].engine.HXrecircP = P_recirc  # typed state (tasopt-j9l.41.2)
+                        eng.HXrecircP = P_recirc
                         HXgasp.P_recirc = P_recirc
                   end
 
@@ -1488,7 +1490,6 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
                   new_Δp = (1 - rlx) * pare[Dp_i, ip] + rlx * HXgasp.Δp_p
                   pare[Dh_i, ip] = new_Δh
                   pare[Dp_i, ip] = new_Δp
-                  eng = mission_points[ip].engine
                   if type == "PreC"
                         eng.PreCDeltah = new_Δh;  eng.PreCDeltap = new_Δp
                   elseif type == "InterC"
@@ -1500,7 +1501,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
                   else # Radiator
                         eng.RadiatorDeltah = new_Δh; eng.RadiatorDeltap = new_Δp
                   end
-                  
+
             end
             HeatExchangers[i].HXgas_mission[:,imission] = HXgas_mis
       end

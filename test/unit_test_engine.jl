@@ -2486,10 +2486,6 @@ isGradient = false
                     ieTt5, ieht5, iept5, iecpt5, ieRt5,
                     iep5, ieT5, ieR5, iecp5, ieu5, ieA5,
                     iep6, ieT6, ieR6, iecp6, ieu6, ieA6,
-                    # HX delta outputs (tasopt-7vz)
-                    iePreCDeltah, iePreCDeltap, ieInterCDeltah, ieInterCDeltap,
-                    ieRegenDeltah, ieRegenDeltap, ieTurbCDeltah, ieTurbCDeltap,
-                    ieRadiatorDeltah, ieRadiatorDeltap, ieHXrecircP, iehvapcombustor,
                     ieTt7, ieht7, iept7, iecpt7, ieRt7,
                     iep7, ieT7, ieR7, iecp7, ieu7, ieA7,
                     iep8, ieT8, ieR8, iecp8, ieu8, ieA8,
@@ -2586,10 +2582,6 @@ isGradient = false
                 iep7, ieT7, ieR7, iecp7, ieu7, ieA7,
                 iep8, ieT8, ieR8, iecp8, ieu8, ieA8,
                 ieu9, ieA9,
-                # HX delta outputs (tasopt-7vz)
-                iePreCDeltah, iePreCDeltap, ieInterCDeltah, ieInterCDeltap,
-                ieRegenDeltah, ieRegenDeltap, ieTurbCDeltah, ieTurbCDeltap,
-                ieRadiatorDeltah, ieRadiatorDeltap, ieHXrecircP, iehvapcombustor,
             ]
             for idx in written_indices
                 @test pare_copy[idx] == collect(pare_orig)[idx]
@@ -2614,53 +2606,35 @@ isGradient = false
     end  # off-design engine_state_to_pare! round-trip
 
     # ======================================================================
-    # HX delta output fields in EngineState (tasopt-7vz)
-    # Verifies that pare_to_engine_state! populates all 12 HX delta fields
-    # from their bare pare[ie*] entries, and that engine_state_to_pare!
-    # writes them back with bit-for-bit fidelity.
+    # HX delta output fields in EngineState (tasopt-j9l.41.2 / tasopt-w82)
+    # HX delta fields are written to per-point EngineState by
+    # HXOffDesign!/resetHXs (tasopt-j9l.41.2). For the default model
+    # (no heat exchangers), all fields are 0.0 after sizing.
+    # hvapcombustor is initialized from TOML in read_input.jl (tasopt-j9l.61).
+    # Bare pare slots still maintained for tfcalc! (pending tasopt-w83).
     # ======================================================================
-    @testset "HX delta output fields round-trip (tasopt-7vz)" begin
+    @testset "HX delta output fields initialized correctly (tasopt-w82)" begin
         ac = TASOPT.load_default_model()
         size_aircraft!(ac; printiter=false)
 
         im = 1
         ip = ipcruise1
-        pare_ip = view(ac.pare, :, ip, im)
+        eng = ac.missions[im].points[ip].engine
 
-        # Populate EngineState from sized pare
-        eng = TASOPT.engine.EngineState{Float64}()
-        TASOPT.engine.pare_to_engine_state!(eng, pare_ip)
-
-        # Mirror check: typed fields match bare pare reads
-        @test eng.PreCDeltah    ≈ pare_ip[iePreCDeltah]    rtol=1e-15
-        @test eng.PreCDeltap    ≈ pare_ip[iePreCDeltap]    rtol=1e-15
-        @test eng.InterCDeltah  ≈ pare_ip[ieInterCDeltah]  rtol=1e-15
-        @test eng.InterCDeltap  ≈ pare_ip[ieInterCDeltap]  rtol=1e-15
-        @test eng.RegenDeltah   ≈ pare_ip[ieRegenDeltah]   rtol=1e-15
-        @test eng.RegenDeltap   ≈ pare_ip[ieRegenDeltap]   rtol=1e-15
-        @test eng.TurbCDeltah   ≈ pare_ip[ieTurbCDeltah]   rtol=1e-15
-        @test eng.TurbCDeltap   ≈ pare_ip[ieTurbCDeltap]   rtol=1e-15
-        @test eng.RadiatorDeltah ≈ pare_ip[ieRadiatorDeltah] rtol=1e-15
-        @test eng.RadiatorDeltap ≈ pare_ip[ieRadiatorDeltap] rtol=1e-15
-        @test eng.HXrecircP     ≈ pare_ip[ieHXrecircP]     rtol=1e-15
-        @test eng.hvapcombustor ≈ pare_ip[iehvapcombustor] rtol=1e-15
-
-        # Round-trip check: write back must produce bit-for-bit identical pare
-        pare_copy = copy(collect(pare_ip))
-        TASOPT.engine.engine_state_to_pare!(eng, pare_copy)
-        @test pare_copy[iePreCDeltah]    === collect(pare_ip)[iePreCDeltah]
-        @test pare_copy[iePreCDeltap]    === collect(pare_ip)[iePreCDeltap]
-        @test pare_copy[ieInterCDeltah]  === collect(pare_ip)[ieInterCDeltah]
-        @test pare_copy[ieInterCDeltap]  === collect(pare_ip)[ieInterCDeltap]
-        @test pare_copy[ieRegenDeltah]   === collect(pare_ip)[ieRegenDeltah]
-        @test pare_copy[ieRegenDeltap]   === collect(pare_ip)[ieRegenDeltap]
-        @test pare_copy[ieTurbCDeltah]   === collect(pare_ip)[ieTurbCDeltah]
-        @test pare_copy[ieTurbCDeltap]   === collect(pare_ip)[ieTurbCDeltap]
-        @test pare_copy[ieRadiatorDeltah] === collect(pare_ip)[ieRadiatorDeltah]
-        @test pare_copy[ieRadiatorDeltap] === collect(pare_ip)[ieRadiatorDeltap]
-        @test pare_copy[ieHXrecircP]     === collect(pare_ip)[ieHXrecircP]
-        @test pare_copy[iehvapcombustor] === collect(pare_ip)[iehvapcombustor]
-    end  # HX delta output fields round-trip (tasopt-7vz)
+        @test eng.PreCDeltah    === 0.0
+        @test eng.PreCDeltap    === 0.0
+        @test eng.InterCDeltah  === 0.0
+        @test eng.InterCDeltap  === 0.0
+        @test eng.RegenDeltah   === 0.0
+        @test eng.RegenDeltap   === 0.0
+        @test eng.TurbCDeltah   === 0.0
+        @test eng.TurbCDeltap   === 0.0
+        @test eng.RadiatorDeltah === 0.0
+        @test eng.RadiatorDeltap === 0.0
+        @test eng.HXrecircP     === 0.0
+        # hvapcombustor initialized from TOML (default model: fuel_enthalpy_vaporization = 0.0)
+        @test eng.hvapcombustor ≈ 0.0
+    end  # HX delta output fields initialized correctly (tasopt-w82)
 
     # ======================================================================
     # run_engine_sweep / write_sweep_csv

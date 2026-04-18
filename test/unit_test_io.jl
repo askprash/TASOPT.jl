@@ -268,18 +268,11 @@
         rm(filepath_3ua)
     end
 
-    # tasopt-j9l.61: verify that read_input populates typed hvapcombustor at parse time
-    # from the TOML fuel_enthalpy_vaporization value, so that typed state is consistent
-    # with pare[iehvapcombustor] immediately after parsing (before any HX or sizing call).
+    # tasopt-j9l.61/tasopt-w82: verify that read_input populates typed hvapcombustor at parse
+    # time from the TOML fuel_enthalpy_vaporization value. Bare pare slot removed (tasopt-w82).
     @testset "read_input populates typed hvapcombustor from TOML (tasopt-j9l.61)" begin
         ac_j61 = load_default_model()
         im = 1  # design mission
-
-        # Agreement with pare: typed hvapcombustor must equal bare pare at every flight point.
-        for ip in 1:iptotal
-            @test ac_j61.missions[im].points[ip].engine.hvapcombustor ≈
-                  ac_j61.pare[iehvapcombustor, ip, im]
-        end
 
         # Absolute value: default_input.toml has fuel_enthalpy_vaporization = 0.0 J/kg.
         # This pins that the default flows through correctly.

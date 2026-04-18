@@ -378,8 +378,8 @@
         @test HX.HXgas_mission[ipdes].Δp_p ≈ 41.80997134594434   rtol = 1e-5
 
         for ip =1:iptotal
-            @test pare[iePreCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
-            @test pare[iePreCDeltap, ip] ≈ HX.HXgas_mission[ip].Δp_p
+            @test ac.missions[1].points[ip].engine.PreCDeltah ≈ HX.HXgas_mission[ip].Δh_p
+            @test ac.missions[1].points[ip].engine.PreCDeltap ≈ HX.HXgas_mission[ip].Δp_p
         end
 
         #Test intercooler
@@ -404,8 +404,8 @@
         @test HX.HXgas_mission[ipdes].Δp_p ≈ 169.37872694731894     rtol = 1e-5
 
         for ip =1:iptotal
-            @test pare[ieInterCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
-            @test pare[ieInterCDeltap, ip] ≈ HX.HXgas_mission[ip].Δp_p
+            @test ac.missions[1].points[ip].engine.InterCDeltah ≈ HX.HXgas_mission[ip].Δh_p
+            @test ac.missions[1].points[ip].engine.InterCDeltap ≈ HX.HXgas_mission[ip].Δp_p
         end
 
         #Test cooler of turbine cool. air
@@ -430,8 +430,8 @@
         @test HX.HXgas_mission[ipdes].Δp_p ≈ 1110.4567435115546    rtol = 1e-5
 
         for ip =1:iptotal
-            @test pare[ieTurbCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
-            @test pare[ieTurbCDeltap, ip] ≈ HX.HXgas_mission[ip].Δp_p
+            @test ac.missions[1].points[ip].engine.TurbCDeltah ≈ HX.HXgas_mission[ip].Δh_p
+            @test ac.missions[1].points[ip].engine.TurbCDeltap ≈ HX.HXgas_mission[ip].Δp_p
         end
 
         #Test regenerative cooler
@@ -457,8 +457,8 @@
         @test HX.HXgas_mission[ipdes].Δp_p ≈ 683.4013294966753    rtol = 1e-5
 
         for ip =1:iptotal
-            @test pare[ieRegenDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
-            @test pare[ieRegenDeltap, ip] ≈ HX.HXgas_mission[ip].Δp_p
+            @test ac.missions[1].points[ip].engine.RegenDeltah ≈ HX.HXgas_mission[ip].Δh_p
+            @test ac.missions[1].points[ip].engine.RegenDeltap ≈ HX.HXgas_mission[ip].Δp_p
         end
 
         #Test regenerative cooler with recirculation
@@ -488,8 +488,8 @@
         @test HX.HXgas_mission[ipdes].Δp_p ≈ 2631.338997757214   rtol = 1e-5
 
         for ip =1:iptotal
-            @test pare[ieRegenDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
-            @test pare[ieRegenDeltap, ip] ≈ HX.HXgas_mission[ip].Δp_p
+            @test ac.missions[1].points[ip].engine.RegenDeltah ≈ HX.HXgas_mission[ip].Δh_p
+            @test ac.missions[1].points[ip].engine.RegenDeltap ≈ HX.HXgas_mission[ip].Δp_p
         end
 
         #Test two HXs: intercooler and regenerative cooler
@@ -513,10 +513,10 @@
 
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
-        @test pare[ieInterCDeltah,:] ≈ [-47399.69471010697, -47740.144971300695, 0.0, 0.0, -46223.379303984744, -45614.35675042806, -44255.53328982122, -42510.31277332343, -40803.47385501281, -35670.27659861324, -35028.459999431696, -14649.123279205705, -15687.650334380585, -18743.437352033376, -19895.76521077102, -13459.629078839323, 0.0]
-        @test pare[ieInterCDeltap,:] ≈  [6911.221682597802, 6978.998282421636, 0.0, 0.0, 6572.481153264278, 5778.996020194068, 4959.106626836168, 4236.23491050882, 3622.597346961127, 2786.1893166247346, 2333.5956007679874, 835.7548979321061, 1152.3247104282796, 1636.9467985592994, 2034.8574376314803, 1536.8855772960753, 0.0]
-        @test pare[ieRegenDeltah,:] ≈ [-56935.283625696495, -56171.383754770155, 0.0, 0.0, -53223.268798485864, -58345.594608795596, -65365.3611087536, -73108.7906114299, -80645.93877914204, -58693.27280567447, -60203.14153190324, -12779.527804517973, -13777.042506893777, -17275.511909998022, -18656.185861179954, -13727.106880597872, 0.0]
-        @test pare[ieRegenDeltap,:] ≈ [5428.445956559963, 5510.077421406017, 0.0, 0.0, 5247.653722526897, 4540.47273559838, 3783.5827213135035, 3117.151404333784, 2568.8767033773825, 2137.661714406072, 1779.9034316690568, 634.8647314211605, 850.2758206339971, 1189.9236723819513, 1381.2066306170855, 713.2380850064121, 0.0]
+        @test [ac.missions[1].points[ip].engine.InterCDeltah for ip in 1:iptotal] ≈ [-47399.69471010697, -47740.144971300695, 0.0, 0.0, -46223.379303984744, -45614.35675042806, -44255.53328982122, -42510.31277332343, -40803.47385501281, -35670.27659861324, -35028.459999431696, -14649.123279205705, -15687.650334380585, -18743.437352033376, -19895.76521077102, -13459.629078839323, 0.0]
+        @test [ac.missions[1].points[ip].engine.InterCDeltap for ip in 1:iptotal] ≈  [6911.221682597802, 6978.998282421636, 0.0, 0.0, 6572.481153264278, 5778.996020194068, 4959.106626836168, 4236.23491050882, 3622.597346961127, 2786.1893166247346, 2333.5956007679874, 835.7548979321061, 1152.3247104282796, 1636.9467985592994, 2034.8574376314803, 1536.8855772960753, 0.0]
+        @test [ac.missions[1].points[ip].engine.RegenDeltah for ip in 1:iptotal] ≈ [-56935.283625696495, -56171.383754770155, 0.0, 0.0, -53223.268798485864, -58345.594608795596, -65365.3611087536, -73108.7906114299, -80645.93877914204, -58693.27280567447, -60203.14153190324, -12779.527804517973, -13777.042506893777, -17275.511909998022, -18656.185861179954, -13727.106880597872, 0.0]
+        @test [ac.missions[1].points[ip].engine.RegenDeltap for ip in 1:iptotal] ≈ [5428.445956559963, 5510.077421406017, 0.0, 0.0, 5247.653722526897, 4540.47273559838, 3783.5827213135035, 3117.151404333784, 2568.8767033773825, 2137.661714406072, 1779.9034316690568, 634.8647314211605, 850.2758206339971, 1189.9236723819513, 1381.2066306170855, 713.2380850064121, 0.0]
 
     end
 
@@ -546,8 +546,8 @@
         RadDeltap = [11889.782301788378, 12199.947884193309, 0.0, 0.0, 6837.973458639673, 7234.2480500052325, 6583.766226342551, 5800.5345858177925, 5137.454328099551, 4904.714770668473, 4825.08475325116, 3602.399089169455, 4988.699251604404, 6600.035502631082, 7750.168248828348, 2917.394569501564, 0.0]
 
         for ip =1:iptotal
-            @test pare[ieRadiatorDeltah, ip, 1] ≈ RadDeltah[ip]
-            @test pare[ieRadiatorDeltap, ip, 1] ≈ RadDeltap[ip]
+            @test ac.missions[1].points[ip].engine.RadiatorDeltah ≈ RadDeltah[ip]
+            @test ac.missions[1].points[ip].engine.RadiatorDeltap ≈ RadDeltap[ip]
         end
 
     end

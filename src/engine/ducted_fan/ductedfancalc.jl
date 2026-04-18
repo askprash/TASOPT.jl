@@ -47,8 +47,8 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     u0 = pare[ieu0]
     
     #Heat exchanger variables
-    Δh_radiator = pare[ieRadiatorDeltah]
-    Δp_radiator = pare[ieRadiatorDeltap]
+    Δh_radiator = ac.missions[imission].points[ip].engine.RadiatorDeltah
+    Δp_radiator = ac.missions[imission].points[ip].engine.RadiatorDeltap
 
     #- - - - - - - - - - - - - - - - - - - - - - - 
     #---- set BL ingestion parameters
@@ -128,8 +128,8 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
         mbfD = pare[iembfD]
         pifD = pare[iepifD]
         NbfD = pare[ieNbfD]
-        Δh_radiator = pare[ieRadiatorDeltah]
-        Δp_radiator = pare[ieRadiatorDeltap]
+        Δh_radiator = ac.missions[imission].points[ip].engine.RadiatorDeltah
+        Δp_radiator = ac.missions[imission].points[ip].engine.RadiatorDeltap
 
         if initializes_engine
                 #------ initialize these state variables

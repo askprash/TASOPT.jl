@@ -236,10 +236,8 @@ for im in 1:nmisx
     end
 end
 
-# tasopt-j9l.61: populate typed hvapcombustor directly from TOML at parse time.
-# HX may later set pare[iehvapcombustor]=0 (fuel vaporised upstream); pare_to_engine_state!
-# then updates typed state. This mirrors the initial value so typed state is consistent
-# with pare immediately after parsing, before any HX call.
+# tasopt-j9l.61/tasopt-w82: populate typed hvapcombustor directly from TOML at parse time.
+# HX (resetHXs/HXOffDesign!) maintains this in typed EngineState; pare slot removed (tasopt-w82).
 for im in 1:nmisx
     for ip in 1:iptotal
         missions_vec[im].points[ip].engine.hvapcombustor = hvap_init
