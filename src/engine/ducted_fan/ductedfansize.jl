@@ -97,8 +97,8 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       at0 = sqrt(Tt0 * Rt0 * cpt0 / (cpt0 - Rt0))
 
       # ===============================================================
-      #---- diffuser flow 0-2 via shared Inlet component
-      _inl  = Inlet(pid)
+      #---- diffuser flow 0-2 via shared Inlet component (BLI parameters included)
+      _inl  = Inlet(pid; Kinl=Float64(Kinl), eng_has_BLI_cores=(iBLIc != 0))
       _fs0  = FlowStation{Float64}(Tt0, ht0, pt0, cpt0, Rt0,
                   SVector{5,Float64}(alpha[1], alpha[2], alpha[3], alpha[4], alpha[5]))
       _fs0.st = st0  # entropy-complement not accepted by the 6-arg constructor
@@ -107,54 +107,41 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       Tt18, ht18, pt18, cpt18, Rt18, st18 =
           _fs18.Tt, _fs18.ht, _fs18.pt, _fs18.cpt, _fs18.Rt, _fs18.st
 
+      # BLI output stations (ducted fan has no core; _fs19 satisfies interface)
+      _fs2  = FlowStation{Float64}()
+      _fs19 = FlowStation{Float64}()
+
       #---- initial guesses for station 2 and 1.9
       pt2 = pt18
       Tt2 = Tt18
 
       npass = 60
 
-      sbfan = 0.0
       for ipass = 1:npass
 
             # ===============================================================
             #---- set fan inlet conditions corrected for BLI
             if (ipass == 1)
-                  #c      if(mcore == 0.0)
-                  #----- don't know engine mass flow yet, so ignore any BLI mixing
-                  if (iBLIc == 0)
-                        sbfan = 0.0
-                  else
-                        sbfan = 0.0
-                  end
-
+                  #----- mfan not yet computed; initialise st2 = st18 (sbfan = 0)
+                  _fs2.Tt    = _fs18.Tt;  _fs2.ht    = _fs18.ht;  _fs2.pt   = _fs18.pt
+                  _fs2.cpt   = _fs18.cpt; _fs2.Rt    = _fs18.Rt;  _fs2.st   = _fs18.st
+                  _fs2.alpha = _fs18.alpha
             else
                   #----- account for inlet BLI defect via mass-averaged entropy
-                  a2sq = at0^2 / (1.0 + 0.5 * (gam0 - 1.0) * M2^2)
-
-                  if (iBLIc == 0)
-                        #------ BL mixes with fan flow only
-                        mmix = mfan * sqrt(Tt2 / Tt0) * pt0 / pt2
-                        sbfan2 = Kinl * gam0 / (mmix * a2sq)
-                  else
-                        #------ BL mixes with fan + core flow
-                        mmix = mfan * sqrt(Tt2 / Tt0) * pt0 / pt2 
-                        sbfan2 = Kinl * gam0 / (mmix * a2sq)
-                  end
-
-                  #----- update mixed-out entropies, with some underrelaxation       
-                  rlxs = 0.85
-                  sbfan = sbfan + rlxs * (sbfan2 - sbfan)
-
+                  #      corrected-flow normalisation matches ductedfanoper!/inlet_bli_mixing!
+                  mf_corr = mfan * sqrt(Tt2 / Tref) / (pt2 / pref)
+                  inlet_bli_mixing!(_fs2, _fs19, _fs18, _fs0, _inl,
+                                    mf_corr, 0.0, M2, at0, gam0, Tref, pref)
             end
 
-            #---- note: BL is assumed adiabatic, 
+            #---- note: BL is assumed adiabatic,
             #-     so Tt2,ht2,st2,cpt2,Rt2  will not change due to BL ingestion
-            Tt2 = Tt18
-            ht2 = ht18
-            st2 = st18
-            cpt2 = cpt18
-            Rt2 = Rt18
-            pt2 = pt18 * exp(-sbfan)
+            Tt2  = _fs2.Tt
+            ht2  = _fs2.ht
+            st2  = _fs2.st
+            cpt2 = _fs2.cpt
+            Rt2  = _fs2.Rt
+            pt2  = _fs2.pt
 
 
             # ===============================================================
