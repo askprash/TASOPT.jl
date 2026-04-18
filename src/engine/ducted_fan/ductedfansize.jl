@@ -176,49 +176,28 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
             st7, _, ht7, _, cpt7, Rt7 = gassum(alpha, nair, Tt7)
 
             # ===============================================================
-            #---- fan plume flow 7-8, use alpha mass fraction (air)
-            pt8 = pt7
-            ht8 = ht7
-            Tt8 = Tt7
-            st8 = st7
-            cpt8 = cpt7
-            Rt8 = Rt7
-            pratfn = p0 / pt8
-            p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair, pt8, Tt8, ht8, st8, cpt8, Rt8, pratfn, 1.0)
-            if (h8 >= ht8)
+            #---- Fan nozzle (7) and plume (8) via shared Nozzle component.
+            # pt7 already incorporates pifn and radiator Δp; no additional
+            # pressure loss is applied inside nozzle_exit (pn = 1).
+            fan_nozzle = Nozzle(1.0, 0.0)
+            p7, T7, h7, s7, cp7, R7, u7, rho7, M7 = nozzle_exit(
+                  fan_nozzle, alpha, nair, pt7, Tt7, ht7, st7, cpt7, Rt7, p0)
 
-                  Lconv = false
-
-                  u8 = 0.001 * sqrt(R8 * T8)
-                  error("TFSIZE: Negative fan plume velocity", 
-                        "\n\tpt2,  Tt2  = ", pt2, " Pa, ",  Tt2, " K",
-                        "\n\tpt8,  Tt8  = ", pt8, " Pa, ",  Tt8, " K", 
-                        "\n\tp8,  T8  = "  , p8,  " Pa, ",  T8,  " K")
+            if (M7 < 1.0)
+                  #----- subsonic nozzle: plume fully expanded, same state as nozzle
+                  p8, T8, h8, s8, cp8, R8, u8, rho8 = p7, T7, h7, s7, cp7, R7, u7, rho7
             else
-                  u8 = sqrt(2.0 * (ht8 - h8))
+                  #----- choked nozzle: expand from pt7 to ambient for fan plume (8)
+                  p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair,
+                        pt7, Tt7, ht7, st7, cpt7, Rt7, p0/pt7, 1.0)
+                  if (h8 >= ht7)
+                        error("ductedfansize: negative fan plume velocity",
+                              "\n\tpt7, Tt7 = ", pt7, " Pa, ", Tt7, " K",
+                              "\n\tp8,  T8  = ", p8,  " Pa, ", T8,  " K")
+                  end
+                  u8   = sqrt(2.0 * (ht7 - h8))
+                  rho8 = p8 / (R8 * T8)
             end
-            rho8 = p8 / (R8 * T8)
-
-            # ===============================================================
-            #Static properties
-            M8 = u8 / sqrt(cp8 * R8 / (cp8 - R8) * T8)
-            if (M8 < 1.0)
-                  #----- subsonic fan plume... fan nozzle flow is same as plume
-                  p7 = p8
-                  T7 = T8
-                  h7 = h8
-                  s7 = s8
-                  cp7 = cp8
-                  R7 = R8
-                  u7 = u8
-            else
-                  #----- supersonic fan plume... fan nozzle is choked
-                  M7 = 1.0
-                  p7, T7, h7, s7, cp7, R7 = gas_mach(alpha, nair,
-                        pt7, Tt7, ht7, st7, cpt7, Rt7, 0.0, M7, 1.0)
-                  u7 = sqrt(2.0 * (ht7 - h7))
-            end
-            rho7 = p7 / (R7 * T7)
 
             # ===============================================================
             #---- size mass flow
