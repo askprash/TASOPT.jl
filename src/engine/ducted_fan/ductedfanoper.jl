@@ -96,6 +96,11 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     # Inlet component (diffuser pressure ratio + BLI parameters); captured by closure.
     _inl = Inlet(pid; Kinl=Float64(Kinl), eng_has_BLI_cores=(iBLIc != 0))
 
+    # Fan compressor component — off-design map anchors: pifD, mbfD, NbD=1.
+    # epol_min=0.0 preserves the original behaviour (no floor applied inline).
+    # windmilling=true handles the pf<1 efficiency inversion inside compressor_efficiency.
+    _comp_fan = Compressor(pifD, mbfD, 1.0, epf0, 0.0, FanMap; windmilling=true)
+
     #This function returns the residual of the non-linear engine problem. it
     #can also return the engine performance results.
     function DuctedFanOffDesign(x; iPspec = false, store_data = false)
@@ -109,9 +114,6 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         # Constants
         alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127, 0.0]
         nair = 5
-
-        #---- minimum allowable fan efficiency
-        epfmin = 0.60
 
         # ===============================================================
         #---- freestream static quantities
@@ -152,13 +154,9 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
 
         rho2 = p2 / (R2 * T2)
         # ===============================================================
-        #---- Fan flow flow 2-21
-        _, epf, _, _, _, _, _, _ =
-            calculate_compressor_speed_and_efficiency(FanMap, pf, mf, pifD, mbfD, 1.0, epf0)
-  
-        if (pf < 1.0)
-                epf = 1.0 / epf
-        end
+        #---- Fan flow flow 2-21 via shared Compressor component (efficiency map only;
+        #     gas_prat preserves exact FP evaluation order of the original off-design code)
+        _, epf, _, _, _, _ = compressor_efficiency(_comp_fan, pf, mf)
 
         pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
                 pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
