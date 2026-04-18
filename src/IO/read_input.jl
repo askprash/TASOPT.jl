@@ -224,14 +224,25 @@ end
 
 has_centerbox_fuel  = readfuel("fuel_in_wingcen")
 parg[igrWfmax] = readfuel("fuel_usability_factor")
-pare[iehvap, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of the fuel
-pare[iehvapcombustor, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of fuel, if vaporized in combustor
+hvap_init = readfuel("fuel_enthalpy_vaporization")
+pare[iehvap, :, :] .= hvap_init          #Heat of vaporization of the fuel
+pare[iehvapcombustor, :, :] .= hvap_init #Heat of vaporization of fuel, if vaporized in combustor
 
 # tasopt-3ua: mirror Tfuel to typed engine state for all flight points.
 # Reads directly from pare which was just written, guaranteeing agreement.
 for im in 1:nmisx
     for ip in 1:iptotal
         missions_vec[im].points[ip].engine.Tfuel = pare[ieTfuel, ip, im]
+    end
+end
+
+# tasopt-j9l.61: populate typed hvapcombustor directly from TOML at parse time.
+# HX may later set pare[iehvapcombustor]=0 (fuel vaporised upstream); pare_to_engine_state!
+# then updates typed state. This mirrors the initial value so typed state is consistent
+# with pare immediately after parsing, before any HX call.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        missions_vec[im].points[ip].engine.hvapcombustor = hvap_init
     end
 end
 
