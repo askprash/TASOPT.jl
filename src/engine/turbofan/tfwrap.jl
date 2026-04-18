@@ -34,6 +34,7 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             initializes_engine_firstiter  = false
         end
 
+        pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
         ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
@@ -75,6 +76,7 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         end
         opt_cooling = CoolingOpt.FixedCoolingFlowRatio
 
+        pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
         ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
@@ -82,6 +84,7 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
     elseif case == "cooling_sizing"
         opt_calc_call = CalcMode.FixedTt4OffDes
         opt_cooling = CoolingOpt.FixedTmetal
+        pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
         ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)

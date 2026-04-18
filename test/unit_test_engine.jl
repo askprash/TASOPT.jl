@@ -2799,11 +2799,13 @@ isGradient = false
         @test stations_p1["st3"]["pt"]  > 0.0   # HPC exit total pressure
         @test stations_p1["st2"]["mdot"] > 0.0  # core mass flow
 
-        # Stations not populated from pare have zero total temperature
-        @test stations_p1["st19c"]["Tt"] == 0.0
-        @test stations_p1["st25c"]["Tt"] == 0.0
-        @test stations_p1["st4a"]["Tt"]  == 0.0
-        @test stations_p1["st49c"]["Tt"] == 0.0
+        # st19c/st25c are now written by tfcalc! into the per-point EngineState
+        # (tasopt-j9l.45.16): pare_to_engine_state! moved to tfwrap callers so
+        # computed values accumulate.  st4a/st49c remain zero (not written).
+        @test stations_p1["st19c"]["Tt"] > 0.0   # pre-cooler outlet, populated by tfcalc!
+        @test stations_p1["st25c"]["Tt"] > 0.0   # inter-cooler outlet, populated by tfcalc!
+        @test stations_p1["st4a"]["Tt"]  == 0.0  # still not populated from computation
+        @test stations_p1["st49c"]["Tt"] == 0.0  # still not populated from computation
 
         # ------------------------------------------------------------------
         # Baseline fixture exists and has the right structure.

@@ -27,29 +27,14 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
 function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::EngineState, ip::Int64, ifuel::Int64,
         opt_calc_call::CalcMode.T, opt_cooling::CoolingOpt.T, initializes_engine::Bool)
 
-        # ── ENTRY: build typed EngineState from pare once, shared by both paths ─
-        # Ambient scalars and all station thermodynamics are populated here so
-        # that the sizing and off-design branches can alias `eng` rather than
-        # each constructing their own copy.  Bare pare[ie*] input reads that
-        # previously followed this block have been removed (tasopt-j9l.45.2);
-        # all inputs are now read from `eng.*` below.
-        eng = EngineState{Float64}()
-        pare_to_engine_state!(eng, pare)
-
-        # ── HX delta override: read per-point typed state (tasopt-dti) ─────────
-        # eng_hx is the per-mission-point EngineState populated by resetHXs /
-        # HXOffDesign! before this call.  Override the fields built from bare
-        # pare above so that tfcalc! depends only on typed state for HX deltas.
-        # This is the prerequisite for removing bare pare writes (tasopt-w82).
-        eng.hvapcombustor = eng_hx.hvapcombustor
-        eng.PreCDeltah    = eng_hx.PreCDeltah
-        eng.PreCDeltap    = eng_hx.PreCDeltap
-        eng.InterCDeltah  = eng_hx.InterCDeltah
-        eng.InterCDeltap  = eng_hx.InterCDeltap
-        eng.RegenDeltah   = eng_hx.RegenDeltah
-        eng.RegenDeltap   = eng_hx.RegenDeltap
-        eng.TurbCDeltah   = eng_hx.TurbCDeltah
-        eng.HXrecircP     = eng_hx.HXrecircP
+        # ── ENTRY: alias per-point EngineState (tasopt-j9l.45.16) ────────────────
+        # pare_to_engine_state! is now called by tfwrap.jl callers before each
+        # tfcalc! invocation, populating pare-backed fields on the per-point
+        # EngineState.  HX delta fields (removed from pare in tasopt-w82) are
+        # already set by resetHXs/HXOffDesign! and are preserved across that
+        # call.  The per-point state accumulates non-pare outputs (st19c/st25c)
+        # across calls, which is the desired behaviour for downstream consumers.
+        eng = eng_hx
 
         Lprint = false
 
