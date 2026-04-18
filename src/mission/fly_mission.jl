@@ -56,6 +56,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
         pare[:,:] .= pared[:,:]
     else
         pare[ieu0, ipcruise1] = pared[ieu0, ipcruise1] #Copy flight speed for altitude calculation
+        ac.missions[imission].points[ipcruise1].engine.u0 = ac.missions[1].points[ipcruise1].engine.u0  # dual-write
     end
 
     for ip = ipstatic: ipdescentn
@@ -131,21 +132,21 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     ReCR = parad[iaReunit,ip]
 
     for ip = iprotate: ipclimb1
-      pare[ieu0,ip] = VTO
+      pare[ieu0,ip] = VTO; ac.missions[imission].points[ip].engine.u0 = VTO  # dual-write
       para[iaReunit,ip] = ReTO
     end
     for ip = ipclimb1+1 : ipclimbn
       frac = float(ip-ipclimb1) / float(ipclimbn-ipclimb1)
       V  =  VTO*(1.0-frac) +  VCR*frac
       Re = ReTO*(1.0-frac) + ReCR*frac
-      pare[ieu0,ip] = V
+      pare[ieu0,ip] = V; ac.missions[imission].points[ip].engine.u0 = V  # dual-write
       para[iaReunit,ip] = Re
     end
     for ip = ipdescent1: ipdescentn
       frac = float(ip-ipdescent1) / float(ipdescentn-ipdescent1)
       V  =  VTO*frac +  VCR*(1.0-frac)
       Re = ReTO*frac + ReCR*(1.0-frac)
-      pare[ieu0,ip] = V
+      pare[ieu0,ip] = V; ac.missions[imission].points[ip].engine.u0 = V  # dual-write
       para[iaReunit,ip] = Re
     end
 
@@ -327,7 +328,7 @@ function calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO,
     ρ0 = pare[ierho0, ipcruise1]
     ρcab = max(parg[igpcabin], pare[iep0, ipcruise1]) / (RSL * TSL)
     WbuoyCR = (ρcab - ρ0) * gee * parg[igcabVol]
-    
+
     ip = ipcruise1
     We = WMTO * para[iafracW, ip]
     u0 = pare[ieu0, ip]

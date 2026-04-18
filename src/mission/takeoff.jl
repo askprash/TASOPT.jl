@@ -7,8 +7,9 @@ The aircraft must be defined in parg array. The ipstatic and iprotate points are
 
 """
 function takeoff!(ac; imission=1, printTO = true)
-    
+
     parg, parm, para, pare, _, _, _, wing, _, _, _, _  = unpack_ac(ac, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
 
     #---- Newton convergence tolerance
     toler = 1.0e-7
@@ -33,8 +34,8 @@ function takeoff!(ac; imission=1, printTO = true)
     mubrake = parg[igmubrake]  # max braking resistance coefficient
     hobst = parg[ighobst]    # obstacle height (FAA spec, ~10m I think)
 
-    Vstall = pare[ieu0, iprotate]
-    V2 = pare[ieu0, iptakeoff]
+    Vstall = get_eng(iprotate).u0
+    V2     = get_eng(iptakeoff).u0
 
     cosL = cosd(sweep)
     Afan = 0.25 * pi * dfan^2 * (1.0 - HTRf^2)
@@ -44,7 +45,7 @@ function takeoff!(ac; imission=1, printTO = true)
     CDivert = 0.002
 
     Fmax = pare[ieFe, ipstatic]
-    pare[ieFe, iptakeoff] = Fmax
+    pare[ieFe, iptakeoff] = Fmax; get_eng(iptakeoff).Fe = Fmax  # dual-write
     Fref = pare[ieFe, iprotate]
 
     #---- single-engine thrust-curve constants for takeoff roll calculations
@@ -56,7 +57,7 @@ function takeoff!(ac; imission=1, printTO = true)
 
     #---- normal takeoff
     ip = iprotate
-    rho0 = pare[ierho0, ip]
+    rho0 = get_eng(ip).rho0
     CLroll = 0.0
     para[iaCL, ip] = CLroll
     para[iaCLh, ip] = 0.0
