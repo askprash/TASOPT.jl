@@ -204,45 +204,27 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
 
     # ===============================================================
         #---- fan nozzle flow 7-8, use alpha mass fraction (air)
-        pfn = p0 / pt7
+        # pt7 already incorporates pifn and radiator Δp; no additional
+        # pressure loss applied inside nozzle_exit (pn = 1).
+        fan_nozzle = Nozzle(1.0, A7)
+        p7, T7, h7, s7, cp7, R7, u7, rho7, M7 = nozzle_exit(
+            fan_nozzle, alpha, nair, pt7, Tt7, ht7, st7, cpt7, Rt7, p0)
 
-        p7, T7, h7, s7, cp7, R7 = gas_prat(alpha, nair,
-        pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, 1.0)
-
-        u7 = sqrt(2.0 * max(ht7 - h7, 0.0))
-        M7 = u7 / sqrt(T7 * cp7 * R7 / (cp7 - R7))
-
-        if (M7 > 1.0)
-            #----- fan nozzle is choked... specify M7 = 1 instead
-            M7 = 1.0
-
-            p7, T7, h7, s7, cp7, R7 = gas_mach(alpha, nair,
-                        pt7, Tt7, ht7, st7, cpt7, Rt7, 0.0, M7, 1.0)
-
-        end
-
-        if (ht7 > h7)
-                u7 = sqrt(2.0 * (ht7 - h7))
-                
+        if (M7 < 1.0)
+            #----- subsonic nozzle: plume fully expanded, same state as nozzle exit
+            p8, T8, h8, s8, cp8, R8, u8, rho8 = p7, T7, h7, s7, cp7, R7, u7, rho7
         else
-                u7 = 0.0
-
-        end
-
-        rho7 = p7 / (R7 * T7)
-
-        #Calculate thrust
-        epi = 1.0
-        p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair,
-                        pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, epi)
-
-        if (ht7 > h8)
-            u8 = sqrt(2.0 * (ht7 - h8))
-        else
-            u8 = 0.0
+            #----- choked nozzle: expand from pt7 to ambient for fan plume (8)
+            p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair,
+                pt7, Tt7, ht7, st7, cpt7, Rt7, p0/pt7, 1.0)
+            if (ht7 > h8)
+                u8 = sqrt(2.0 * (ht7 - h8))
+            else
+                u8 = 0.0
+            end
+            rho8 = p8 / (R8 * T8)
         end
         M8 = u8 / sqrt(T8 * R8 * cp8 / (cp8 - R8))
-        rho8 = p8 / (R8 * T8)
 
         #----- overall thrust and power
         if (u0 == 0.0)
