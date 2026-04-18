@@ -13,12 +13,9 @@ saving as an aircraft model file)
 function read_input(k::String, dict::AbstractDict=data, 
     default_dict::AbstractDict = default)
 
-    get!(dict, k) do 
+    get!(dict, k) do
         if k in keys(default_dict)
-            println("\n")
-            @info """$k not found in user specified input file. 
-            Reading $k from default TASOPT input:
-            \n$k = $(default_dict[k])\n\n"""
+            @debug "$k not found in user specified input file; using default: $(default_dict[k])"
             default_dict[k]
         else
             error("Requested key/parameter is not supported. Check the default 
@@ -35,8 +32,7 @@ function get_template_input_file(designrange)
     elseif designrange <= 8500 * nmi_to_m
         templatefile = joinpath(TASOPT.__TASOPTroot__, "../example/defaults/default_wide.toml")
     else
-        println("\n")
-        @warn """Requested aircraft design range exceeds expected capability. Selecting Wide Body Aircraft Template, but be warned. """
+        @warn "Requested aircraft design range exceeds expected capability. Selecting Wide Body Aircraft Template, but be warned."
         templatefile = joinpath(TASOPT.__TASOPTroot__, "../example/defaults/default_wide.toml")
     end
     return templatefile
@@ -99,7 +95,7 @@ data = TOML.parsefile(datafile)
 # Get template input file, with appropriate user notices when needed
 # handle default templatefile value
 if templatefile == ""
-    @info "No template input file provided. Proceeding with template file as determined by design mission range."
+    @debug "No template input file provided. Proceeding with template file as determined by design mission range."
     templatefile = nothing
 # check if provided template input file is extant
 elseif !isfile(templatefile)
@@ -112,7 +108,7 @@ if isnothing(templatefile)
     #determine appropriate template input file based on mission range
     designrange = Distance.(data["Mission"]["range"])[1] #in meters
     templatefile = get_template_input_file(designrange)
-    @info "Template input file selected: $templatefile"
+    @debug "Template input file selected: $templatefile"
 end
 
 default = TOML.parsefile(templatefile)
@@ -1364,7 +1360,7 @@ ac = TASOPT.aircraft(name, description, ac_options,
 # ---------------------------------
 # Recalculate cabin length
 if calculate_cabin #Resize the cabin if desired, keeping deltas
-    @info "Fuselage and stabilizer layouts have been overwritten; deltas will be maintained."
+    @debug "Fuselage and stabilizer layouts have been overwritten; deltas will be maintained."
     update_fuse_for_pax!(ac) #update fuselage dimensions
 end
 

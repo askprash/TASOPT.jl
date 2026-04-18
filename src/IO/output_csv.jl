@@ -151,7 +151,7 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
         bool_append = false
         if isfile(filepath)
             rm(filepath)
-            @info "overwriting "*filepath
+            @debug "overwriting "*filepath
         end
 
     # else, assign new filepath, checking header append-compatibility
@@ -215,7 +215,7 @@ function check_file_headers(filepath, header)
     #does file already exist?
     #if not
     if !isfile(filepath)    
-        @info "output to .csv creating new file: "*basename(filepath)
+        @debug "output to .csv creating new file: "*basename(filepath)
         return filepath, false  #write to the given filepath, append = false
     else #if file already exists
         #check if headers match, 
@@ -224,7 +224,7 @@ function check_file_headers(filepath, header)
                                r"Column\d+" .=> "")
         
         if header == header_old #if so, simple append to given filepath, append = true
-            @info "output to .csv appending to: "*basename(filepath)
+            @debug "output to .csv appending to: "*basename(filepath)
             return filepath, true
         else    #if not, add a suffix to the filename
             #split filepath into components
