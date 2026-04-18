@@ -97,9 +97,9 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     _inl = Inlet(pid; Kinl=Float64(Kinl), eng_has_BLI_cores=(iBLIc != 0))
 
     # Fan compressor component — off-design map anchors: pifD, mbfD, NbD=1.
-    # epol_min=0.0 preserves the original behaviour (no floor applied inline).
+    # epol_min=0.60 matches ductedfansize! and applies the intended efficiency floor.
     # windmilling=true handles the pf<1 efficiency inversion inside compressor_efficiency.
-    _comp_fan = Compressor(pifD, mbfD, 1.0, epf0, 0.0, FanMap; windmilling=true)
+    _comp_fan = Compressor(pifD, mbfD, 1.0, epf0, 0.60, FanMap; windmilling=true)
 
     #This function returns the residual of the non-linear engine problem. it
     #can also return the engine performance results.
