@@ -112,7 +112,7 @@ function _size_aircraft!(ac; itermax=35,
     xfuel = ltank = 0.0
 
     # Set up fuel storage parameters (wing vs fuselage)
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, ac.missions[imission].points)
 
     # -------------------------------------------------------
     ## Initial guess section [Section 3.2 of TASOPT docs]
@@ -883,7 +883,7 @@ function update_wing_pitching_moments!(para, ip_range, wing)
 end
 
 """
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_points)
 
 Initializes fuel storage parameters based on whether fuel is stored in the
 wings or fuselage. For fuselage storage, computes fuel properties from the
@@ -893,7 +893,7 @@ necessarily true.
 
 Also resets heat exchanger values for the engine.
 """
-function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_points)
     if options.has_wing_fuel
         xftank = xftankaft = 0.0
     else
@@ -923,7 +923,7 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
     parg[igxftankaft] = xftankaft
 
     # Reset engine values for heat exchangers
-    resetHXs(pare)
+    resetHXs(pare, mission_points)
 
     return nothing
 end

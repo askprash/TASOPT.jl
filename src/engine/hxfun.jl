@@ -1236,7 +1236,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       # Analyze off-design performance
       #---------------------------------
      
-      HXOffDesign!(HXs, pare, igas, imission, rlx = rlx)
+      HXOffDesign!(HXs, pare, igas, imission, ac.missions[imission].points, rlx = rlx)
 
       for i in 1:length(HXs)
             HXs[i].HXgas_mission[ipdes,imission].Mc_in = Mc_opts[i] #Store optimum Mc_in
@@ -1419,7 +1419,7 @@ mission point.
     Modifies `pare` with the fuel temperature and the HX enthalpy and pressure changes and
     `HeatExchangers` with the gas properties at every mission point.
 """
-function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
+function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx = 1.0)
       if length(HeatExchangers) == 0 #Skip if no HXs
             return
       end
@@ -1477,14 +1477,29 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
                         #Store power drawn by recirculation to use it in the engine
                         P_recirc = find_recirculation_power(HXgasp)
                         pare[ieHXrecircP, ip] =  P_recirc
+                        mission_points[ip].engine.HXrecircP = P_recirc  # typed state (tasopt-j9l.41.2)
                         HXgasp.P_recirc = P_recirc
                   end
 
                   HXgas_mis[ip] = HXgasp
 
-                  #Store output in pare
-                  pare[Dh_i, ip] =  (1 - rlx) * pare[Dh_i, ip] + rlx * HXgasp.Δh_p
-                  pare[Dp_i, ip] = (1 - rlx) * pare[Dp_i, ip] + rlx * HXgasp.Δp_p
+                  #Store output in pare and typed state (tasopt-j9l.41.2)
+                  new_Δh = (1 - rlx) * pare[Dh_i, ip] + rlx * HXgasp.Δh_p
+                  new_Δp = (1 - rlx) * pare[Dp_i, ip] + rlx * HXgasp.Δp_p
+                  pare[Dh_i, ip] = new_Δh
+                  pare[Dp_i, ip] = new_Δp
+                  eng = mission_points[ip].engine
+                  if type == "PreC"
+                        eng.PreCDeltah = new_Δh;  eng.PreCDeltap = new_Δp
+                  elseif type == "InterC"
+                        eng.InterCDeltah = new_Δh; eng.InterCDeltap = new_Δp
+                  elseif type == "Regen"
+                        eng.RegenDeltah = new_Δh;  eng.RegenDeltap = new_Δp
+                  elseif type == "TurbC"
+                        eng.TurbCDeltah = new_Δh;  eng.TurbCDeltap = new_Δp
+                  else # Radiator
+                        eng.RadiatorDeltah = new_Δh; eng.RadiatorDeltap = new_Δp
+                  end
                   
             end
             HeatExchangers[i].HXgas_mission[:,imission] = HXgas_mis
@@ -1501,12 +1516,17 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
                         HXgas = lastHX.HXgas_mission[ip, imission]
                         Tf = HXgas.Tc_out
 
-                        pare[ieTfuel, ip] = (1 - rlx) * pare[ieTfuel, ip] + rlx * Tf
+                        new_Tfuel = (1 - rlx) * pare[ieTfuel, ip] + rlx * Tf
+                        pare[ieTfuel, ip] = new_Tfuel
+                        mission_points[ip].engine.Tfuel = new_Tfuel  # typed state (tasopt-j9l.41.2)
                   end
             end
 
             if (has_recirculation)  #Currently, non-zero heat of vaporization is only accounted for if there is recirculation
                   pare[iehvapcombustor, :, :] .= 0.0 #Fuel is vaporized in HX
+                  for ip in eachindex(mission_points)  # typed state (tasopt-j9l.41.2)
+                        mission_points[ip].engine.hvapcombustor = 0.0
+                  end
             end
 
             findMinWallTemperature!(HeatExchangers) #Store minimum wall temperature at each mission point to check for freezing
@@ -1535,19 +1555,21 @@ function findLiquidCoolant!(HXgas)
 end
 
 """
-      resetHXs(pare)
+      resetHXs(pare, mission_points)
 
 This function sets the fuel temperature to the temperature in the tank and sets the enthalpy and pressure changes
-across the HXs to zero.      
+across the HXs to zero.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `pare::Array{Float64 , 3}`: array with engine parameters
+    - `mission_points`: vector of `MissionPoint` for the current mission
 
     **Outputs:**
-    Modifies `pare` with the fuel temperature and the HX enthalpy and pressure changes
+    Modifies `pare` and the typed `EngineState` in each `MissionPoint` with the fuel temperature and the HX
+    enthalpy and pressure changes
 """
-function resetHXs(pare)
+function resetHXs(pare, mission_points)
       #Reset fuel temperature
       pare[ieTfuel, :] = pare[ieTft, :] #Fuel tank temperature
 
@@ -1567,6 +1589,24 @@ function resetHXs(pare)
       #Reset heat of vaporization in combustor
       pare[iehvapcombustor, :, :] = pare[iehvap, :, :]
 
+      # Dual-write typed state (tasopt-j9l.41.2)
+      npoints = size(pare, 2)
+      for ip in 1:npoints
+            eng = mission_points[ip].engine
+            eng.Tfuel          = pare[ieTfuel, ip]
+            eng.PreCDeltah     = 0.0
+            eng.PreCDeltap     = 0.0
+            eng.InterCDeltah   = 0.0
+            eng.InterCDeltap   = 0.0
+            eng.TurbCDeltah    = 0.0
+            eng.TurbCDeltap    = 0.0
+            eng.RegenDeltah    = 0.0
+            eng.RegenDeltap    = 0.0
+            eng.RadiatorDeltah = 0.0
+            eng.RadiatorDeltap = 0.0
+            eng.HXrecircP      = 0.0
+            eng.hvapcombustor  = pare[iehvap, ip]
+      end
 end
 
 """

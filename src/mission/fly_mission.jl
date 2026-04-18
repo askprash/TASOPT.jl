@@ -220,7 +220,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     # Initialize previous weight iterations
     WTO1, WTO2, WTO3 = zeros(Float64, 3) #1st-previous to 3rd previous iteration weight for convergence criterion
 
-    resetHXs(pare) #Reset heat exchanger parameters
+    resetHXs(pare, ac.missions[imission].points) #Reset heat exchanger parameters
 
 #---- no convergence yet
     Lconv = false
@@ -259,7 +259,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
         pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
 
     end     
-    HXOffDesign!(eng.heat_exchangers, pare, ac.options.ifuel, imission)
+    HXOffDesign!(eng.heat_exchangers, pare, ac.options.ifuel, imission, ac.missions[imission].points)
 
 #-------------------------------------------------------------------------
 
