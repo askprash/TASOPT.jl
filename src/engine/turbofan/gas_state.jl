@@ -27,7 +27,7 @@ post-combustion products use `lambda`.  Both representations have exactly
 five components and live in the same field — callers are responsible for
 tracking which interpretation applies.
 
-## OQ-5 decision (programmer authority, 2026-04-14)
+## Notes
 
 The legacy `gascalc.jl` interface passes `n` (number of species) as a
 runtime `Int` argument at every call site (≥50 call sites across 13
@@ -36,8 +36,7 @@ files and creates unacceptable merge risk at this stage.
 
 Resolution — option (b): **keep `n` as `Int` in the legacy interface** and
 add `@assert n == 5` in debug builds at each call site, so any inadvertent
-mismatch is caught immediately.  Dropping `n` entirely (option a) is
-deferred to post-Phase-2 cleanup (tracked in tasopt-5wg).
+mismatch is caught immediately.
 
 ## Fields
 

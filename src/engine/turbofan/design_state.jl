@@ -36,7 +36,7 @@ Depending on `CoolingOpt`, either the bypass ratios (`epsrow`) or the metal
 temperatures (`Tmrow`) are specified inputs and the other is computed during
 sizing; both are stored here after the design is frozen.
 
-## OQ-4 decision (aerospace + programmer, 2026-04-14)
+## Cooling mixing constants
 `ruc` (cooling-flow velocity ratio at the mixing plane) and `M4a`
 (prescribed Mach number at the start-of-mixing / cooling-flow outlet,
 station 4a) are frozen design constants — not thermodynamic station
