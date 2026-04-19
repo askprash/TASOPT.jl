@@ -1137,15 +1137,16 @@ struct HXPort
 end
 
 """
-    HXPort(pare_sl, hvapcombustor)
+    HXPort(pare_sl, Tfuel_tank, hvapcombustor)
 
 Construct an `HXPort` from a 1-D pare slice at a single operating point.
-`hvapcombustor` is passed explicitly from typed EngineState (tasopt-w82).
+`Tfuel_tank` and `hvapcombustor` are passed explicitly from typed EngineState
+(tasopt-fgs, tasopt-w82) rather than read from bare pare.
 """
-function HXPort(pare_sl::AbstractVector{<:Real}, hvapcombustor::Real)
+function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor::Real)
     HXPort(
         pare_sl[ieDi],
-        pare_sl[ieTft],
+        Tfuel_tank,
         pare_sl[iehvap],
         pare_sl[iemcore],
         pare_sl[iemofft],
@@ -1196,7 +1197,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       igas = ac.options.ifuel
       HXs = ac.engine.heat_exchangers
 
-      port = HXPort(pare_sl, ac.missions[imission].points[ipdes].engine.hvapcombustor)   # typed snapshot of engine state at design point
+      port = HXPort(pare_sl, ac.missions[imission].points[ipdes].engine.Tfuel_tank, ac.missions[imission].points[ipdes].engine.hvapcombustor)   # typed snapshot of engine state at design point
 
       #Initialize Heat Exchanger vector
       Mc_opts = []
@@ -1434,7 +1435,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
             for ip = 1:size(pare)[2] #For every point
 
                   eng = mission_points[ip].engine
-                  port = HXPort(pare[:, ip], eng.hvapcombustor)   # typed snapshot for this operating point
+                  port = HXPort(pare[:, ip], eng.Tfuel_tank, eng.hvapcombustor)   # typed snapshot for this operating point
 
                   _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 
@@ -1570,14 +1571,14 @@ function resetHXs(pare, mission_points)
       pare[ieTfuel, :] = pare[ieTft, :] #Fuel tank temperature
 
       # Reset typed EngineState for every mission point (tasopt-w82 / tasopt-p1e)
-      # Tfuel: read directly from ieTft (tank temp, source-of-truth) rather than
-      # the ieTfuel copy that line 1570 just made — eliminates ieTfuel indirection.
+      # Tfuel: read from eng.Tfuel_tank (typed source-of-truth, tasopt-fgs) rather
+      # than bare pare[ieTft] — eliminates the last bare ieTft read in resetHXs.
       # hvapcombustor: reset from eng.hvap (initial value, set by read_input) instead
       # of bare pare[iehvap] — fully removes the iehvap bare-pare read (tasopt-p1e).
       npoints = size(pare, 2)
       for ip in 1:npoints
             eng = mission_points[ip].engine
-            eng.Tfuel          = pare[ieTft, ip]
+            eng.Tfuel          = eng.Tfuel_tank
             eng.PreCDeltah     = 0.0
             eng.PreCDeltap     = 0.0
             eng.InterCDeltah   = 0.0

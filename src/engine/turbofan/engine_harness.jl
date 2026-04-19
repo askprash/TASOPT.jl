@@ -87,7 +87,8 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.a0    = pare[iea0]
     eng.rho0  = pare[ierho0]
     eng.mu0   = pare[iemu0]
-    eng.Tfuel = pare[ieTfuel]
+    eng.Tfuel      = pare[ieTfuel]
+    eng.Tfuel_tank = pare[ieTft]
     eng.hfuel  = pare[iehfuel]
     # Scalar outputs backed by pare (tasopt-j9l.45.14.1)
     eng.ff     = pare[ieff]
@@ -438,7 +439,8 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[iea0]    = eng.a0
     pare[ierho0]  = eng.rho0
     pare[iemu0]   = eng.mu0
-    pare[ieTfuel] = eng.Tfuel
+    pare[ieTfuel]  = eng.Tfuel
+    pare[ieTft]    = eng.Tfuel_tank
     # hfuel is a computed output of tfsize!/tfoper! written to typed state in
     # the sizing/off-des EXIT blocks (tasopt-j9l.45.14.1); sync back to pare so
     # that pare_to_engine_state! pre-syncs do not overwrite with stale values.

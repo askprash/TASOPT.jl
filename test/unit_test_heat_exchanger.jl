@@ -325,6 +325,10 @@
         pare[ieDi, :] .= 0.564
         pare[ieTft, :] .= 20
         pare[ieetab,:] .= 1.0
+        # mirror bare-pare ieTft write to typed state (tasopt-fgs: HXPort now reads eng.Tfuel_tank)
+        for im in 1:length(ac.missions), ip in 1:length(ac.missions[im].points)
+            ac.missions[im].points[ip].engine.Tfuel_tank = 20.0
+        end
 
         ac.options.ifuel = 40
        

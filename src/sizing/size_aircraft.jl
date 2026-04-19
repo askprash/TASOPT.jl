@@ -920,6 +920,9 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_point
         # Set fuel properties in parameter arrays and tank struct
         pare[ieTft, :] .= Tfuel
         pare[ieTfuel, :] .= Tfuel
+        for mp in mission_points   # mirror to typed state (tasopt-fgs)
+            mp.engine.Tfuel_tank = Tfuel
+        end
         parg[igrhofuel] = fuel_mix.ρ
         fuse_tank.rhofuel = ρliq
         fuse_tank.Tfuel = Tfuel

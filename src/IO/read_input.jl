@@ -233,7 +233,8 @@ pare[iehvap, :, :] .= hvap_init          #Heat of vaporization of the fuel
 # JET-A: Tfuel_init = fuel_temp; LH2/CH4: Tfuel_init = 0.0 matches zero-init EngineState default.
 for im in 1:nmisx
     for ip in 1:iptotal
-        missions_vec[im].points[ip].engine.Tfuel = Tfuel_init
+        missions_vec[im].points[ip].engine.Tfuel      = Tfuel_init
+        missions_vec[im].points[ip].engine.Tfuel_tank = Tfuel_init
     end
 end
 
