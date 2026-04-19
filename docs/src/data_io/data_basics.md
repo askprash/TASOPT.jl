@@ -7,6 +7,8 @@ Performance and design data is held largely in the `par` arrays (a holdover from
 
     In a future major revision, we aim to completely replace the `par` array system with the `struct`-oriented approach.
 
+    **Engine quantities are already migrated.** After any `size_aircraft!` or `fly_mission!` call, engine outputs for each flight point are accessible via the typed `EngineState` API (see [Engine typed state](@ref engine_typed_state) below) instead of `pare[ie*]`.
+
 ## `par` arrays
 
 Four arrays contain both prescribed inputs *and* computed outputs, some of which are multi-dimensional:
@@ -51,6 +53,37 @@ println(ac.pare[ieTfuel,ipcruise1,:])
 
 
 can be included via the convenience variable `__TASOPTindices__`
+
+## [Engine typed state](@id engine_typed_state)
+
+Engine performance outputs are also accessible through the typed `EngineState` API, which is the preferred way to read engine results after a solve. Each `FlightPoint` in a mission carries an `engine` field of type `EngineState`:
+
+```julia
+using TASOPT
+include(__TASOPTindices__)
+ac = load_default_model()
+size_aircraft!(ac)
+
+# Read cruise engine state (mission 1, cruise-start flight point)
+eng = ac.missions[1].points[ipcruise1].engine
+
+# Thermodynamic station quantities (total pressure, total temperature)
+OPR  = eng.pt3 / eng.pt2        # Overall Pressure Ratio  (HPC exit / fan face)
+FPR  = eng.pt21 / eng.pt2       # Fan Pressure Ratio      (fan exit / fan face)
+Tt4  = eng.Tt4                  # Combustor exit temperature [K]
+Tt3  = eng.Tt3                  # HPC exit temperature [K]
+
+# Cycle-level outputs
+TSFC = eng.TSFC                 # Thrust-specific fuel consumption [kg/N/s]
+BPR  = eng.BPR                  # Bypass ratio
+pif  = eng.pif                  # Fan pressure ratio
+pihc = eng.pihc                 # HPC pressure ratio
+
+# Aggregate over all flight points in a mission
+Tt3_max = maximum(p.engine.Tt3 for p in ac.missions[1].points)
+```
+
+Station shortcuts follow the pattern `eng.TtN` / `eng.ptN` for total temperature and pressure at station `N` (e.g. `eng.Tt3`, `eng.pt21`). The full station list and all available fields are documented in [`EngineState`](@ref).
 
 
 

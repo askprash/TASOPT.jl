@@ -67,12 +67,13 @@ function obj(x, grad)
 
     # Extract objective function value (PFEI)
     f = ac.parm[imPFEI]
-    
+    eng_cruise = ac.missions[1].points[ipcruise1].engine
+
     # Store optimization history
     push!(PFEIarray, f)
     push!(xarray, copy(x))
     push!(CDarray, ac.para[iaCD, ipcruise1, 1])
-    push!(OPRarray, ac.pare[iept3, ipcruise1, 1] / ac.pare[iept2, ipcruise1, 1])
+    push!(OPRarray, eng_cruise.pt3 / eng_cruise.pt2)
 
     # Apply constraints with penalty functions
     total_penalty = 0.0
@@ -99,7 +100,7 @@ function obj(x, grad)
 
     # 3. Maximum turbine temperature constraint
     Tt3max = 900.0  # [K]
-    Tt3 = maximum(ac.pare[ieTt3, :, 1])
+    Tt3 = maximum(p.engine.Tt3 for p in ac.missions[1].points)
     if Tt3 > Tt3max
         constraint = Tt3/Tt3max - 1.0
         penalty = 5.0 * ac.parg[igWpay] * constraint^2
@@ -161,8 +162,8 @@ function obj(x, grad)
     f_total = f + total_penalty
     
     # Print progress
-    OPR = ac.pare[iept3, ipcruise1, 1] / ac.pare[iept2, ipcruise1, 1]
-    FPR = ac.pare[iept21, ipcruise1, 1]/ac.pare[iept2, ipcruise1, 1]
+    OPR = eng_cruise.pt3 / eng_cruise.pt2
+    FPR = eng_cruise.pt21 / eng_cruise.pt2
     global iter += 1
     
     diags_to_print = Dict(
@@ -175,7 +176,7 @@ function obj(x, grad)
         "FPR" => FPR,
         "OPR" => OPR,
         "Dfan" => ac.parg[igdfan],
-        "TSFC[g/kN]" => ac.pare[ieTSFC, ipcruise1, 1]/gee *1e3 *1e3,
+        "TSFC[g/kN]" => eng_cruise.TSFC/gee *1e3 *1e3,
     )
 
     
@@ -228,10 +229,10 @@ initial = [
     ac.wing.outboard.cross_section.thickness_to_chord,    # Current span t/c
     ac.para[iarcls, ipcruise1, 1],                         # Current rcls
     ac.para[iarclt, ipcruise1, 1],                         # Current rclt
-    ac.pare[ieTt4, ipcruise1, 1],                          # Current Tt4
-    ac.pare[iepihc, ipcruise1, 1],                         # Current π_hc
-    ac.pare[iepif, ipcruise1, 1],                          # Current π_f
-    ac.pare[ieBPR, ipcruise1, 1],                          # Current BPR
+    ac.missions[1].points[ipcruise1].engine.Tt4,            # Current Tt4
+    ac.missions[1].points[ipcruise1].engine.pihc,          # Current π_hc
+    ac.missions[1].points[ipcruise1].engine.pif,           # Current π_f
+    ac.missions[1].points[ipcruise1].engine.BPR,           # Current BPR
 ]
 
 # Ensure initial values are within bounds
