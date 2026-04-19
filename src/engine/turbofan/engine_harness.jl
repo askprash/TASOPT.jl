@@ -88,7 +88,24 @@ function pare_to_engine_state!(eng::EngineState, pare)
     eng.rho0  = pare[ierho0]
     eng.mu0   = pare[iemu0]
     eng.Tfuel = pare[ieTfuel]
-    eng.hfuel = pare[iehfuel]
+    eng.hfuel  = pare[iehfuel]
+    # Scalar outputs backed by pare (tasopt-j9l.45.14.1)
+    eng.ff     = pare[ieff]
+    eng.mofft  = pare[iemofft]
+    eng.Pofft  = pare[iePofft]
+    eng.Phiinl = pare[iePhiinl]
+    eng.Kinl   = pare[ieKinl]
+    eng.Nf     = pare[ieNf]
+    eng.N1     = pare[ieN1]
+    eng.N2     = pare[ieN2]
+    eng.Nbf    = pare[ieNbf]
+    eng.Nblc   = pare[ieNblc]
+    eng.Nbhc   = pare[ieNbhc]
+    eng.epf    = pare[ieepf]
+    eng.eplc   = pare[ieeplc]
+    eng.ephc   = pare[ieephc]
+    eng.epht   = pare[ieepht]
+    eng.eplt   = pare[ieeplt]
 
     # -----------------------------------------------------------------------
     # Station 0 — freestream
@@ -384,7 +401,8 @@ coverage as `pare_to_engine_state!`):
 - **Mass flow** (mdot): station 2 (`mcore`).
 - **Station 9**: Tt, pt, u, A.
 - **Performance rollup**: `TSFC`, `Fsp`, `BPR`, `mfuel`.  `Fe` is NOT written here
-  (it is mode-dependent: a conditional bare write handles FixedTt4OffDes output).
+  (it is mode-dependent: written by tfcalc! EXIT blocks for Sizing and FixedTt4OffDes;
+  for FixedFeOffDes Fe is an INPUT and `pare[ieFe]` must retain the target value).
 
 Fields not in `pare` (stations 19c, 25c, 4a, 49c; `hs`, `ss`) are not written.
 """
@@ -395,6 +413,31 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[iep0]    = eng.p0
     pare[iea0]    = eng.a0
     pare[ieTfuel] = eng.Tfuel
+    # hfuel is a computed output of tfsize!/tfoper! written to typed state in
+    # the sizing/off-des EXIT blocks (tasopt-j9l.45.14.1); sync back to pare so
+    # that pare_to_engine_state! pre-syncs do not overwrite with stale values.
+    pare[iehfuel]  = eng.hfuel
+    # Scalar outputs set in sized/off-des EXIT blocks (tasopt-j9l.45.14.1)
+    pare[ieff]     = eng.ff
+    pare[iemofft]  = eng.mofft
+    pare[iePofft]  = eng.Pofft
+    pare[iePhiinl] = eng.Phiinl
+    pare[ieKinl]   = eng.Kinl
+
+    # Shaft speeds (tasopt-j9l.45.14.1)
+    pare[ieNf]   = eng.Nf
+    pare[ieN1]   = eng.N1
+    pare[ieN2]   = eng.N2
+    pare[ieNbf]  = eng.Nbf
+    pare[ieNblc] = eng.Nblc
+    pare[ieNbhc] = eng.Nbhc
+
+    # Polytropic loss fractions (tasopt-j9l.45.14.1)
+    pare[ieepf]  = eng.epf
+    pare[ieeplc] = eng.eplc
+    pare[ieephc] = eng.ephc
+    pare[ieepht] = eng.epht
+    pare[ieeplt] = eng.eplt
 
     # Heat-exchanger delta outputs (tasopt-j9l.41.3)
     # Removed: HXOffDesign!/resetHXs write directly to pare (tasopt-j9l.41.2),
@@ -429,8 +472,9 @@ function engine_state_to_pare!(eng::EngineState, pare)
     _write_total!(pare, ieTt3, ieht3, iept3, iecpt3, ieRt3, eng.st3)
 
     # Station 4 — CombustorExit
-    # NOTE: Tt4 is an INPUT to tfsize! (not written back); only derived
-    # quantities ht4/pt4/cpt4/Rt4 are outputs.
+    # Tt4: INPUT in Sizing/FixedTt4OffDes (write-back is idempotent); COMPUTED OUTPUT in
+    # FixedFeOffDes (written to eng.st4.Tt in EXIT block, tasopt-j9l.45.14.1).
+    pare[ieTt4]  = eng.st4.Tt
     pare[ieht4]  = eng.st4.ht
     pare[iept4]  = eng.st4.pt
     pare[iecpt4] = eng.st4.cpt
@@ -483,26 +527,25 @@ function engine_state_to_pare!(eng::EngineState, pare)
         pare[ieTmet1+icrow-1] = eng.design.Tmrow[icrow]
     end
 
-    # Compressor map operating points (tasopt-drd)
-    # Sync typed state back to pare so off-design Newton solver
-    # (tfcalc!) can use them as initial guesses for the next call.
+    # Compressor map operating points + duct Mach numbers (tasopt-drd, tasopt-j9l.45.14.1)
+    # Sync typed state back to pare so off-design Newton solver (tfcalc!) can use them as
+    # initial guesses for the next call.  M2/M25 are updated to the converged off-design
+    # values in the EXIT block before this call.
     pare[iembf]  = eng.mbf
     pare[iemblc] = eng.mblc
     pare[iembhc] = eng.mbhc
     pare[iepif]  = eng.pif
     pare[iepilc] = eng.pilc
     pare[iepihc] = eng.pihc
+    pare[ieM2]   = eng.design.M2
+    pare[ieM25]  = eng.design.M25
 
     # Performance rollup scalars (tasopt-j9l.52)
-    # NOTE: pare[ieFe] is intentionally NOT written here.
-    # Fe is a MODE-DEPENDENT input/output:
-    #   - CalcMode.Sizing:          Fe = INPUT (design thrust target)
-    #   - CalcMode.FixedTt4OffDes:  Fe = OUTPUT (computed thrust)
-    #   - CalcMode.FixedFeOffDes:   Fe = INPUT (required thrust from mission optimization)
-    # Writing Fe unconditionally would corrupt the required thrust in FixedFeOffDes
-    # mode (Newton convergence gives Fe_returned ≠ Fe_required at floating-point level).
-    # The conditional bare write `if FixedTt4OffDes: pare[ieFe] = Fe` handles the
-    # off-design output case, exactly mirroring the ieTt4 pattern for FixedFeOffDes.
+    # Fe is NOT written here — it is mode-dependent (tasopt-j9l.45.14.1):
+    #   Sizing / FixedTt4OffDes: Fe is a COMPUTED OUTPUT → written by tfcalc! EXIT block.
+    #   FixedFeOffDes:           Fe is an INPUT target  → pare[ieFe] must be left unchanged
+    #     so that the next iteration's pre-sync (pare_to_engine_state!) reads the correct
+    #     target thrust from flight mechanics, not the Newton residual at convergence.
     pare[ieTSFC]  = eng.TSFC
     pare[ieFsp]   = eng.Fsp
     pare[ieBPR]   = eng.BPR

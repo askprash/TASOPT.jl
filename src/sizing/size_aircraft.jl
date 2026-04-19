@@ -720,7 +720,7 @@ function _size_aircraft!(ac; itermax=35,
                         Ldebug = Ldebug)
 
     #Check if all engine points have converged, warn if not
-    check_engine_convergence_failure(pare)
+    check_engine_convergence_failure(ac, imission)
     
     #Warn user if HX effectiveness is overwritten
     check_HX_overwriting(eng.heat_exchangers) 

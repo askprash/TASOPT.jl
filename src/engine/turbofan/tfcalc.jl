@@ -164,7 +164,6 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
 
         #--------------------------------------------------------------------------
         #Engine model convergence
-        pare[ieConvFail] = 0.0 #Converged by default
         eng.ConvFail = 0.0
 
         # #--------------------------------------------------------------------------
@@ -427,8 +426,28 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 # thermodynamics, and performance rollup scalars; the shared
                 # ambient+inlet writes below the if/else (st0/st18/st19/u0)
                 # are now redundant and removed.
+
+                # Scalar fields not covered by engine_state_to_pare! — set in
+                # typed state before the projection call so pare is correct.
+                eng_design.hfuel  = hfuel
+                eng_design.ff     = ff
+                eng_design.mofft  = mofft
+                eng_design.Pofft  = Pofft
+                eng_design.Phiinl = Phiinl
+                eng_design.Kinl   = Kinl
+                eng_design.Nf    = Nf;    eng_design.N1   = N1;    eng_design.N2   = N2
+                eng_design.Nbf   = Nbf;   eng_design.Nblc = Nblc;  eng_design.Nbhc = Nbhc
+                eng_design.mbf   = mbf;   eng_design.mblc = mblc;  eng_design.mbhc = mbhc
+                eng_design.pif   = pif;   eng_design.pilc = pilc;  eng_design.pihc = pihc
+                eng_design.epf   = epf;   eng_design.eplc = eplc;  eng_design.ephc = ephc
+                eng_design.epht  = epht;  eng_design.eplt = eplt
+
                 design_state_to_pare!(eng_design.design, pare)
                 engine_state_to_pare!(eng_design, pare)
+                # Fe is a COMPUTED OUTPUT in Sizing mode — write to pare after engine_state_to_pare!
+                # (not written inside engine_state_to_pare! because Fe is mode-dependent;
+                #  tasopt-j9l.45.14.1).
+                pare[ieFe] = eng_design.Fe
                 # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
                 HTRf = parg[igHTRf]
@@ -693,11 +712,36 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                     eng_offdes.eta_thermal = 0.0
                 end
 
-                # Project thermodynamic state back to pare.  Writes ambient
-                # scalars, station fields, and performance rollup scalars.
-                # Does NOT write M2/M25/Tt4 (handled below) or design-point
-                # scalars (read-only for off-des).
+                # Scalar fields set in typed state before engine_state_to_pare! so
+                # the projection call writes correct values to pare (tasopt-j9l.45.14.1).
+                eng_offdes.hfuel  = hfuel
+                eng_offdes.ff     = ff
+                eng_offdes.mofft  = mofft
+                eng_offdes.Pofft  = Pofft
+                eng_offdes.Phiinl = Phiinl
+                eng_offdes.Kinl   = Kinl
+                eng_offdes.Nf    = Nbf  * sqrt(Tt2   / Tref)
+                eng_offdes.N1    = Nblc * sqrt(Tt19c / Tref)
+                eng_offdes.N2    = Nbhc * sqrt(Tt25c / Tref)
+                eng_offdes.Nbf   = Nbf;   eng_offdes.Nblc = Nblc;  eng_offdes.Nbhc = Nbhc
+                eng_offdes.mbf   = mbf;   eng_offdes.mblc = mblc;  eng_offdes.mbhc = mbhc
+                eng_offdes.pif   = pif;   eng_offdes.pilc = pilc;  eng_offdes.pihc = pihc
+                eng_offdes.epf   = epf;   eng_offdes.eplc = eplc;  eng_offdes.ephc = ephc
+                eng_offdes.epht  = epht;  eng_offdes.eplt = eplt
+                # M2/M25: off-design converged values used as initial guess for next call;
+                # written here so engine_state_to_pare! syncs them to pare.
+                eng_offdes.design.M2  = M2
+                eng_offdes.design.M25 = M25
+
+                # Project thermodynamic state back to pare.
                 engine_state_to_pare!(eng_offdes, pare)
+                # Fe is mode-dependent (tasopt-j9l.45.14.1):
+                #   FixedTt4OffDes — Fe is a COMPUTED OUTPUT; write to pare.
+                #   FixedFeOffDes  — Fe is an INPUT target; pare[ieFe] must retain the
+                #     target value set by flight mechanics (not the Newton residual).
+                if opt_calc_call == CalcMode.FixedTt4OffDes
+                        pare[ieFe] = Fe
+                end
 
                 if (Lprint)
                         println("exited TFOPER", Lconv)
@@ -705,36 +749,18 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
 
                 if (!Lconv)
                         #@warn "Convergence failed on operating point: $ip"
-                        pare[ieConvFail] = 1.0 #Store convergence failure
                         eng_offdes.ConvFail = 1.0
                 end
 
                 fo = mofft / mcore
 
-                Nf = Nbf * sqrt(Tt2 / Tref)
-                N1 = Nblc * sqrt(Tt19c / Tref)
-                N2 = Nbhc * sqrt(Tt25c / Tref)
-
-                pare[ieM2] = M2
-                eng_offdes.design.M2 = M2
-                pare[ieM25] = M25
-                eng_offdes.design.M25 = M25
-
-                # Fe: mode-dependent (tasopt-j9l.52).
-                # FixedTt4OffDes: Fe is a COMPUTED OUTPUT → write bare (engine_state_to_pare!
-                #   does NOT write ieFe; see its docstring for the Tt4/Fe analogy).
-                # FixedFeOffDes:  Fe is an INPUT (required thrust from mission optimization)
-                #   → do NOT overwrite pare[ieFe]; writing Fe_returned (which may differ by
-                #   Newton-convergence tolerance) would corrupt the required-thrust value.
-                # pare[ieBPR] removed (tasopt-j9l.52): always computed output, written by
+                # pare[iBPR] removed (tasopt-j9l.52): always computed output, written by
                 #   engine_state_to_pare! via eng.BPR for both FixedTt4 and FixedFe.
-                if opt_calc_call == CalcMode.FixedTt4OffDes
-                        pare[ieFe] = Fe
-                elseif opt_calc_call == CalcMode.FixedFeOffDes
-                        # Tt4 is a COMPUTED OUTPUT in FixedFeOffDes mode; engine_state_to_pare!
-                        # does NOT write ieTt4 (Tt4 is a sizing INPUT in the general case).
-                        pare[ieTt4] = Tt4
-                end
+                # pare[ieFe]: mode-dependent — written above (after engine_state_to_pare!)
+                #   for FixedTt4OffDes only; for FixedFeOffDes pare[ieFe] retains the
+                #   input target thrust set by flight mechanics (tasopt-j9l.45.14.1).
+                # pare[ieTt4] removed (tasopt-j9l.45.14.1): engine_state_to_pare! writes
+                #   it via eng_offdes.st4.Tt, which captures Tt4 in both modes.
 
                 # println("exited TFOPER call")
 
@@ -752,68 +778,14 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         #   pare[iefc] is NOT touched in FixedCoolingFlowRatio mode (retains
         #   initialization value).  Route through eng.design.fc (set in EXIT
         #   block at line 656 as (1 - mofft/mcore)*sum(epsrow)) — tasopt-j9l.54.
-        if opt_cooling == CoolingOpt.FixedTmetal
-                pare[iefc] = eng.design.fc
-        end
-
+        # pare[iefc] removed (tasopt-j9l.45.14.1): eng.design.fc set in EXIT blocks;
+        #   engine_state_to_pare! writes it for FixedTmetal via sync_cooling_scalars_to_pare!.
         # pare[ieTSFC] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.TSFC
         # pare[ieFsp]  removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.Fsp
         # pare[iemcore] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.st2.mdot
-        pare[iehfuel] = hfuel;   eng.hfuel  = hfuel
-        pare[ieff] = ff;         eng.ff     = ff
-        pare[iemofft] = mofft;   eng.mofft  = mofft
-        pare[iePofft] = Pofft;   eng.Pofft  = Pofft
-        pare[iePhiinl] = Phiinl; eng.Phiinl = Phiinl
-        pare[ieKinl] = Kinl;     eng.Kinl   = Kinl
-
-        pare[ieNf]   = Nbf  * sqrt(Tt2   / Tref); eng.Nf   = Nbf  * sqrt(Tt2   / Tref)
-        pare[ieN1]   = Nblc * sqrt(Tt19c / Tref); eng.N1   = Nblc * sqrt(Tt19c / Tref)
-        pare[ieN2]   = Nbhc * sqrt(Tt25c / Tref); eng.N2   = Nbhc * sqrt(Tt25c / Tref)
-        pare[ieNbf]  = Nbf;  eng.Nbf  = Nbf
-        pare[ieNblc] = Nblc; eng.Nblc = Nblc
-        pare[ieNbhc] = Nbhc; eng.Nbhc = Nbhc
-        pare[iembf]  = mbf;  eng.mbf  = mbf
-        pare[iemblc] = mblc; eng.mblc = mblc
-        pare[iembhc] = mbhc; eng.mbhc = mbhc
-        pare[iepif]  = pif;  eng.pif  = pif
-        pare[iepilc] = pilc; eng.pilc = pilc
-        pare[iepihc] = pihc; eng.pihc = pihc
-
-        # Stations and performance scalars written by engine_state_to_pare! (tasopt-j9l.16-52):
-        # st0/st18/st19 total state: written via eng.st0/st18/st19
-        # st2 total (Tt2/ht2/pt2/cpt2/Rt2): written via eng.st2
-        # st21 total (Tt21/ht21/pt21/cpt21/Rt21): written via eng.st21
-        # st25 total (Tt25/ht25/pt25/cpt25/Rt25): written via eng.st25
-        # st3 total (Tt3/ht3/pt3/cpt3/Rt3): written via eng.st3
-        # st4 derived total (ht4/pt4/cpt4/Rt4): written via eng.st4
-        #   Tt4 is an INPUT in sizing; written directly above only in FixedFeOffDes mode.
-        # st41 total (Tt41/ht41/pt41/cpt41/Rt41): written via eng.st41
-        # st45 total (Tt45/ht45/pt45/cpt45/Rt45): written via eng.st45
-        # st49 total (Tt49/ht49/pt49/cpt49/Rt49): written via eng.st49
-        # st49c is NOT in pare (no ie* indices defined); remains in eng.st49c only.
-        # st5 total (Tt5/ht5/pt5/cpt5/Rt5): written via eng.st5
-        # st5 static (p5/T5/R5/cp5/u5) and A5: written via eng.st5
-        # st6 static (p6/T6/R6/cp6/u6) and A6: written via eng.st6
-        # st7 total (Tt7/ht7/pt7/cpt7/Rt7): written via eng.st7
-        # st7 static (p7/T7/R7/cp7/u7) and A7: written via eng.st7
-        # st8 static (p8/T8/R8/cp8/u8) and A8: written via eng.st8
-        # st9 (u9/A9): written via eng.st9
-        # st2 static (p2/T2/R2/cp2/u2): written via eng.st2
-        # st25 static (p25/T25/R25/cp25/u25): written via eng.st25
-        # ieu0: written via eng.st0.u
-        # ieTSFC/ieFsp: written via eng.TSFC/eng.Fsp (tasopt-j9l.52)
-        # ieFe: conditional bare write above (FixedTt4OffDes only); FixedFeOffDes retains
-        #   the required thrust from mission optimization (tasopt-j9l.52)
-        # ieBPR: written via eng.BPR (tasopt-j9l.52)
-        # iemcore: written via eng.st2.mdot (tasopt-j9l.52)
-        # iemfuel: written via eng.mfuel (tasopt-j9l.52)
-
-        pare[ieepf]  = epf;  eng.epf  = epf
-        pare[ieeplc] = eplc; eng.eplc = eplc
-        pare[ieephc] = ephc; eng.ephc = ephc
-        pare[ieepht] = epht; eng.epht = epht
-        pare[ieeplt] = eplt; eng.eplt = eplt
-
+        # pare[iehfuel..ieKinl], pare[ieNf..ieNbhc], pare[iembf..iepihc], pare[ieepf..ieeplt]
+        #   removed (tasopt-j9l.45.14.1): written by engine_state_to_pare! via typed EngineState
+        #   fields set in the sizing/off-des EXIT blocks.
         # pare[ieetaf..ieetalt] removed (tasopt-j9l.63.1): written by engine_state_to_pare! via eng.etaf..etalt
         # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
@@ -831,16 +803,23 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
 
         if (Lprint)
                 println(" exiting TFCALC")
-                println("Tt3 Tt4 u0 u6 u8 fo fc", Tt3, Tt4, u0, u6, u8, fo, pare[iefc])
+                println("Tt3 Tt4 u0 u6 u8 fo fc", Tt3, Tt4, u0, u6, u8, fo, eng.design.fc)
         end
         
         return ichoke5, ichoke7
 end # tfcalc
 
-function check_engine_convergence_failure(pare)
-        if sum(pare[ieConvFail, :]) > 0.0 #If any operating point failed to converge
-                warn("Some engine points failed to converge: "*string(pare[ieConvFail,:]))
-        # else
-        #         nothing #All operating points converged
+"""
+    check_engine_convergence_failure(ac, imission)
+
+Check whether any engine operating point failed to converge for `imission`.
+Reads `ConvFail` from the typed `EngineState` of each mission point.
+Emits a warning if any point did not converge.
+"""
+function check_engine_convergence_failure(ac, imission::Int)
+        points = ac.missions[imission].points
+        failed = [ip for (ip, pt) in enumerate(points) if pt.engine.ConvFail != 0.0]
+        if !isempty(failed)
+                @warn "Some engine points failed to converge: point indices $failed"
         end
 end
