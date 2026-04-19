@@ -17,7 +17,7 @@
 
         TASOPT.engine.calculate_thrust_from_ROC!(ac, ip, imission)
 
-        @test ac.pare[ieFe,ip,1] ≈ 4865.490242567016 #Check that the thrust is set to zero when the climb rate is zero
+        @test ac.missions[imission].points[ip].engine.Fe ≈ 4865.490242567016 #Check that the thrust is set to zero when the climb rate is zero
     end
     @testset "Ducted fan models" begin
         #__ Test ducted fan sizing function __
@@ -206,8 +206,8 @@
 
         engine.enginecalc!(ac, "design", 1, ipcruise1, true)
 
-        @test pare[iemfuel,ipcruise1,1] ≈ 0.0005481461619779067
-        @test pare[iePfan,ipcruise1,1] ≈ 6.043228014711607e6
+        @test ac.missions[1].points[ipcruise1].engine.mfuel ≈ 0.0005481461619779067
+        @test ac.missions[1].points[ipcruise1].engine.Pfan  ≈ 6.043228014711607e6
         @test ac.engine.data.number_cells ≈ 265.5192500533146
         @test ac.engine.data.area_cell ≈ 5.0
         @test ac.engine.data.FC_heat[ipcruise1,1] ≈ 2.6917275229945835e6
@@ -241,8 +241,8 @@
         pare[ieu0,iprotate,1] = 73.89982446679213
         engine.enginecalc!(ac, "off_design", 1, iprotate, true)
 
-        @test pare[iemfuel,iprotate,1] ≈ 0.0010447183729991173
-        @test pare[iePfan,iprotate,1] ≈ 1.0000000000384096e7
+        @test ac.missions[1].points[iprotate].engine.mfuel ≈ 0.0010447183729991173
+        @test ac.missions[1].points[iprotate].engine.Pfan  ≈ 1.0000000000384096e7
         @test ac.engine.data.FC_heat[iprotate,1] ≈ 6.64805697887804e6
     end
 

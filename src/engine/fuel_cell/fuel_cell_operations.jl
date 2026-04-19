@@ -100,7 +100,8 @@ function operate_fuel_cell!(ac, ip, imission)
     I = P / V_stack #Current
     mfuel = I * M_h2 / (2*F) #Molar flux of hydrogen gas
 
-    pare[iemfuel] = mfuel * ac.parg[igneng]
+    pare[iemfuel] = mfuel * ac.parg[igneng]  # bare pare + typed state dual-write (tasopt-j9l.45.12)
+    ac.missions[imission].points[ip].engine.mfuel = mfuel * ac.parg[igneng]
     fcdata.stack_voltage[ip, imission] = V_stack
     fcdata.FC_heat[ip, imission] = Q
     fcdata.current_density[ip, imission] = I/A_cell

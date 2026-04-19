@@ -35,5 +35,6 @@ function calculate_thrust_from_ROC!(ac, ip, imission)
     ϕ = (sqrt(-A^2*B^6 - 2*A^2*B^4 - A^2*B^2 + B^6 + 2*B^4 + B^2) + A*B^2 + A)/(B^2 + 1)#Closed form solution
     Ftotal = BW * ϕ #Total thrust required for climb
     Fe = Ftotal / neng #required thrust per engine
-    pare[ieFe] = Fe #Store computed thrust
+    pare[ieFe] = Fe  # Store computed thrust (bare pare + typed state dual-write, tasopt-j9l.45.12)
+    ac.missions[imission].points[ip].engine.Fe = Fe
 end
