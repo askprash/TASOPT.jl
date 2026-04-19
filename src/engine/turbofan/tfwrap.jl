@@ -39,41 +39,23 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
 
-        # store engine design-point parameters for all operating points
+        # Propagate design-point scalars to all per-point typed EngineStates.
+        # sync_design_scalars_to_pare! also writes the same 19 fields to bare
+        # pare so that the pre-sync loop in mission_iteration.jl does not
+        # overwrite mbfD/NbfD/etc. with zero values from an un-initialised bare
+        # pare column (tasopt-j9l.45.14.2).  ruc/M4a are intentionally excluded
+        # (written only for the design point inside tfcalc!; overwriting
+        # non-design-point bare-pare columns triggers H2-sizing NaN).
         eng_ip = ac.missions[imission].points[ip].engine
         parg[igA5] = eng_ip.design.A5 / eng_ip.A5fac
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
-        pare[ieA2, :]    .= eng_ip.design.A2
-        pare[ieA25, :]   .= eng_ip.design.A25
-        pare[ieA5, :]    .= parg[igA5] .* pare[ieA5fac, :]
-        pare[ieA7, :]    .= parg[igA7] .* pare[ieA7fac, :]
-
-        pare[ieNbfD, :]  .= eng_ip.design.NbfD
-        pare[ieNblcD, :] .= eng_ip.design.NblcD
-        pare[ieNbhcD, :] .= eng_ip.design.NbhcD
-        pare[ieNbhtD, :] .= eng_ip.design.NbhtD
-        pare[ieNbltD, :] .= eng_ip.design.NbltD
-
-        pare[iembfD, :]  .= eng_ip.design.mbfD
-        pare[iemblcD, :] .= eng_ip.design.mblcD
-        pare[iembhcD, :] .= eng_ip.design.mbhcD
-        pare[iembhtD, :] .= eng_ip.design.mbhtD
-        pare[iembltD, :] .= eng_ip.design.mbltD
-
-        pare[iepifD, :]  .= eng_ip.design.pifD
-        pare[iepilcD, :] .= eng_ip.design.pilcD
-        pare[iepihcD, :] .= eng_ip.design.pihcD
-        pare[iepihtD, :] .= eng_ip.design.pihtD
-        pare[iepiltD, :] .= eng_ip.design.piltD
-
-        # Dual-write: propagate design-point scalars to all per-point typed EngineStates
         for jp = 1:iptotal
             eng_jp = ac.missions[imission].points[jp].engine
             eng_jp.design.A2    = eng_ip.design.A2
             eng_jp.design.A25   = eng_ip.design.A25
-            eng_jp.design.A5    = parg[igA5] * pare[ieA5fac, jp]
-            eng_jp.design.A7    = parg[igA7] * pare[ieA7fac, jp]
+            eng_jp.design.A5    = parg[igA5] * eng_jp.A5fac
+            eng_jp.design.A7    = parg[igA7] * eng_jp.A7fac
             eng_jp.design.NbfD  = eng_ip.design.NbfD
             eng_jp.design.NblcD = eng_ip.design.NblcD
             eng_jp.design.NbhcD = eng_ip.design.NbhcD
@@ -89,6 +71,7 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             eng_jp.design.pihcD = eng_ip.design.pihcD
             eng_jp.design.pihtD = eng_ip.design.pihtD
             eng_jp.design.piltD = eng_ip.design.piltD
+            sync_design_scalars_to_pare!(eng_jp.design, view(pare, :, jp))
         end
         
     elseif case == "off_design"
@@ -114,17 +97,16 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
-        # Tmetal was specified... set blade row cooling flow ratios for all points
+        # Tmetal was specified... propagate blade-row cooling fractions to all points.
+        # sync_cooling_scalars_to_pare! keeps bare pare in sync so that the
+        # pre-sync in mission_iteration.jl does not clobber the freshly computed
+        # values with stale bare-pare values (tasopt-j9l.45.14.2).
         eng_ip = ac.missions[imission].points[ip].engine
         for jp = 1:iptotal
-            for icrow = 1:ncrowx
-                pare[ieepsc1+icrow-1, jp] = eng_ip.design.epsrow[icrow]
-            end
-            # also set first estimate of total cooling mass flow fraction
-            pare[iefc, jp] = eng_ip.design.fc
-            # dual-write cooling state to typed EngineState
-            ac.missions[imission].points[jp].engine.design.epsrow = eng_ip.design.epsrow
-            ac.missions[imission].points[jp].engine.design.fc     = eng_ip.design.fc
+            eng_jp = ac.missions[imission].points[jp].engine
+            eng_jp.design.epsrow = eng_ip.design.epsrow
+            eng_jp.design.fc     = eng_ip.design.fc
+            sync_cooling_scalars_to_pare!(eng_jp.design, view(pare, :, jp))
         end
     end
 end

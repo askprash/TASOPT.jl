@@ -54,12 +54,13 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     if (initializes_engine)
         #----- use design case as initial guess for engine state
         pare[:,:] .= pared[:,:]
-        # Sync design-point values for early-flight points to typed EngineState.
-        # ipstatic:ipcutback are not covered by _mission_iteration!'s per-point
-        # sync (which only calls enginecalc! for climb/cruise/descent), so without
-        # this pass, typed state for Fe, mfuel, mcore, etc. would be zero when
-        # takeoff! reads them later. (tasopt-oeh)
-        for ip in ipstatic:ipcutback
+        # Sync design-point bare-pare values to typed EngineState for all mission
+        # points.  _mission_iteration!'s per-point sync only covers climb (5-9)
+        # and descent; early-flight points (ipstatic:ipcutback) have no engine
+        # call there so their Fe/mfuel/etc. would be zero when takeoff! reads
+        # them, and ipcruise1 is not covered when calculate_cruise=true
+        # (tasopt-oeh, tasopt-j9l.45.14.2).
+        for ip in ipstatic:iptotal
             pare_to_engine_state!(ac.missions[imission].points[ip].engine,
                                   view(pare, :, ip))
         end

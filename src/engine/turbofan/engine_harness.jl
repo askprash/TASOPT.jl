@@ -610,6 +610,77 @@ function design_state_to_pare!(ds::DesignState, pare)
 end
 
 # ---------------------------------------------------------------------------
+# sync_design_scalars_to_pare! — write compressor-map anchor scalars to pare
+# ---------------------------------------------------------------------------
+
+"""
+    sync_design_scalars_to_pare!(ds, pare) -> ds
+
+Write the compressor-map anchor scalars from a `DesignState` to a `pare`
+slice: flow areas (A2, A25, A5, A7), corrected spool speeds (NbfD..NbltD),
+corrected mass flows (mbfD..mbltD), and pressure ratios (pifD..piltD).
+
+Unlike `design_state_to_pare!`, this does **not** write `ruc` or `M4a`.
+Those cooling mixing constants are initialised from the design-point bare-pare
+write (`design_state_to_pare!` inside `tfcalc!`) and must not be overwritten
+for non-design mission points during the per-point broadcast in `tfwrap!`
+(tasopt-j9l.45.14.2).
+"""
+function sync_design_scalars_to_pare!(ds::DesignState, pare)
+    # Flow areas
+    pare[ieA2]  = ds.A2
+    pare[ieA25] = ds.A25
+    pare[ieA5]  = ds.A5
+    pare[ieA7]  = ds.A7
+
+    # Design-point corrected spool speeds
+    pare[ieNbfD]  = ds.NbfD
+    pare[ieNblcD] = ds.NblcD
+    pare[ieNbhcD] = ds.NbhcD
+    pare[ieNbhtD] = ds.NbhtD
+    pare[ieNbltD] = ds.NbltD
+
+    # Design-point corrected mass flows
+    pare[iembfD]  = ds.mbfD
+    pare[iemblcD] = ds.mblcD
+    pare[iembhcD] = ds.mbhcD
+    pare[iembhtD] = ds.mbhtD
+    pare[iembltD] = ds.mbltD
+
+    # Design-point pressure ratios
+    pare[iepifD]  = ds.pifD
+    pare[iepilcD] = ds.pilcD
+    pare[iepihcD] = ds.pihcD
+    pare[iepihtD] = ds.pihtD
+    pare[iepiltD] = ds.piltD
+
+    return ds
+end
+
+# ---------------------------------------------------------------------------
+# sync_cooling_scalars_to_pare! — write cooling design scalars to pare
+# ---------------------------------------------------------------------------
+
+"""
+    sync_cooling_scalars_to_pare!(ds, pare) -> ds
+
+Write the blade-row cooling bypass fractions (`epsrow`) and total cooling
+mass-flow fraction (`fc`) from a `DesignState` to a `pare` slice.
+
+Called after `FixedTmetal` cooling sizing to keep bare pare in sync with the
+typed EngineState, so that `pare_to_engine_state!` pre-syncs in
+`_mission_iteration!` do not overwrite the freshly computed cooling fractions
+with stale values (tasopt-j9l.45.14.2).
+"""
+function sync_cooling_scalars_to_pare!(ds::DesignState, pare)
+    for icrow in 1:length(ds.epsrow)
+        pare[ieepsc1+icrow-1] = ds.epsrow[icrow]
+    end
+    pare[iefc] = ds.fc
+    return ds
+end
+
+# ---------------------------------------------------------------------------
 # run_engine_design_point
 # ---------------------------------------------------------------------------
 
