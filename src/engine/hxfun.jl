@@ -1569,11 +1569,15 @@ function resetHXs(pare, mission_points)
       #Reset fuel temperature
       pare[ieTfuel, :] = pare[ieTft, :] #Fuel tank temperature
 
-      # Reset typed EngineState for every mission point (tasopt-w82)
+      # Reset typed EngineState for every mission point (tasopt-w82 / tasopt-p1e)
+      # Tfuel: read directly from ieTft (tank temp, source-of-truth) rather than
+      # the ieTfuel copy that line 1570 just made — eliminates ieTfuel indirection.
+      # hvapcombustor: reset from eng.hvap (initial value, set by read_input) instead
+      # of bare pare[iehvap] — fully removes the iehvap bare-pare read (tasopt-p1e).
       npoints = size(pare, 2)
       for ip in 1:npoints
             eng = mission_points[ip].engine
-            eng.Tfuel          = pare[ieTfuel, ip]
+            eng.Tfuel          = pare[ieTft, ip]
             eng.PreCDeltah     = 0.0
             eng.PreCDeltap     = 0.0
             eng.InterCDeltah   = 0.0
@@ -1585,7 +1589,7 @@ function resetHXs(pare, mission_points)
             eng.RadiatorDeltah = 0.0
             eng.RadiatorDeltap = 0.0
             eng.HXrecircP      = 0.0
-            eng.hvapcombustor  = pare[iehvap, ip]
+            eng.hvapcombustor  = eng.hvap
       end
 end
 
