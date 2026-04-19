@@ -8,14 +8,9 @@
 
 [meta]
 julia_version = "1.11.9"
-date          = "2026-04-15"
-description   = "Baseline captured post-warmup on ralph-bd-afk Docker sandbox"
+date = "2026-04-19"
+description = "Baseline captured post-warmup on ralph-bd-afk Docker sandbox"
 
 [benchmark]
-# Heap allocations made by run_engine_sweep(ac) after JIT warmup.
-# Measured with @allocations (deterministic — not hardware-dependent).
-alloc_count = 36889
-
-# Median wall-clock time (seconds) over 5 post-warmup runs.
-# Hardware-dependent; used as informational reference only.
-elapsed_s = 0.001377
+elapsed_s = 0.001506852
+alloc_count = 35390

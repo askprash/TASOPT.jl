@@ -128,17 +128,19 @@
 
     # tasopt-1v7: verify that read_aircraft_model populates typed per-point engine
     # state for Tt4, T0 (takeoff), and nozzle area factors at input time.
-    # Typed state must agree with pare immediately after parsing — no sizing needed.
+    # After tasopt-j9l.45.14.4 bare pare is no longer populated at parse time;
+    # only typed state carries these values until the first engine call.
     @testset "read_input populates per-point engine state from input (tasopt-1v7)" begin
         ac_1v7 = load_default_model()
         im = 1  # design mission
 
-        # Tt4 at key flight points — representative mirror check at ipcruise1
-        @test ac_1v7.missions[im].points[ipcruise1].engine.st4.Tt ≈ ac_1v7.pare[ieTt4, ipcruise1, im]
-        # Typed-only: Tt4_takeoff = 1833.0 K; ipclimb1 gets Tt4_cruise = 1587.0 (read_input broadcast)
-        @test ac_1v7.missions[im].points[ipstatic].engine.st4.Tt  ≈ 1833.0
-        @test ac_1v7.missions[im].points[iptakeoff].engine.st4.Tt ≈ 1833.0
-        @test ac_1v7.missions[im].points[ipclimb1].engine.st4.Tt  ≈ 1587.0
+        # Tt4 at key flight points — typed-only after tasopt-j9l.45.14.4 (bare pare no longer
+        # populated by read_input.jl; engine_state_to_pare! writes it on first engine call).
+        # Tt4_takeoff = 1833.0 K; ipclimb1/ipcruise1 get Tt4_cruise = 1587.0 (read_input broadcast)
+        @test ac_1v7.missions[im].points[ipstatic].engine.st4.Tt   ≈ 1833.0
+        @test ac_1v7.missions[im].points[iptakeoff].engine.st4.Tt  ≈ 1833.0
+        @test ac_1v7.missions[im].points[ipclimb1].engine.st4.Tt   ≈ 1587.0
+        @test ac_1v7.missions[im].points[ipcruise1].engine.st4.Tt  ≈ 1587.0
 
         # T0 at takeoff points: 288.2 K (default_input.toml: takeoff_T = [288.2, 298.0])
         @test ac_1v7.missions[im].points[ipstatic].engine.T0  ≈ 288.2
@@ -165,9 +167,10 @@
         im = 1  # design mission
         eng_d = ac_50r.missions[im].points[ipcruise1].engine.design
 
-        # Component pressure ratios — representative mirror check for pid
-        @test eng_d.pid    ≈ ac_50r.pare[iepid,    1, im]
-        # Typed-only: values from default_input.toml (same as tasopt-j9l.43)
+        # Component pressure ratios — typed-only after tasopt-j9l.45.14.4
+        # (bare pare no longer populated by read_input.jl)
+        # Values from default_input.toml (same as tasopt-j9l.43)
+        @test eng_d.pid    ≈ 0.998
         @test eng_d.pib    ≈ 0.94
         @test eng_d.pifn   ≈ 0.98
         @test eng_d.pitn   ≈ 0.989
@@ -261,9 +264,8 @@
         ac_3ua = load_default_model()
         im = 1  # design mission
 
-        # Representative mirror: typed Tfuel matches bare pare at ipcruise1
-        @test ac_3ua.missions[im].points[ipcruise1].engine.Tfuel ≈ ac_3ua.pare[ieTfuel, ipcruise1, im]
-        # Typed-only: all flight points carry fuel_temp = 280.0 K (default_input.toml)
+        # Typed-only after tasopt-j9l.45.14.4: bare pare no longer populated by read_input.jl.
+        # All flight points carry fuel_temp = 280.0 K (default_input.toml)
         for ip in 1:iptotal
             @test ac_3ua.missions[im].points[ip].engine.Tfuel ≈ 280.0
         end

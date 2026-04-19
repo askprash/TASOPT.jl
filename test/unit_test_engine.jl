@@ -2959,8 +2959,13 @@ isGradient = false
         ac_bench = TASOPT.load_default_model()
         size_aircraft!(ac_bench; printiter=false)
 
-        # Warmup: one call to trigger JIT before measuring.
-        _ = TASOPT.engine.run_engine_sweep(ac_bench)
+        # Warmup: two calls to reach stable post-JIT allocation count.
+        # One call is not enough: engine_state_to_pare! now writes 22 design-constant
+        # fields to bare pare that were previously initialised by read_input.jl
+        # (tasopt-j9l.45.14.4).  Julia needs two passes through the call tree to
+        # fully specialise all dispatch paths; the third call and beyond are stable.
+        _ = TASOPT.engine.run_engine_sweep(ac_bench)  # JIT pass 1
+        _ = TASOPT.engine.run_engine_sweep(ac_bench)  # JIT pass 2 → stable
 
         # --- Allocation check (deterministic) --------------------------------
         # @allocations counts heap allocations made by the call post-JIT.

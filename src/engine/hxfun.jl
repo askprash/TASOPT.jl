@@ -1213,7 +1213,8 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
             #---------------------------------
             HXgeom, HXgas = PrepareHXobjects(HXs, i, ipdes, imission, igas, port, type, "sizing")
             max_RadCoolantP = maximum(pt.engine.RadCoolantP for mis in ac.missions for pt in mis.points; init=0.0)
-            HXgeom.Δpdes = max(maximum(ac.pare[iept3,:,:]), max_RadCoolantP) #size wall thickness for maximum HPC or coolant pressure
+            max_pt3 = maximum(pt.engine.st3.pt for mis in ac.missions for pt in mis.points; init=0.0)
+            HXgeom.Δpdes = max(max_pt3, max_RadCoolantP) #size wall thickness for maximum HPC or coolant pressure
             HXgeom.maxL = HX.maximum_length #HXgeom.maxL is redundant with HX.maximum_length. TODO: make more elegant
 
             # Guess starting point for optimization

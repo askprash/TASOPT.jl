@@ -36,8 +36,12 @@ println("Loading and sizing default aircraft...")
 ac = TASOPT.load_default_model()
 TASOPT.size_aircraft!(ac; printiter=false)
 
-# Warmup: trigger JIT compilation before measuring.
-println("Warmup run (JIT)...")
+# Warmup: two calls to reach stable post-JIT allocation count.
+# engine_state_to_pare! now writes 22 design-constant fields to bare pare
+# (tasopt-j9l.45.14.4); Julia needs two passes to fully specialise all paths.
+println("Warmup run 1 (JIT)...")
+_ = TASOPT.engine.run_engine_sweep(ac)
+println("Warmup run 2 (stable)...")
 _ = TASOPT.engine.run_engine_sweep(ac)
 
 # Allocation count — deterministic post-JIT.

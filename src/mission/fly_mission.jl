@@ -53,16 +53,14 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     #Initialize arrays with the design mission values if desired
     if (initializes_engine)
         #----- use design case as initial guess for engine state
-        pare[:,:] .= pared[:,:]
-        # Sync design-point bare-pare values to typed EngineState for all mission
-        # points.  _mission_iteration!'s per-point sync only covers climb (5-9)
-        # and descent; early-flight points (ipstatic:ipcutback) have no engine
-        # call there so their Fe/mfuel/etc. would be zero when takeoff! reads
-        # them, and ipcruise1 is not covered when calculate_cruise=true
-        # (tasopt-oeh, tasopt-j9l.45.14.2).
-        for ip in ipstatic:iptotal
-            pare_to_engine_state!(ac.missions[imission].points[ip].engine,
-                                  view(pare, :, ip))
+        pare[:,:] .= pared[:,:]  # non-engine bare pare (ieu0, ierho0, parad aero, etc.)
+        # Initialize typed engine state from design mission typed state.
+        # Design typed state is authoritative after .14.3 (tasopt-j9l.45.14.3); deepcopy
+        # replaces the old bare-pare-copy + pare_to_engine_state! pattern (.14.5).
+        des_pts = ac.missions[1].points
+        mis_pts = ac.missions[imission].points
+        for ip in eachindex(mis_pts)
+            mis_pts[ip].engine = deepcopy(des_pts[ip].engine)
         end
     else
         pare[ieu0, ipcruise1] = pared[ieu0, ipcruise1] #Copy flight speed for altitude calculation

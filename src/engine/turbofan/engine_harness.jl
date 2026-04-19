@@ -603,6 +603,35 @@ function engine_state_to_pare!(eng::EngineState, pare)
     # Overall propulsion efficiencies (tasopt-j9l.63.2)
     # No pare backing — intentionally not written to pare.
 
+    # Design-constant scalars (tasopt-j9l.45.14.4): sync typed DesignState back
+    # to bare pare so that pare_to_engine_state! (called by run_engine_sweep and
+    # any remaining callers) reads back the correct TOML-initialised values rather
+    # than zeros.  These fields are uniform across mission points and never changed
+    # by the Newton solver; writing them back on every engine call is idempotent.
+    pare[iepid]    = eng.design.pid
+    pare[iepib]    = eng.design.pib
+    pare[iepifn]   = eng.design.pifn
+    pare[iepitn]   = eng.design.pitn
+    pare[ieepolf]  = eng.design.epolf
+    pare[ieepollc] = eng.design.epollc
+    pare[ieepolhc] = eng.design.epolhc
+    pare[ieepolht] = eng.design.epolht
+    pare[ieepollt] = eng.design.epollt
+    pare[ieetab]   = eng.design.etab
+    pare[ieepsl]   = eng.design.epsl
+    pare[ieepsh]   = eng.design.epsh
+    pare[iedTstrk]  = eng.design.dTstrk
+    pare[ieMtexit]  = eng.design.Mtexit
+    pare[ieStA]     = eng.design.StA
+    pare[ieefilm]   = eng.design.efilm
+    pare[ietfilm]   = eng.design.tfilm
+    pare[iefc0]     = eng.design.fc0
+    pare[iedehtdfc] = eng.design.dehtdfc
+    # Per-point nozzle area schedule factors and ducted-fan max power
+    pare[ieA5fac]   = eng.A5fac
+    pare[ieA7fac]   = eng.A7fac
+    pare[iePfanmax] = eng.Pfanmax
+
     return eng
 end
 
