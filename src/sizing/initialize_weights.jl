@@ -16,6 +16,7 @@ function initialize_sizing_loop!(ac)
     # Unpack aircraft components and parameter arrays
     imission = 1
     parg, parm, para, pare, _, fuse, _, wing, htail, vtail, _, landing_gear = unpack_ac(ac, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Extract design parameters
     Wpay = parm[imWpay]
@@ -50,7 +51,7 @@ function initialize_sizing_loop!(ac)
     # ===== Wing geometry estimates =====
     ip = ipcruise1
     W_estimate = 5.0 * Wpay  # Initial weight estimate
-    S = W_estimate / (0.5 * pare[ierho0, ip] * pare[ieu0, ip]^2 * para[iaCL, ip])
+    S = W_estimate / (0.5 * get_eng(ip).rho0 * get_eng(ip).u0^2 * para[iaCL, ip])
     b = sqrt(S * wing.layout.AR)
     bs = b * wing.layout.ηs
 
@@ -91,7 +92,7 @@ function initialize_sizing_loop!(ac)
     # ===== Fuel fraction from Breguet Range Equation =====
     LoD = 18.0  # Initial L/D estimate
     TSFC = 1.0 / 7000.0  # Typical TSFC
-    V = pare[ieu0, ipcruise1]
+    V = get_eng(ipcruise1).u0
     ffburn = min((1.0 - exp(-Rangetot * TSFC / (V * LoD))), 0.8 / (1.0 + freserve))
 
     # Mission-point fuel fractions
@@ -131,13 +132,14 @@ function initialize_sizing_loop!(ac)
     para[iagamV, ipcruise1] = gamVcr
 
     # End-of-cruise pressure
-    p0c = pare[iep0, ipcruise1]
+    p0c = get_eng(ipcruise1).p0
     p0d = p0c * (1.0 - ffuel + ffueld) / (1.0 - ffuel + ffuelc)
-    pare[iep0, ipcruisen] = p0d
+    pare[iep0, ipcruisen] = p0d; get_eng(ipcruisen).p0 = p0d
 
     # ===== Initial OEI thrust and fan sizing =====
-    pare[ieFe, iprotate] = 2.0 * Wpay
-    pare[ieu0, iprotate] = 70.0
+    Fe_rot = 2.0 * Wpay
+    pare[ieFe, iprotate] = Fe_rot; get_eng(iprotate).Fe = Fe_rot
+    pare[ieu0, iprotate] = 70.0;   get_eng(iprotate).u0 = 70.0
     Afan = 3.0e-5 * Wpay / neng
     parg[igdfan] = sqrt(Afan * 4.0 / π)
 
@@ -145,9 +147,15 @@ function initialize_sizing_loop!(ac)
     M2des = 0.6
     pare[ieM2, ipstatic:ipcruisen] .= M2des
     pare[ieM2, ipdescent1:ipdescentn] .= 0.8 * M2des
+    for ip in ipstatic:ipcruisen
+        get_eng(ip).design.M2 = M2des
+    end
+    for ip in ipdescent1:ipdescentn
+        get_eng(ip).design.M2 = 0.8 * M2des
+    end
 
     # Initialize engine cooling mass flow parameters
-    initialize_cooling_flow!(parg, pare)
+    initialize_cooling_flow!(ac)
 
     # ===== Initial WMTO estimate =====
     # Use assumed engine fraction and Breguet fuel fraction
@@ -166,7 +174,7 @@ function initialize_sizing_loop!(ac)
 end
 
 """
-    initialize_cooling_flow!(parg, pare)
+    initialize_cooling_flow!(ac)
 
 Initializes turbine cooling mass flow parameters for all mission points.
 
@@ -174,24 +182,29 @@ Computes initial cooling flow fractions based on takeoff/rotate conditions
 using the `mcool` turbine cooling model. Sets cooling parameters uniformly
 across all mission points as a starting estimate.
 """
-function initialize_cooling_flow!(parg, pare)
+function initialize_cooling_flow!(ac)
+    imission = 1
+    parg = ac.parg
+    pare = view(ac.pare, :, :, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
     ip = iprotate
+    eng_rot = get_eng(ip)
 
     # Gas properties
     cpc, cp4 = 1080.0, 1340.0  # Specific heats [J/kg-K]
     Rgc, Rg4 = 288.0, 288.0    # Gas constants [J/kg-K]
 
     # Extract conditions at takeoff rotation
-    M0to = pare[ieu0, ip] / pare[iea0, ip]
-    T0to = pare[ieT0, ip]
-    epolhc = pare[ieepolhc, ip]
-    OPRto = pare[iepilc, ipcruise1] * pare[iepihc, ipcruise1]
-    Tt4to = pare[ieTt4, ip]
-    dTstrk = pare[iedTstrk, ip]
-    Mtexit = pare[ieMtexit, ip]
-    efilm = pare[ieefilm, ip]
-    tfilm = pare[ietfilm, ip]
-    StA = pare[ieStA, ip]
+    M0to = eng_rot.u0 / eng_rot.a0
+    T0to = eng_rot.T0
+    epolhc = eng_rot.design.epolhc
+    OPRto = get_eng(ipcruise1).pilc * get_eng(ipcruise1).pihc
+    Tt4to = eng_rot.Tt4
+    dTstrk = eng_rot.design.dTstrk
+    Mtexit = eng_rot.design.Mtexit
+    efilm = eng_rot.design.efilm
+    tfilm = eng_rot.design.tfilm
+    StA = eng_rot.design.StA
 
     # Metal temperature for cooling calculation
     Tmrow = fill(parg[igTmetal], ncrowx)
@@ -207,14 +220,20 @@ function initialize_cooling_flow!(parg, pare)
 
     # Compute total cooling fraction
     epstot = sum(epsrow[1:ncrow])
-    fo = pare[iemofft, ip] / pare[iemcore, ip]
+    fo = eng_rot.mofft / eng_rot.mdot2
     fc = (1.0 - fo) * epstot
 
     # Store cooling parameters for all mission points
+    epsrow_sv = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
+    Tmrow_sv  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
     for jp in 1:iptotal
         pare[iefc, jp] = fc
         pare[ieepsc1:ieepsc1+ncrowx-1, jp] .= epsrow
         pare[ieTmet1:ieTmet1+ncrowx-1, jp] .= Tmrow
+        eng_jp = get_eng(jp)
+        eng_jp.design.fc = fc
+        eng_jp.design.epsrow = epsrow_sv
+        eng_jp.design.Tmrow  = Tmrow_sv
     end
 
     return nothing

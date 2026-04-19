@@ -28,6 +28,7 @@ function _size_aircraft!(ac; itermax=35,
     # Unpack data storage arrays and components
     imission = 1 #Design mission
     parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear  = unpack_ac(ac, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Initialize variables
     ichoke5 = zeros(iptotal)
@@ -199,7 +200,7 @@ function _size_aircraft!(ac; itermax=35,
 
         # Max Δp (fuselage pressure) at end of cruise-climb
         wcd = para[iafracW, ipcruisen] / para[iafracW, ipcruise1]
-        Δp = parg[igpcabin] - pare[iep0, ipcruise1] * wcd
+        Δp = parg[igpcabin] - get_eng(ipcruise1).p0 * wcd
         parg[igdeltap] = Δp
 
        # Engine weight mounted on tailcone, if any
@@ -252,8 +253,8 @@ function _size_aircraft!(ac; itermax=35,
             xeng)
 
         # Use cabin volume to get actual buoyancy weight
-        ρcab = max(parg[igpcabin], pare[iep0, ipcruise1]) / (RSL * TSL)
-        WbuoyCR = (ρcab - pare[ierho0, ipcruise1]) * gee * parg[igcabVol]
+        ρcab = max(parg[igpcabin], get_eng(ipcruise1).p0) / (RSL * TSL)
+        WbuoyCR = (ρcab - get_eng(ipcruise1).rho0) * gee * parg[igcabVol]
 
         if (iterw == 1 && initwgt == 0)
 
@@ -312,8 +313,8 @@ function _size_aircraft!(ac; itermax=35,
         ip = ipcruise1
         We = WMTO * para[iafracW, ip]
         CL = para[iaCL, ip]
-        ρ0 = pare[ierho0, ip]
-        u0 = pare[ieu0, ip]
+        ρ0 = get_eng(ip).rho0
+        u0 = get_eng(ip).u0
         qinf = 0.5 * ρ0 * u0^2
         BW = We + WbuoyCR # Weight including buoyancy
 
@@ -456,13 +457,13 @@ function _size_aircraft!(ac; itermax=35,
             htail.volume = Sh * lhtail / (wing.layout.S * wing.mean_aero_chord)
         end
 
-        # Vertical tail sizing 
+        # Vertical tail sizing
         ip = iprotate
-        qstall = 0.5 * pare[ierho0, ip] * (pare[ieu0, ip] / 1.2)^2
+        qstall = 0.5 * get_eng(ip).rho0 * (get_eng(ip).u0 / 1.2)^2
         dfan = parg[igdfan]
         CDAe = parg[igcdefan] * 0.25π * dfan^2
         De = qstall * CDAe
-        Fe = pare[ieFe, ip]
+        Fe = get_eng(ip).Fe
 
         # Calculate max eng out moment
         Me = (Fe + De) * yeng
@@ -621,7 +622,8 @@ function _size_aircraft!(ac; itermax=35,
         BW = We + WbuoyCR
         Fdes = BW * (1 / LoD + gamV)
 
-        pare[ieFe, ip] = Fdes / neng
+        Fdes_per_eng = Fdes / neng
+        pare[ieFe, ip] = Fdes_per_eng; get_eng(ip).Fe = Fdes_per_eng
 
         # Size engine for TOC
         case = "design" #Design the engine for this mission point
@@ -858,6 +860,15 @@ function set_ambient_conditions!(ac, ip, Mach=NaN; im = 1)
     ac.pare[ieu0, ip, im] = Mach * a0
     ac.para[iaReunit, ip, im] = Mach * a0 * ρ0 / μ0
 
+    # tasopt-j9l.45.8: dual-write freestream scalars to typed EngineState.
+    eng = ac.missions[im].points[ip].engine
+    eng.p0   = p0
+    eng.T0   = T0
+    eng.a0   = a0
+    eng.rho0 = ρ0
+    eng.mu0  = μ0
+    eng.M0   = Mach
+    eng.u0   = Mach * a0
 end  # function set_ambient_conditions
 
 """
