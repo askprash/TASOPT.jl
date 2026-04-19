@@ -519,12 +519,6 @@ function run_ducted_fan_sweep(ac;
                               initializes_engine::Bool=false)
     states = Dict{Int, DuctedFanState{Float64}}()
     for ip in ip_range
-        # Sync bare pare → typed EngineState before each call.
-        # Needed because the caller pre-populates ambient conditions in bare pare
-        # (tasopt-j9l.45.3); blanket sync ensures ductedfancalc! reads correct
-        # ambient + design constants from typed state.
-        pare_to_engine_state!(ac.missions[imission].points[ip].engine,
-                              view(ac.pare, :, ip, imission))
         ac.engine.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
         # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
         # ductedfancalc! dual-writes outputs, so typed state is authoritative.
