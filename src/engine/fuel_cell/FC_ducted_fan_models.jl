@@ -45,7 +45,11 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
         pare[ieA2, :] .= pare[ieA2, ip]
-        pare[ieA7, :] .= parg[igA7] .* pare[ieA7fac, :]
+        # A7fac is typed-state-authoritative (not in bare pare post tasopt-4wr),
+        # so read per-point A7fac from typed state for this broadcast.
+        for (ip2, pt) in enumerate(ac.missions[imission].points)
+            pare[ieA7, ip2] = parg[igA7] * pt.engine.A7fac
+        end
 
         pare[iembfD, :] .= pare[iembfD, ip]
         pare[iepifD, :] .= pare[iepifD, ip]

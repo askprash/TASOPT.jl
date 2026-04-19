@@ -290,10 +290,10 @@ function pare_to_engine_state!(eng::EngineState, pare)
 
     # -----------------------------------------------------------------------
     # Per-point nozzle area schedule factors (tasopt-dw7)
-    # Inputs set by read_input.jl; never written by tfcalc!/tfsize!.
+    # Inputs set by read_input.jl directly into typed state — NOT read from
+    # bare pare here, since bare pare is not populated at load time and would
+    # clobber the correct typed-state values with zeros (tasopt-4wr).
     # -----------------------------------------------------------------------
-    eng.A5fac   = pare[ieA5fac]
-    eng.A7fac   = pare[ieA7fac]
     eng.Pfanmax = pare[iePfanmax]
 
     # -----------------------------------------------------------------------
