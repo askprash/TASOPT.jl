@@ -1319,12 +1319,17 @@ isGradient = false
 
         ac.pare[ieTSFC, ip, 1] = TSFC
         ac.pare[ieFe, ip, 1] = Fe
+        ac.missions[1].points[ip].engine.TSFC = TSFC
+        ac.missions[1].points[ip].engine.Fe   = Fe
         ac.parg[igWMTO] = MTOW
         ac.parg[igfeng] = feng
 
         TASOPT.engine.constant_TSFC_engine!(ac, 0, 1, ip, 0)
+        # Sync bare pare → typed state (constant_TSFC_engine! writes pare[iemfuel])
+        TASOPT.engine.pare_to_engine_state!(ac.missions[1].points[ip].engine,
+                                            view(ac.pare, :, ip, 1))
 
-        @test ac.pare[iemfuel,ip,1] ≈ neng*TSFC*Fe/gee rtol = 1e-10
+        @test ac.missions[1].points[ip].engine.mfuel ≈ neng*TSFC*Fe/gee rtol = 1e-10
 
         TASOPT.engine.fractional_engine_weight!(ac)
         @test ac.parg[igWeng] ≈ feng * MTOW rtol = 1e-10

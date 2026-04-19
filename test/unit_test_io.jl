@@ -13,7 +13,7 @@
         filepath_bpr = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_bpr.toml")
         save_aircraft_model(ac_def, filepath_bpr)
         saved = TOML.parsefile(filepath_bpr)
-        @test saved["Propulsion"]["Turbomachinery"]["BPR"] ≈ ac_def.pare[ieBPR, 1, 1]
+        @test saved["Propulsion"]["Turbomachinery"]["BPR"] ≈ ac_def.missions[1].points[1].engine.BPR
         rm(filepath_bpr)
     end
 
@@ -27,41 +27,42 @@
         turb = saved["Propulsion"]["Turbomachinery"]
         comb = saved["Propulsion"]["Combustor"]
         cool = saved["Propulsion"]["Cooling"]
+        eng_d = ac_def.missions[1].points[1].engine.design
 
         # Pressure ratios
-        @test turb["diffuser_PR"]    ≈ ac_def.pare[iepid,    1, 1]
-        @test turb["burner_PR"]      ≈ ac_def.pare[iepib,    1, 1]
-        @test turb["fan_nozzle_PR"]  ≈ ac_def.pare[iepifn,   1, 1]
-        @test turb["core_nozzle_PR"] ≈ ac_def.pare[iepitn,   1, 1]
+        @test turb["diffuser_PR"]    ≈ eng_d.pid
+        @test turb["burner_PR"]      ≈ eng_d.pib
+        @test turb["fan_nozzle_PR"]  ≈ eng_d.pifn
+        @test turb["core_nozzle_PR"] ≈ eng_d.pitn
 
         # Polytropic efficiencies
-        @test turb["fan_eta_poly"]   ≈ ac_def.pare[ieepolf,  1, 1]
-        @test turb["LPC_eta_poly"]   ≈ ac_def.pare[ieepollc, 1, 1]
-        @test turb["HPC_eta_poly"]   ≈ ac_def.pare[ieepolhc, 1, 1]
-        @test turb["HPT_eta_poly"]   ≈ ac_def.pare[ieepolht, 1, 1]
-        @test turb["LPT_eta_poly"]   ≈ ac_def.pare[ieepollt, 1, 1]
+        @test turb["fan_eta_poly"]   ≈ eng_d.epolf
+        @test turb["LPC_eta_poly"]   ≈ eng_d.epollc
+        @test turb["HPC_eta_poly"]   ≈ eng_d.epolhc
+        @test turb["HPT_eta_poly"]   ≈ eng_d.epolht
+        @test turb["LPT_eta_poly"]   ≈ eng_d.epollt
 
         # Fan map constants
-        @test turb["FPR0"]           ≈ ac_def.pare[iepifK,   1, 1]
-        @test turb["Kf_polyeff"]     ≈ ac_def.pare[ieepfK,   1, 1]
+        @test turb["FPR0"]           ≈ eng_d.pifK
+        @test turb["Kf_polyeff"]     ≈ eng_d.epfK
 
         # Duct Mach numbers
-        @test turb["M2"]             ≈ ac_def.pare[ieM2,     1, 1]
-        @test turb["M25"]            ≈ ac_def.pare[ieM25,    1, 1]
+        @test turb["M2"]             ≈ eng_d.M2
+        @test turb["M25"]            ≈ eng_d.M25
 
         # Spool losses
-        @test turb["low_spool_loss"]  ≈ ac_def.pare[ieepsl,  1, 1]
-        @test turb["high_spool_loss"] ≈ ac_def.pare[ieepsh,  1, 1]
+        @test turb["low_spool_loss"]  ≈ eng_d.epsl
+        @test turb["high_spool_loss"] ≈ eng_d.epsh
 
         # Combustion efficiency
-        @test comb["combustion_efficiency"] ≈ ac_def.pare[ieetab, 1, 1]
+        @test comb["combustion_efficiency"] ≈ eng_d.etab
 
         # Cooling design parameters
-        @test cool["hot_streak_T_allowance"] ≈ ac_def.pare[iedTstrk, 1, 1]
-        @test cool["M_turbine_blade_exit"]   ≈ ac_def.pare[ieMtexit, 1, 1]
-        @test cool["St"]                     ≈ ac_def.pare[ieStA,    1, 1]
-        @test cool["e_film_cooling"]         ≈ ac_def.pare[ieefilm,  1, 1]
-        @test cool["t_film_cooling"]         ≈ ac_def.pare[ietfilm,  1, 1]
+        @test cool["hot_streak_T_allowance"] ≈ eng_d.dTstrk
+        @test cool["M_turbine_blade_exit"]   ≈ eng_d.Mtexit
+        @test cool["St"]                     ≈ eng_d.StA
+        @test cool["e_film_cooling"]         ≈ eng_d.efilm
+        @test cool["t_film_cooling"]         ≈ eng_d.tfilm
 
         rm(filepath_86a)
     end
@@ -77,13 +78,15 @@
         cool = saved["Propulsion"]["Cooling"]
         offt = saved["Propulsion"]["Offtakes"]
 
-        @test turb["Fan_PR"]  ≈ ac_def.pare[iepif,  1, 1]
-        @test turb["LPC_PR"]  ≈ ac_def.pare[iepilc, 1, 1]
-        @test turb["OPR"]     ≈ ac_def.pare[iepilc, 1, 1] * ac_def.pare[iepihc, 1, 1]
-        @test cool["M41"]               ≈ ac_def.pare[ieM4a,  1, 1]
-        @test cool["cooling_air_V_ratio"] ≈ ac_def.pare[ieruc,   1, 1]
-        @test offt["Tt_offtake_air"]    ≈ ac_def.pare[ieTt9,  1, 1]
-        @test offt["Pt_offtake_air"]    ≈ ac_def.pare[iept9,  1, 1]
+        let eng = ac_def.missions[1].points[1].engine
+            @test turb["Fan_PR"]  ≈ eng.pif
+            @test turb["LPC_PR"]  ≈ eng.pilc
+            @test turb["OPR"]     ≈ eng.pilc * eng.pihc
+            @test cool["M41"]               ≈ eng.design.M4a
+            @test cool["cooling_air_V_ratio"] ≈ eng.design.ruc
+            @test offt["Tt_offtake_air"]    ≈ eng.st9.Tt
+            @test offt["Pt_offtake_air"]    ≈ eng.st9.pt
+        end
         rm(filepath_sxv)
     end
 
@@ -98,27 +101,27 @@
         cnoz  = prop["Nozzles"]["core_nozzle_area"]
         fnoz  = prop["Nozzles"]["fan_nozzle_area"]
 
-        # Core nozzle area schedule — each flight point must match pare[ieA5fac, ip, 1]
-        @test cnoz["static"]       ≈ ac_def.pare[ieA5fac, ipstatic,    1]
-        @test cnoz["rotation"]     ≈ ac_def.pare[ieA5fac, iprotate,    1]
-        @test cnoz["cutback"]      ≈ ac_def.pare[ieA5fac, ipcutback,   1]
-        @test cnoz["climbstart"]   ≈ ac_def.pare[ieA5fac, ipclimb1,    1]
-        @test cnoz["climbend"]     ≈ ac_def.pare[ieA5fac, ipclimbn,    1]
-        @test cnoz["descentstart"] ≈ ac_def.pare[ieA5fac, ipdescent1,  1]
-        @test cnoz["descentend"]   ≈ ac_def.pare[ieA5fac, ipdescentn,  1]
+        # Core nozzle area schedule — each flight point must match typed per-point A5fac
+        @test cnoz["static"]       ≈ ac_def.missions[1].points[ipstatic].engine.A5fac
+        @test cnoz["rotation"]     ≈ ac_def.missions[1].points[iprotate].engine.A5fac
+        @test cnoz["cutback"]      ≈ ac_def.missions[1].points[ipcutback].engine.A5fac
+        @test cnoz["climbstart"]   ≈ ac_def.missions[1].points[ipclimb1].engine.A5fac
+        @test cnoz["climbend"]     ≈ ac_def.missions[1].points[ipclimbn].engine.A5fac
+        @test cnoz["descentstart"] ≈ ac_def.missions[1].points[ipdescent1].engine.A5fac
+        @test cnoz["descentend"]   ≈ ac_def.missions[1].points[ipdescentn].engine.A5fac
 
         # Fan nozzle area schedule — same 7 flight points
-        @test fnoz["static"]       ≈ ac_def.pare[ieA7fac, ipstatic,    1]
-        @test fnoz["rotation"]     ≈ ac_def.pare[ieA7fac, iprotate,    1]
-        @test fnoz["cutback"]      ≈ ac_def.pare[ieA7fac, ipcutback,   1]
-        @test fnoz["climbstart"]   ≈ ac_def.pare[ieA7fac, ipclimb1,    1]
-        @test fnoz["climbend"]     ≈ ac_def.pare[ieA7fac, ipclimbn,    1]
-        @test fnoz["descentstart"] ≈ ac_def.pare[ieA7fac, ipdescent1,  1]
-        @test fnoz["descentend"]   ≈ ac_def.pare[ieA7fac, ipdescentn,  1]
+        @test fnoz["static"]       ≈ ac_def.missions[1].points[ipstatic].engine.A7fac
+        @test fnoz["rotation"]     ≈ ac_def.missions[1].points[iprotate].engine.A7fac
+        @test fnoz["cutback"]      ≈ ac_def.missions[1].points[ipcutback].engine.A7fac
+        @test fnoz["climbstart"]   ≈ ac_def.missions[1].points[ipclimb1].engine.A7fac
+        @test fnoz["climbend"]     ≈ ac_def.missions[1].points[ipclimbn].engine.A7fac
+        @test fnoz["descentstart"] ≈ ac_def.missions[1].points[ipdescent1].engine.A7fac
+        @test fnoz["descentend"]   ≈ ac_def.missions[1].points[ipdescentn].engine.A7fac
 
         # Tt4 at cruise and takeoff — saved as vectors over missions
-        @test prop["Tt4_cruise"][1]  ≈ ac_def.pare[ieTt4, ipcruise1, 1]
-        @test prop["Tt4_takeoff"][1] ≈ ac_def.pare[ieTt4, ipstatic,  1]
+        @test prop["Tt4_cruise"][1]  ≈ ac_def.missions[1].points[ipcruise1].engine.st4.Tt
+        @test prop["Tt4_takeoff"][1] ≈ ac_def.missions[1].points[ipstatic].engine.st4.Tt
 
         rm(filepath_dw7)
     end
@@ -130,27 +133,28 @@
         ac_1v7 = load_default_model()
         im = 1  # design mission
 
-        # Tt4 at all key flight points: cruise, takeoff
+        # Tt4 at key flight points — representative mirror check at ipcruise1
         @test ac_1v7.missions[im].points[ipcruise1].engine.st4.Tt ≈ ac_1v7.pare[ieTt4, ipcruise1, im]
-        @test ac_1v7.missions[im].points[ipstatic].engine.st4.Tt  ≈ ac_1v7.pare[ieTt4, ipstatic,  im]
-        @test ac_1v7.missions[im].points[iptakeoff].engine.st4.Tt ≈ ac_1v7.pare[ieTt4, iptakeoff, im]
-        @test ac_1v7.missions[im].points[ipclimb1].engine.st4.Tt  ≈ ac_1v7.pare[ieTt4, ipclimb1,  im]
+        # Typed-only: Tt4_takeoff = 1833.0 K; ipclimb1 gets Tt4_cruise = 1587.0 (read_input broadcast)
+        @test ac_1v7.missions[im].points[ipstatic].engine.st4.Tt  ≈ 1833.0
+        @test ac_1v7.missions[im].points[iptakeoff].engine.st4.Tt ≈ 1833.0
+        @test ac_1v7.missions[im].points[ipclimb1].engine.st4.Tt  ≈ 1587.0
 
-        # T0 at takeoff flight points
-        @test ac_1v7.missions[im].points[ipstatic].engine.T0  ≈ ac_1v7.pare[ieT0, ipstatic,  im]
-        @test ac_1v7.missions[im].points[iprotate].engine.T0  ≈ ac_1v7.pare[ieT0, iprotate,  im]
-        @test ac_1v7.missions[im].points[iptakeoff].engine.T0 ≈ ac_1v7.pare[ieT0, iptakeoff, im]
+        # T0 at takeoff points: 288.2 K (default_input.toml: takeoff_T = [288.2, 298.0])
+        @test ac_1v7.missions[im].points[ipstatic].engine.T0  ≈ 288.2
+        @test ac_1v7.missions[im].points[iprotate].engine.T0  ≈ 288.2
+        @test ac_1v7.missions[im].points[iptakeoff].engine.T0 ≈ 288.2
 
-        # Nozzle area factors at representative flight points
-        @test ac_1v7.missions[im].points[ipstatic].engine.A5fac   ≈ ac_1v7.pare[ieA5fac, ipstatic,   im]
-        @test ac_1v7.missions[im].points[ipcruise1].engine.A5fac  ≈ ac_1v7.pare[ieA5fac, ipcruise1,  im]
-        @test ac_1v7.missions[im].points[ipclimb1].engine.A5fac   ≈ ac_1v7.pare[ieA5fac, ipclimb1,   im]
-        @test ac_1v7.missions[im].points[ipdescent1].engine.A5fac ≈ ac_1v7.pare[ieA5fac, ipdescent1, im]
+        # Nozzle area factors: all 1.0 (default_input.toml uniform schedule)
+        @test ac_1v7.missions[im].points[ipstatic].engine.A5fac   ≈ 1.0
+        @test ac_1v7.missions[im].points[ipcruise1].engine.A5fac  ≈ 1.0
+        @test ac_1v7.missions[im].points[ipclimb1].engine.A5fac   ≈ 1.0
+        @test ac_1v7.missions[im].points[ipdescent1].engine.A5fac ≈ 1.0
 
-        @test ac_1v7.missions[im].points[ipstatic].engine.A7fac   ≈ ac_1v7.pare[ieA7fac, ipstatic,   im]
-        @test ac_1v7.missions[im].points[ipcruise1].engine.A7fac  ≈ ac_1v7.pare[ieA7fac, ipcruise1,  im]
-        @test ac_1v7.missions[im].points[ipclimb1].engine.A7fac   ≈ ac_1v7.pare[ieA7fac, ipclimb1,   im]
-        @test ac_1v7.missions[im].points[ipdescent1].engine.A7fac ≈ ac_1v7.pare[ieA7fac, ipdescent1, im]
+        @test ac_1v7.missions[im].points[ipstatic].engine.A7fac   ≈ 1.0
+        @test ac_1v7.missions[im].points[ipcruise1].engine.A7fac  ≈ 1.0
+        @test ac_1v7.missions[im].points[ipclimb1].engine.A7fac   ≈ 1.0
+        @test ac_1v7.missions[im].points[ipdescent1].engine.A7fac ≈ 1.0
     end
 
     # tasopt-50r: verify that read_aircraft_model populates typed design-point engine
@@ -161,47 +165,49 @@
         im = 1  # design mission
         eng_d = ac_50r.missions[im].points[ipcruise1].engine.design
 
-        # Component pressure ratios
+        # Component pressure ratios — representative mirror check for pid
         @test eng_d.pid    ≈ ac_50r.pare[iepid,    1, im]
-        @test eng_d.pib    ≈ ac_50r.pare[iepib,    1, im]
-        @test eng_d.pifn   ≈ ac_50r.pare[iepifn,   1, im]
-        @test eng_d.pitn   ≈ ac_50r.pare[iepitn,   1, im]
+        # Typed-only: values from default_input.toml (same as tasopt-j9l.43)
+        @test eng_d.pib    ≈ 0.94
+        @test eng_d.pifn   ≈ 0.98
+        @test eng_d.pitn   ≈ 0.989
 
         # Polytropic efficiencies
-        @test eng_d.epolf  ≈ ac_50r.pare[ieepolf,  1, im]
-        @test eng_d.epollc ≈ ac_50r.pare[ieepollc, 1, im]
-        @test eng_d.epolhc ≈ ac_50r.pare[ieepolhc, 1, im]
-        @test eng_d.epolht ≈ ac_50r.pare[ieepolht, 1, im]
-        @test eng_d.epollt ≈ ac_50r.pare[ieepollt, 1, im]
+        @test eng_d.epolf  ≈ 0.8948
+        @test eng_d.epollc ≈ 0.88
+        @test eng_d.epolhc ≈ 0.87
+        @test eng_d.epolht ≈ 0.889
+        @test eng_d.epollt ≈ 0.899
 
         # Combustion efficiency, duct Mach numbers, spool losses
-        @test eng_d.etab   ≈ ac_50r.pare[ieetab,   1, im]
-        @test eng_d.M2     ≈ ac_50r.pare[ieM2,     1, im]
-        @test eng_d.M25    ≈ ac_50r.pare[ieM25,    1, im]
-        @test eng_d.epsl   ≈ ac_50r.pare[ieepsl,   1, im]
-        @test eng_d.epsh   ≈ ac_50r.pare[ieepsh,   1, im]
+        @test eng_d.etab   ≈ 0.98
+        @test eng_d.M2     ≈ 0.60
+        @test eng_d.M25    ≈ 0.60
+        @test eng_d.epsl   ≈ 0.01
+        @test eng_d.epsh   ≈ 0.022
 
-        # Per-point pressure ratios and BPR (uniform at parse time)
-        @test ac_50r.missions[im].points[ipcruise1].engine.pif  ≈ ac_50r.pare[iepif,  ipcruise1, im]
-        @test ac_50r.missions[im].points[ipcruise1].engine.pilc ≈ ac_50r.pare[iepilc, ipcruise1, im]
-        @test ac_50r.missions[im].points[ipcruise1].engine.pihc ≈ ac_50r.pare[iepihc, ipcruise1, im]
-        @test ac_50r.missions[im].points[ipcruise1].engine.BPR  ≈ ac_50r.pare[ieBPR,  ipcruise1, im]
-        @test ac_50r.missions[im].points[ipstatic].engine.BPR   ≈ ac_50r.pare[ieBPR,  ipstatic,  im]
+        # Per-point pressure ratios and BPR — typed-only against TOML defaults
+        # Fan_PR=1.685, LPC_PR=2.5, OPR=30 → pihc=30/2.5=12.0, BPR=5.1
+        @test ac_50r.missions[im].points[ipcruise1].engine.pif  ≈ 1.685
+        @test ac_50r.missions[im].points[ipcruise1].engine.pilc ≈ 2.5
+        @test ac_50r.missions[im].points[ipcruise1].engine.pihc ≈ 12.0
+        @test ac_50r.missions[im].points[ipcruise1].engine.BPR  ≈ 5.1
+        @test ac_50r.missions[im].points[ipstatic].engine.BPR   ≈ 5.1
 
         # Cooling design constants
-        @test eng_d.M4a    ≈ ac_50r.pare[ieM4a,    1, im]
-        @test eng_d.ruc    ≈ ac_50r.pare[ieruc,    1, im]
-        @test eng_d.dTstrk ≈ ac_50r.pare[iedTstrk, 1, im]
-        @test eng_d.Mtexit ≈ ac_50r.pare[ieMtexit, 1, im]
-        @test eng_d.StA    ≈ ac_50r.pare[ieStA,    1, im]
-        @test eng_d.efilm  ≈ ac_50r.pare[ieefilm,  1, im]
-        @test eng_d.tfilm  ≈ ac_50r.pare[ietfilm,  1, im]
-        @test eng_d.fc0     ≈ ac_50r.pare[iefc0,     1, im]
-        @test eng_d.dehtdfc ≈ ac_50r.pare[iedehtdfc, 1, im]
+        @test eng_d.M4a    ≈ 0.9
+        @test eng_d.ruc    ≈ 0.15
+        @test eng_d.dTstrk ≈ 200.0   # hot_streak_T_allowance = 200.0 K
+        @test eng_d.Mtexit ≈ 1.0
+        @test eng_d.StA    ≈ 0.09
+        @test eng_d.efilm  ≈ 0.70
+        @test eng_d.tfilm  ≈ 0.30
+        @test eng_d.fc0     ≈ 0.0
+        @test eng_d.dehtdfc ≈ 0.0
 
-        # Offtake discharge conditions
-        @test ac_50r.missions[im].points[ipcruise1].engine.st9.Tt ≈ ac_50r.pare[ieTt9, 1, im]
-        @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ ac_50r.pare[iept9, 1, im]
+        # Offtake discharge conditions (typed-only; values from default_input.toml)
+        @test ac_50r.missions[im].points[ipcruise1].engine.st9.Tt ≈ 300.0
+        @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ 30e3
     end
 
     # tasopt-j9l.43: verify that read_input directly populates typed design-point engine
@@ -255,16 +261,18 @@
         ac_3ua = load_default_model()
         im = 1  # design mission
 
-        # Mirror check: typed Tfuel equals bare pare at every flight point after parse.
+        # Representative mirror: typed Tfuel matches bare pare at ipcruise1
+        @test ac_3ua.missions[im].points[ipcruise1].engine.Tfuel ≈ ac_3ua.pare[ieTfuel, ipcruise1, im]
+        # Typed-only: all flight points carry fuel_temp = 280.0 K (default_input.toml)
         for ip in 1:iptotal
-            @test ac_3ua.missions[im].points[ip].engine.Tfuel ≈ ac_3ua.pare[ieTfuel, ip, im]
+            @test ac_3ua.missions[im].points[ip].engine.Tfuel ≈ 280.0
         end
 
         # Round-trip check: save then reload preserves fuel_temp.
         filepath_3ua = joinpath(TASOPT.__TASOPTroot__, "../test/iotest_3ua.toml")
         save_aircraft_model(ac_3ua, filepath_3ua)
         saved_toml = TOML.parsefile(filepath_3ua)
-        @test saved_toml["Fuel"]["fuel_temp"] ≈ ac_3ua.pare[ieTfuel, 1, im]
+        @test saved_toml["Fuel"]["fuel_temp"] ≈ ac_3ua.missions[im].points[1].engine.Tfuel
         rm(filepath_3ua)
     end
 
