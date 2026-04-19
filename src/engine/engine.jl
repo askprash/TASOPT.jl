@@ -14,7 +14,7 @@ export Engine
 
 export CalcMode, CoolingOpt, EngineStation, station_number, station_description
 export DesignState
-export GasState
+export GasState, AIR_ALPHA
 export FlowStation
 export EngineState
 export Inlet, inlet_diffuser!, inlet_bli_mixing!

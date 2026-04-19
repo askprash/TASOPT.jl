@@ -5,6 +5,24 @@ Gas-state container for a single thermodynamic control volume.
 using StaticArrays
 
 # ---------------------------------------------------------------------------
+# Standard air composition — 5 species: N₂, O₂, CO₂, H₂O, Ar
+# ---------------------------------------------------------------------------
+
+"""
+    AIR_ALPHA :: SVector{5,Float64}
+
+Standard dry-air mass-fraction vector for the TASOPT five-species gas model
+(N₂, O₂, CO₂, H₂O, Ar).  Use as the reference `alpha` when initialising a
+`GasState` or `FlowStation` to ambient air conditions.
+
+```julia
+fs = FlowStation{Float64}()
+fs.alpha = AIR_ALPHA
+```
+"""
+const AIR_ALPHA = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+
+# ---------------------------------------------------------------------------
 # GasState — total + static thermo state and 5-species mass fractions
 # ---------------------------------------------------------------------------
 

@@ -1524,7 +1524,7 @@ isGradient = false
         # ------------------------------------------------------------------
         # Constructor with explicit total-state fields and species
         # ------------------------------------------------------------------
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]   # standard air
+        air_alpha = TASOPT.engine.AIR_ALPHA   # standard air
         gs_total  = GS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha)
 
         @test gs_total.Tt  ≈ 288.15
@@ -1651,7 +1651,7 @@ isGradient = false
         # ------------------------------------------------------------------
         # Constructor with explicit total state + species
         # ------------------------------------------------------------------
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         fs_total  = FS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha;
                                 A=0.3, mdot=50.0)
 
@@ -1784,7 +1784,7 @@ isGradient = false
         gassum = TASOPT.engine.gassum
         set_tt = TASOPT.engine.set_total_from_Tt!
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         Tt_test   = 800.0
 
         # Build a station with known Tt and alpha; pt is arbitrary (not touched)
@@ -1833,7 +1833,7 @@ isGradient = false
         set_tt    = TASOPT.engine.set_total_from_Tt!
         set_mach  = TASOPT.engine.set_static_from_M!
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
 
         # Build a fully initialised total state
         fs = FS()
@@ -1921,7 +1921,7 @@ isGradient = false
         set_tt      = TASOPT.engine.set_total_from_Tt!
         appr        = TASOPT.engine.apply_pratio_from!
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         Tt_in  = 288.15
         pt_in  = 1.0e5
         pratio = 20.0
@@ -1985,7 +1985,7 @@ isGradient = false
         set_tt      = TASOPT.engine.set_total_from_Tt!
         appdh       = TASOPT.engine.apply_delh_from!
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         Tt_in  = 900.0
         pt_in  = 2.0e6
         delh   = -200_000.0   # turbine expansion (negative)
@@ -3022,7 +3022,7 @@ isGradient = false
         gas_tset         = TASOPT.engine.gas_tset
 
         # Standard 5-species air composition
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
 
         # ------------------------------------------------------------------
@@ -3734,7 +3734,7 @@ isGradient = false
         ephcmin = 0.70
 
         # Standard 5-species air composition (from tfoper.jl)
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
 
         # Realistic fan-face inlet conditions (station 2, ISA cruise ~10 km)
@@ -4107,7 +4107,7 @@ isGradient = false
         pilcD = 8.0000000000000000;  mblcD = 46.110246609262873;  NblcD = 1.0790738309310697;  eplc0 = 0.88000000000000000
         pihcD = 3.7500000000000000;  mbhcD = 7.8056539219349039;  NbhcD = 0.77137973563891493;  ephc0 = 0.87000000000000000
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
 
         # Realistic fan-face inlet conditions
@@ -4281,7 +4281,7 @@ isGradient = false
 
         turb_delhd = TASOPT.engine.turbine_delhd
 
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
 
         # HPT-like inlet conditions (post-combustor, high temperature)
@@ -4551,7 +4551,7 @@ isGradient = false
         hvap_val = 0.0
 
         burner = Comb_t(pib_val, etab_val, Ttf_val, ifuel_val, hvap_val)
-        air_alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
 
         # Operating point: HPC exit temperature + burner exit temperature
