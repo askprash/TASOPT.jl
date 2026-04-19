@@ -1,23 +1,20 @@
 """
-    find_mdot_time(t, parg, para, pare)
+    find_mdot_time(t, para, mdots)
 
-This function outputs the fuel mass flow rate to the engines as a function of time for a TASOPT aircraft 
-model with fuselage fuel tanks.
+Interpolate fuel mass flow rate to engines at time `t`, given a precomputed vector of
+per-point fuel mass flow rates `mdots` (one entry per column of `para`, scale already
+applied) and aerodynamic mission points array `para` (used for time lookup via `iatime`).
+
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `t::Float64`: time in mission (s)
-    - `parg::Vector{Float64}`: vector with aircraft geometric parameters
     - `para::Array{Float64}`: array with aircraft aerodynamic parameters
-    - `pare::Array{Float64}`: array with aircraft engine parameters
-    
-    **Outputs:**
-    - `t::mdot`: fuel mass flow rate out of the tank (kg/s)
-"""
-function find_mdot_time(t::Float64, tank_count::Int64, parg::Vector{Float64}, para::Array{Float64}, pare::Array{Float64})
+    - `mdots::AbstractVector{Float64}`: fuel mass flow rate at each mission point (kg/s)
 
-    #Mass flow rate out of tank is total mass flow to engines divided by number of tanks
-    scale = parg[igneng] / tank_count
-    mdots = scale .* pare[ieff, :] .* pare[iemcore, :]
+    **Outputs:**
+    - `mdot::Float64`: fuel mass flow rate out of the tank (kg/s)
+"""
+function find_mdot_time(t::Float64, para::Array{Float64}, mdots::AbstractVector{Float64})
 
     times = @view para[iatime,:]
 
@@ -41,6 +38,19 @@ function find_mdot_time(t::Float64, tank_count::Int64, parg::Vector{Float64}, pa
         end
     end
 
+end
+
+"""
+    find_mdot_time(t, tank_count, parg, para, pare)
+
+Legacy overload: reads `ieff`/`iemcore` from bare `pare` array and delegates to the
+precomputed-mdots form.  Prefer calling `find_mdot_time(t, para, mdots)` with a
+precomputed `mdots` vector built from typed `EngineState`.
+"""
+function find_mdot_time(t::Float64, tank_count::Int64, parg::Vector{Float64}, para::Array{Float64}, pare::Array{Float64})
+    scale = parg[igneng] / tank_count
+    mdots = scale .* pare[ieff, :] .* pare[iemcore, :]
+    return find_mdot_time(t, para, mdots)
 end
 
 """
@@ -206,15 +216,28 @@ function analyze_TASOPT_tank(ac::aircraft, t_hold_orig::Float64 = 0.0, t_hold_de
     
     pare_alt = zeros(size(pare_orig, 1), size(pare_orig, 2) + 3)
     pare_alt[:, 3:(iptotal + 2)] .= pare_orig
-    
+
+    # Build mdots_alt from typed EngineState (eng.ff and eng.mcore dual-written by tfcalc!).
+    # pare_alt column layout: [hold1, hold2, pt1..pt_iptotal, hold_dest]
+    # mission point ip maps to pare_alt column 2+ip (same layout as pare_alt[:, 3:(iptotal+2)]).
+    # Hold columns (1, 2, Np) stay at 0.0 — no fuel burn during ground holds.
+    scale_eng  = ac.parg[igneng] / ac.fuse_tank.tank_count
+    mpts       = ac.missions[im].points
+    Np_alt     = size(para_alt, 2)
+    mdots_alt  = zeros(Np_alt)
+    for ip in 1:min(iptotal, length(mpts))
+        eng = mpts[ip].engine
+        mdots_alt[2 + ip] = scale_eng * eng.ff * eng.mcore
+    end
+
     TSL = ac.fuse_tank.TSLtank[im]  #sea-level temperature for tank analysis
     #Precompute heat transfer rate at each mission point for speed
     Qs_points = calc_Q_points(ac.fuselage, ac.fuse_tank, ac.options.ifuel, ac.parg, para_alt, TSL::Float64)
 
-    #Define functions for heat and fuel burn profiles through mission 
+    #Define functions for heat and fuel burn profiles through mission
     Q_calc(t::Float64) = find_Q_time_interp(t, para_alt, Qs_points)
     W_calc(t::Float64) = 0.0
-    mdot_calc(t::Float64) = find_mdot_time(t, ac.fuse_tank.tank_count, ac.parg, para_alt, pare_alt)
+    mdot_calc(t::Float64) = find_mdot_time(t, para_alt, mdots_alt)
 
     #Store profiles in input struct
     u = tank_inputs(Q_calc, W_calc, mdot_calc)
