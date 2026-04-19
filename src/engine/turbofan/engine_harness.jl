@@ -863,12 +863,7 @@ function run_engine_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     # -----------------------------------------------------------------------
     tfwrap!(ac, "design", imission, ip, true)
 
-    # -----------------------------------------------------------------------
-    # Read converged pare column → typed EngineState
-    # -----------------------------------------------------------------------
-    eng = EngineState{Float64}()
-    pare_to_engine_state!(eng, view(ac.pare, :, ip, imission))
-    return eng
+    return deepcopy(ac.missions[imission].points[ip].engine)
 end
 
 # ---------------------------------------------------------------------------

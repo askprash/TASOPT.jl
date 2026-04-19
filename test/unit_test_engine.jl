@@ -2403,22 +2403,25 @@ isGradient = false
         @test eng.st2.mdot ≈ pare_ip[iemcore] rtol = 1e-12
 
         # ------------------------------------------------------------------
-        # Station 6 and 8 (nozzle exits): static-only in pare, total zero.
-        # Verify static fields are non-zero and total fields remain zero.
+        # Station 6 and 8 (nozzle exits): tfcalc! writes only static fields;
+        # total temperature is never assigned → remains zero in typed state.
         # ------------------------------------------------------------------
         @test eng.ps6  > 0.0
         @test eng.Ts6  > 0.0
-        @test eng.Tt6  == 0.0    # total NOT in pare → zero
+        @test eng.Tt6  == 0.0    # total not written by tfcalc! → zero
         @test eng.ps8  > 0.0
         @test eng.Ts8  > 0.0
-        @test eng.Tt8  == 0.0    # total NOT in pare → zero
+        @test eng.Tt8  == 0.0    # total not written by tfcalc! → zero
 
         # ------------------------------------------------------------------
-        # Stations 19c, 25c, 4a, 49c: not in pare → all zero.
+        # Stations 19c and 25c are cooling bleeds — tfcalc! writes total
+        # temperature directly into typed state (above ambient, physically
+        # ordered LPC bleed < HPC bleed).  Station 49c has no typed-state
+        # write in tfcalc! → remains zero.
         # ------------------------------------------------------------------
-        @test eng.Tt19c == 0.0
-        @test eng.Tt25c == 0.0
-        @test eng.Tt49c == 0.0
+        @test eng.Tt19c > eng.T0    # LPC cooling bleed is compressed above freestream
+        @test eng.Tt25c > eng.Tt19c # HPC exit bleed is hotter than LPC exit bleed
+        @test eng.Tt49c == 0.0      # not written by tfcalc! → zero
 
         # ------------------------------------------------------------------
         # Cooling mixing constants (tasopt-j9l.54): ruc and M4a are frozen
