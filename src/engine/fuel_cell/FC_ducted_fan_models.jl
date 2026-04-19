@@ -29,11 +29,6 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
     parg, _, para, pare, _, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
     fcdata = ac.engine.data #Extract fuel cell data
 
-    # Sync bare pare → typed EngineState for the current ip before ductedfancalc!
-    # reads from it (tasopt-j9l.45.3). Callers that already sync (mission_iteration.jl)
-    # pay a small redundant copy; callers that do not (standalone tests) need this.
-    pare_to_engine_state!(ac.missions[imission].points[ip].engine,
-                          view(ac.pare, :, ip, imission))
     eng_ip = ac.missions[imission].points[ip].engine
 
     if case == "design"

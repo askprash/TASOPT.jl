@@ -1,3 +1,15 @@
+# Test-local shim: test fixtures seed typed state via bare pare, so we need to
+# sync pare → typed EngineState before each enginecalc! call that relies on it.
+# Production callers populate typed state directly; the src-side pre-sync was
+# removed in tasopt-j9l.45.14.6.5. Remove this helper when FC fixtures are
+# rewritten to populate typed state directly — see tasopt-j9l.45.14.6.
+function _sync_pare_to_engine_state!(ac, imission, ip)
+    TASOPT.engine.pare_to_engine_state!(
+        ac.missions[imission].points[ip].engine,
+        view(ac.pare, :, ip, imission),
+    )
+end
+
 @testset "Ducted fan" begin
     @testset "Thrust from ROC" begin
         ac = TASOPT.load_default_model()
@@ -205,6 +217,7 @@
         pare[ieT0,ipcruise1,1] = 219.43067572699252
         pare[ieu0,ipcruise1,1] = 237.4846310775805
 
+        _sync_pare_to_engine_state!(ac, 1, ipcruise1)
         engine.enginecalc!(ac, "design", 1, ipcruise1, true)
 
         @test ac.missions[1].points[ipcruise1].engine.mfuel ≈ 0.0005481461619779067
@@ -240,6 +253,7 @@
         pare[iemu0,iprotate,1] = 1.78e-5
         pare[ieT0,iprotate,1] = 288.2
         pare[ieu0,iprotate,1] = 73.89982446679213
+        _sync_pare_to_engine_state!(ac, 1, iprotate)
         engine.enginecalc!(ac, "off_design", 1, iprotate, true)
 
         @test ac.missions[1].points[iprotate].engine.mfuel ≈ 0.0010447183729991173
@@ -311,6 +325,11 @@
         ac_h.para[iaalt,  ipcruise1, 1] = 10668.0
         ac_h.para[iaMach, ipcruise1, 1] = 0.8
         # parm defaults from default_input.toml: imaltTO=0 (sea level), imT0TO=288.2K
+
+        # Sync bare-pare design inputs → typed EngineState before the harness call
+        # (the src-side pre-sync in calculate_fuel_cell_with_ducted_fan! was removed
+        # in tasopt-j9l.45.14.6.5; this shim is the test-local replacement).
+        _sync_pare_to_engine_state!(ac_h, 1, ipcruise1)
 
         # ------------------------------------------------------------------
         # run_ducted_fan_design_point
