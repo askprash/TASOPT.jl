@@ -208,9 +208,11 @@ fueltype = readfuel("fuel_type")
 #TODO this needs to be updated once Prash includes Gas.jl into TASOPT
 
 #check input, perform actions based on fuel type
+Tfuel_init = zero(Float64)  # tasopt-j9l.45.7: default 0.0; overwritten for JET-A below
 if compare_strings(fueltype, "JET-A")
-    pare[ieTft, :, :] .= readfuel("fuel_temp") #Temperature of fuel in fuel tank
-    pare[ieTfuel, :, :] .= readfuel("fuel_temp") #Initialize fuel temperature as temperature in tank
+    Tfuel_init = readfuel("fuel_temp")
+    pare[ieTft, :, :] .= Tfuel_init #Temperature of fuel in fuel tank
+    pare[ieTfuel, :, :] .= Tfuel_init #Initialize fuel temperature as temperature in tank
     parg[igrhofuel] = readfuel("fuel_density")
     ifuel = 24
 elseif compare_strings(fueltype, "LH2") 
@@ -227,11 +229,11 @@ parg[igrWfmax] = readfuel("fuel_usability_factor")
 hvap_init = readfuel("fuel_enthalpy_vaporization")
 pare[iehvap, :, :] .= hvap_init          #Heat of vaporization of the fuel
 
-# tasopt-3ua: mirror Tfuel to typed engine state for all flight points.
-# Reads directly from pare which was just written, guaranteeing agreement.
+# tasopt-j9l.45.7: mirror Tfuel to typed engine state from local Tfuel_init (not bare pare).
+# JET-A: Tfuel_init = fuel_temp; LH2/CH4: Tfuel_init = 0.0 matches zero-init EngineState default.
 for im in 1:nmisx
     for ip in 1:iptotal
-        missions_vec[im].points[ip].engine.Tfuel = pare[ieTfuel, ip, im]
+        missions_vec[im].points[ip].engine.Tfuel = Tfuel_init
     end
 end
 
@@ -865,9 +867,12 @@ if lowercase(propsys) == "tf"
     parg[igfTt4CL1] = readprop("Tt4_frac_bottom_of_climb")
     parg[igfTt4CLn] = readprop("Tt4_frac_top_of_climb")
 
-    pare[ieTt4, :, :] .= transpose(Temp.(readprop("Tt4_cruise"))) #transpose for proper broadcasting
-
-    Tt4TO = transpose(Temp.(readprop("Tt4_takeoff")))
+    # tasopt-j9l.45.7: build Tt4 schedule locally so typed state can be populated
+    # from local variables (not from bare pare reads).
+    Tt4_cruise  = Temp.(readprop("Tt4_cruise"))   # scalar or nmisx-vector of cruise Tt4
+    Tt4_takeoff = Temp.(readprop("Tt4_takeoff"))  # scalar or nmisx-vector of takeoff Tt4
+    Tt4TO = transpose(Tt4_takeoff)                # 1×nmisx (or scalar) for bare-pare broadcast
+    pare[ieTt4, :, :] .= transpose(Tt4_cruise)   # fill all points with cruise value
     pare[ieTt4, ipstatic, :] .= Tt4TO
     pare[ieTt4, iprotate, :] .= Tt4TO
     pare[ieTt4, iptakeoff, :] .= Tt4TO
@@ -876,15 +881,20 @@ if lowercase(propsys) == "tf"
     pare[ieT0, iprotate, :] .= T0TO
     pare[ieT0, iptakeoff, :] .= T0TO
 
-    # tasopt-1v7: mirror Tt4 (all flight points) and takeoff T0 to typed engine state.
-    # Reads directly from pare which was just written, guaranteeing agreement.
+    # tasopt-j9l.45.7: mirror Tt4 and takeoff T0 to typed engine state from local variables.
+    # Tt4_cruise and Tt4_takeoff hold the values just written to bare pare.
+    # T0TO is already in parm[imT0TO, im] (set a few lines above).
     for im in 1:nmisx
+        _Tt4c_im  = isa(Tt4_cruise,  AbstractVector) ? Tt4_cruise[im]  : Tt4_cruise
+        _Tt4to_im = isa(Tt4_takeoff, AbstractVector) ? Tt4_takeoff[im] : Tt4_takeoff
         for ip in 1:iptotal
-            missions_vec[im].points[ip].engine.st4.Tt = pare[ieTt4, ip, im]
+            missions_vec[im].points[ip].engine.st4.Tt =
+                (ip == ipstatic || ip == iprotate || ip == iptakeoff) ? _Tt4to_im : _Tt4c_im
         end
-        missions_vec[im].points[ipstatic].engine.T0  = pare[ieT0, ipstatic, im]
-        missions_vec[im].points[iprotate].engine.T0  = pare[ieT0, iprotate, im]
-        missions_vec[im].points[iptakeoff].engine.T0 = pare[ieT0, iptakeoff, im]
+        _T0to_im = parm[imT0TO, im]
+        missions_vec[im].points[ipstatic].engine.T0  = _T0to_im
+        missions_vec[im].points[iprotate].engine.T0  = _T0to_im
+        missions_vec[im].points[iptakeoff].engine.T0 = _T0to_im
     end
 
     # Core in clean-flow -> 0; Core ingests KE defect -> 1
@@ -1089,45 +1099,44 @@ readfnoz(x) = read_input(x, fannoz, dfannoz)
     A7descent1 = readfnoz("descentstart")
     A7descentn = readfnoz("descentend")
 
-    pare[ieA7fac, ipstatic, :] .= A7static
-    pare[ieA7fac, iprotate, :] .= A7takeoff
-    pare[ieA7fac, iptakeoff, :] .= A7takeoff
-    pare[ieA7fac, ipcutback, :] .= A7cutback
+    # tasopt-j9l.45.7: build per-ip nozzle area factor schedule as local vectors so typed
+    # engine state can be populated from local variables (not bare pare reads).
+    # The schedule is identical across missions (broadcast over `:` dim in bare pare writes).
+    A7fac_ip = Vector{Float64}(undef, iptotal)
+    A5fac_ip = Vector{Float64}(undef, iptotal)
 
-    pare[ieA5fac, ipstatic, :] .= A5static
-    pare[ieA5fac, iprotate, :] .= A5takeoff
-    pare[ieA5fac, iptakeoff, :] .= A5takeoff
-    pare[ieA5fac, ipcutback, :] .= A5cutback
+    A7fac_ip[ipstatic]  = A7static;  A5fac_ip[ipstatic]  = A5static
+    A7fac_ip[iprotate]  = A7takeoff; A5fac_ip[iprotate]  = A5takeoff
+    A7fac_ip[iptakeoff] = A7takeoff; A5fac_ip[iptakeoff] = A5takeoff
+    A7fac_ip[ipcutback] = A7cutback; A5fac_ip[ipcutback] = A5cutback
 
     for ip = ipclimb1:ipclimbn
-
-        frac = (ip - ipclimb1) /  (ipclimbn - ipclimb1)
-
-        pare[ieA7fac, ip, :] .= A7climb1 * (1.0 - frac) + A7climbn * frac
-        pare[ieA5fac, ip, :] .= A5climb1 * (1.0 - frac) + A5climbn * frac
-
+        frac = (ip - ipclimb1) / (ipclimbn - ipclimb1)
+        A7fac_ip[ip] = A7climb1 * (1.0 - frac) + A7climbn * frac
+        A5fac_ip[ip] = A5climb1 * (1.0 - frac) + A5climbn * frac
     end
 
-    pare[ieA7fac, ipcruise1:ipcruisen, :] .= 1.0
-    pare[ieA5fac, ipcruise1:ipcruisen, :] .= 1.0
+    A7fac_ip[ipcruise1:ipcruisen] .= 1.0
+    A5fac_ip[ipcruise1:ipcruisen] .= 1.0
 
     for ip = ipdescent1:ipdescentn
-
         frac = (ip - ipdescent1) / (ipdescentn - ipdescent1)
-
-        pare[ieA7fac, ip, :] .= A7descent1 * (1.0 - frac) + A7descentn * frac
-        pare[ieA5fac, ip, :] .= A5descent1 * (1.0 - frac) + A5descentn * frac
-
+        A7fac_ip[ip] = A7descent1 * (1.0 - frac) + A7descentn * frac
+        A5fac_ip[ip] = A5descent1 * (1.0 - frac) + A5descentn * frac
     end
 
-    pare[ieA7fac, iptest, :] .= A7static
-    pare[ieA5fac, iptest, :] .= A5static
+    A7fac_ip[iptest] = A7static
+    A5fac_ip[iptest] = A5static
 
-    # tasopt-1v7: mirror nozzle area schedule to typed engine state for all flight points.
+    # Write bare pare (broadcast same schedule over all missions)
+    pare[ieA7fac, :, :] .= A7fac_ip
+    pare[ieA5fac, :, :] .= A5fac_ip
+
+    # Populate typed engine state from local schedule vectors (not bare pare reads).
     for im in 1:nmisx
         for ip in 1:iptotal
-            missions_vec[im].points[ip].engine.A5fac = pare[ieA5fac, ip, im]
-            missions_vec[im].points[ip].engine.A7fac = pare[ieA7fac, ip, im]
+            missions_vec[im].points[ip].engine.A5fac = A5fac_ip[ip]
+            missions_vec[im].points[ip].engine.A7fac = A7fac_ip[ip]
         end
     end
 
@@ -1138,14 +1147,28 @@ elseif lowercase(propsys) == "constant_tsfc" #For constant TSFC model
     else
         para[iaROCdes,ipclimb1:ipclimbn,:] .= Speed(ROCdes)
     end
-    pare[ieTSFC,ipclimb1:ipclimbn,:] .= readprop("climb_TSFC")
-    pare[ieTSFC,ipcruise1:ipcruisen,:] .= readprop("cruise_TSFC")
-    pare[ieTSFC,ipdescent1:ipdescentn,:] .= readprop("descent_TSFC")
+    # tasopt-j9l.45.7: store per-phase TSFC as local variables so typed engine state
+    # can be populated without reading back from bare pare.
+    tsfc_climb   = readprop("climb_TSFC")
+    tsfc_cruise  = readprop("cruise_TSFC")
+    tsfc_descent = readprop("descent_TSFC")
+    pare[ieTSFC,ipclimb1:ipclimbn,:] .= tsfc_climb
+    pare[ieTSFC,ipcruise1:ipcruisen,:] .= tsfc_cruise
+    pare[ieTSFC,ipdescent1:ipdescentn,:] .= tsfc_descent
 
-    # tasopt-1v7: mirror TSFC schedule to typed engine state.
+    # Populate typed engine state from local variables (not bare pare reads).
     for im in 1:nmisx
-        for ip in vcat(ipclimb1:ipclimbn, ipcruise1:ipcruisen, ipdescent1:ipdescentn)
-            missions_vec[im].points[ip].engine.TSFC = pare[ieTSFC, ip, im]
+        _c  = isa(tsfc_climb,   AbstractVector) ? tsfc_climb[im]   : tsfc_climb
+        _cr = isa(tsfc_cruise,  AbstractVector) ? tsfc_cruise[im]  : tsfc_cruise
+        _d  = isa(tsfc_descent, AbstractVector) ? tsfc_descent[im] : tsfc_descent
+        for ip in ipclimb1:ipclimbn
+            missions_vec[im].points[ip].engine.TSFC = _c
+        end
+        for ip in ipcruise1:ipcruisen
+            missions_vec[im].points[ip].engine.TSFC = _cr
+        end
+        for ip in ipdescent1:ipdescentn
+            missions_vec[im].points[ip].engine.TSFC = _d
         end
     end
 
@@ -1205,6 +1228,10 @@ elseif compare_strings(propsys,"fuel_cell_with_ducted_fan")
     engineweight! = fuel_cell_with_ducted_fan_weight!
     enginemodel = TASOPT.engine.FuelCellDuctedFan(modelname, enginecalc!, engineweightname, engineweight!, eng_has_BLI_cores)
     pare[iePfanmax,:,:] .= 20e6
+    # tasopt-j9l.45.7: mirror Pfanmax default to typed engine state.
+    for im in 1:nmisx, ip in 1:iptotal
+        missions_vec[im].points[ip].engine.Pfanmax = 20e6
+    end
 
     fcdata = TASOPT.engine.FuelCellDuctedFanData(2)
 
