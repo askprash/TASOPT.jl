@@ -36,14 +36,11 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
     parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
     #TODO: fuse_tank fields are not saved
 
-    # Sync typed engine state from pare so performance outputs below can be
-    # read from typed state rather than bare pare indices (tasopt-rcy).
-    # pare remains the source of truth during the adapter-walk; this one-time
-    # mirror at ip=1 (the point used for design-scalar propulsion reads) is
-    # cheap (array copies only) and works whether or not size_aircraft! has run.
-    pare_to_engine_state!(ac.missions[imission].points[1].engine,
-                          view(ac.pare, :, 1, imission))
     # Alias for typed engine state at the design cruise point (ip=1, tasopt-sxv).
+    # read_input.jl populates all fields read below directly into typed state
+    # (BPR/pif/pilc/pihc, design.*, Tfuel, st4.Tt, st9.Tt/pt, A5fac/A7fac);
+    # size_aircraft!/fly_mission! keep typed state current thereafter.
+    # No bare-pare sync needed (tasopt-j9l.45.14.5).
     eng = ac.missions[imission].points[1].engine
 
     #Save everything in a dict() of dicts()
@@ -416,18 +413,11 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop["Tt4_frac_top_of_climb"] = parg[igfTt4CLn]
         
         # Tt4 at cruise and takeoff across all missions (tasopt-dw7).
-        # Sync per mission at the two reference flight points; eng.Tt4 = eng.st4.Tt.
+        # eng.Tt4 == eng.st4.Tt; populated by read_input.jl and kept current by
+        # size_aircraft!/fly_mission!; no bare-pare sync needed (tasopt-j9l.45.14.5).
         nmissions = size(ac.pare, 3)
-        d_prop["Tt4_cruise"]  = [begin
-            pare_to_engine_state!(ac.missions[im].points[ipcruise1].engine,
-                                  view(ac.pare, :, ipcruise1, im))
-            ac.missions[im].points[ipcruise1].engine.Tt4
-        end for im in 1:nmissions]
-        d_prop["Tt4_takeoff"] = [begin
-            pare_to_engine_state!(ac.missions[im].points[ipstatic].engine,
-                                  view(ac.pare, :, ipstatic, im))
-            ac.missions[im].points[ipstatic].engine.Tt4
-        end for im in 1:nmissions]
+        d_prop["Tt4_cruise"]  = [ac.missions[im].points[ipcruise1].engine.Tt4 for im in 1:nmissions]
+        d_prop["Tt4_takeoff"] = [ac.missions[im].points[ipstatic].engine.Tt4   for im in 1:nmissions]
 
         d_prop["core_in_clean_flow"] = !engine.model.has_BLI_cores
             #expression negates bool, see read_input.jl
@@ -499,13 +489,8 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #Nozzles
     d_prop_nozz = Dict()
-        # Sync the 7 nozzle-schedule flight points for mission 1 (tasopt-dw7).
-        # A5fac/A7fac are per-point schedule inputs; reading from typed state
-        # after sync is equivalent to the former bare pare[ieA5fac/ieA7fac, ip, 1].
-        for ip in (ipstatic, iprotate, ipcutback, ipclimb1, ipclimbn, ipdescent1, ipdescentn)
-            pare_to_engine_state!(ac.missions[imission].points[ip].engine,
-                                  view(ac.pare, :, ip, imission))
-        end
+        # A5fac/A7fac are populated by read_input.jl into typed per-point engine
+        # state; no bare-pare sync needed (tasopt-j9l.45.14.5).
         _noz_eng(ip) = ac.missions[imission].points[ip].engine
 
         #core nozzle
