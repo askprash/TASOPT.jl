@@ -10,6 +10,7 @@
         ac.para[iaCL,ip,imission] = 0.5
         ac.para[iafracW,ip,imission] = 1.0
         ac.pare[ierho0,ip,imission] = 1.2
+        ac.missions[imission].points[ip].engine.rho0 = 1.2
 
         ROC = 1.0 #m/s
         

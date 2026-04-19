@@ -23,7 +23,7 @@ function calculate_thrust_from_ROC!(ac, ip, imission)
     W = para[iafracW] * WMTO
     BW = W + para[iaWbuoy]
     CL = para[iaCL]
-    ρ = pare[ierho0]
+    ρ = ac.missions[imission].points[ip].engine.rho0
 
     ROC = para[iaROCdes] #desired rate of climb in m/s
 

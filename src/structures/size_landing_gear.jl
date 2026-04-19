@@ -23,7 +23,7 @@ function size_landing_gear!(ac)
     elseif lowercase(landing_gear.model) == "historical_correlations"
         #Model from Raymer (2012). Aircraft Design: A Conceptual Approach, based on historical-data correlations
         load_factor = 4.5 #Assumed 3 gear load factor times 1.5 ultimate load factor
-        Vstall = ac.pare[ieu0,iprotate, 1] #Stall speed, for correlation
+        Vstall = ac.missions[1].points[iprotate].engine.u0 #Stall speed, for correlation
 
         #Calculate landing gear length
         #First calculate required length to avoid tailstrike

@@ -1513,7 +1513,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
                         HXgas = lastHX.HXgas_mission[ip, imission]
                         Tf = HXgas.Tc_out
 
-                        new_Tfuel = (1 - rlx) * pare[ieTfuel, ip] + rlx * Tf
+                        new_Tfuel = (1 - rlx) * mission_points[ip].engine.Tfuel + rlx * Tf
                         pare[ieTfuel, ip] = new_Tfuel
                         mission_points[ip].engine.Tfuel = new_Tfuel  # typed state (tasopt-j9l.41.2)
                   end
