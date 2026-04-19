@@ -212,7 +212,7 @@ function plot_engine_performance(mission::Mission, ip_range;
                           layout=(2, 2), kwargs...)
     end
 
-    Nbf_v  = [ac.missions[imission].points[ip].engine.Nf   for ip in ips]
+    Nbf_v  = [ac.missions[imission].points[ip].engine.Nbf  for ip in ips]
     Nblc_v = [ac.missions[imission].points[ip].engine.Nblc for ip in ips]
     Nbhc_v = [ac.missions[imission].points[ip].engine.Nbhc for ip in ips]
 
@@ -266,7 +266,7 @@ function plot_engine_performance(result::engine.SweepResult;
                           layout=(2, 2), kwargs...)
     end
 
-    Nbf_v  = [ac.missions[imission].points[ip].engine.Nf   for ip in result.ip_indices]
+    Nbf_v  = [ac.missions[imission].points[ip].engine.Nbf  for ip in result.ip_indices]
     Nblc_v = [ac.missions[imission].points[ip].engine.Nblc for ip in result.ip_indices]
     Nbhc_v = [ac.missions[imission].points[ip].engine.Nbhc for ip in result.ip_indices]
 
