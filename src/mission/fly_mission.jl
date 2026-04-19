@@ -268,6 +268,13 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
         pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
         pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
         pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
+        # dual-write to typed state (tasopt-keh)
+        for ip in eachindex(ac.missions[imission].points)
+            pt = ac.missions[imission].points[ip]
+            pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]
+            pt.engine.RadCoolantP = eng.data.FC_pressure[ip, imission]
+            pt.engine.Qradiator   = eng.data.FC_heat[ip, imission]
+        end
 
     end     
     HXOffDesign!(eng.heat_exchangers, pare, ac.options.ifuel, imission, ac.missions[imission].points)

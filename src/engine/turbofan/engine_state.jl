@@ -123,6 +123,10 @@ mutable struct EngineState{T<:AbstractFloat}
     Tfuel      ::T   # fuel temperature at combustor inlet [K] → ieTfuel
     Tfuel_tank ::T   # fuel temperature in tank (source of truth) [K] → ieTft
     hvap  ::T   # fuel latent heat of vaporisation (initial, const) [J/kg] → iehvap
+    # --- radiator coolant inputs (tasopt-keh) ---
+    RadCoolantT ::T   # radiator coolant inlet temperature [K]  → ieRadiatorCoolantT
+    RadCoolantP ::T   # radiator coolant pressure [Pa]           → ieRadiatorCoolantP
+    Qradiator   ::T   # radiator heat load [W]                   → ieRadiatorHeat
 
     # -----------------------------------------------------------------------
     # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2 / tasopt-w82)
@@ -277,6 +281,7 @@ function EngineState{T}() where {T<:AbstractFloat}
         fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
         fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
         z, z, z, z, z, z, z, z, z,      # M0, T0, p0, a0, rho0, mu0, Tfuel, Tfuel_tank, hvap
+        z, z, z,                         # RadCoolantT, RadCoolantP, Qradiator
         z, z, z, z, z, z, z, z,        # HX Δh/Δp: PreC, InterC, Regen, TurbC
         z, z, z, z,                     # HX Δh/Δp: Radiator, recircP, hvapcombustor
         z, z, z, z, z,                  # TSFC, Fe, Fsp, BPR, mfuel
@@ -315,6 +320,7 @@ const _ENGINE_OWN_FIELDS = (
     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
     :st5, :st6, :st7, :st8, :st9,
     :M0, :T0, :p0, :a0, :rho0, :mu0, :Tfuel, :Tfuel_tank, :hvap,
+    :RadCoolantT, :RadCoolantP, :Qradiator,
     :PreCDeltah, :PreCDeltap, :InterCDeltah, :InterCDeltap,
     :RegenDeltah, :RegenDeltap, :TurbCDeltah, :TurbCDeltap,
     :RadiatorDeltah, :RadiatorDeltap, :HXrecircP, :hvapcombustor,

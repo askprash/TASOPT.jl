@@ -562,6 +562,13 @@ function _size_aircraft!(ac; itermax=35,
                 pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
                 pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
                 pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
+                # dual-write to typed state (tasopt-keh)
+                for ip in eachindex(ac.missions[imission].points)
+                    pt = ac.missions[imission].points[ip]
+                    pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]
+                    pt.engine.RadCoolantP = eng.data.FC_pressure[ip, imission]
+                    pt.engine.Qradiator   = eng.data.FC_heat[ip, imission]
+                end
             end
             eng.heat_exchangers = hxdesign!(ac, ipdes, imission, rlx = 0.5) #design and off-design HX performance
 

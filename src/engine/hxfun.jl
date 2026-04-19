@@ -1137,13 +1137,15 @@ struct HXPort
 end
 
 """
-    HXPort(pare_sl, Tfuel_tank, hvapcombustor)
+    HXPort(pare_sl, Tfuel_tank, hvapcombustor, RadCoolantT, RadCoolantP, Qradiator)
 
 Construct an `HXPort` from a 1-D pare slice at a single operating point.
-`Tfuel_tank` and `hvapcombustor` are passed explicitly from typed EngineState
-(tasopt-fgs, tasopt-w82) rather than read from bare pare.
+`Tfuel_tank`, `hvapcombustor`, `RadCoolantT`, `RadCoolantP`, and `Qradiator`
+are passed explicitly from typed EngineState (tasopt-fgs, tasopt-w82, tasopt-keh)
+rather than read from bare pare.
 """
-function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor::Real)
+function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor::Real,
+                RadCoolantT::Real, RadCoolantP::Real, Qradiator::Real)
     HXPort(
         pare_sl[ieDi],
         Tfuel_tank,
@@ -1165,9 +1167,9 @@ function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor
         pare_sl[iept49],
         pare_sl[iept3],
         pare_sl[iept21],
-        pare_sl[ieRadiatorCoolantT],
-        pare_sl[ieRadiatorCoolantP],
-        pare_sl[ieRadiatorHeat],
+        RadCoolantT,
+        RadCoolantP,
+        Qradiator,
         hvapcombustor,
         pare_sl[ieetab],
     )
@@ -1197,7 +1199,9 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       igas = ac.options.ifuel
       HXs = ac.engine.heat_exchangers
 
-      port = HXPort(pare_sl, ac.missions[imission].points[ipdes].engine.Tfuel_tank, ac.missions[imission].points[ipdes].engine.hvapcombustor)   # typed snapshot of engine state at design point
+      eng_des = ac.missions[imission].points[ipdes].engine
+      port = HXPort(pare_sl, eng_des.Tfuel_tank, eng_des.hvapcombustor,
+                    eng_des.RadCoolantT, eng_des.RadCoolantP, eng_des.Qradiator)   # typed snapshot of engine state at design point
 
       #Initialize Heat Exchanger vector
       Mc_opts = []
@@ -1208,7 +1212,8 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
             # Design exchangers
             #---------------------------------
             HXgeom, HXgas = PrepareHXobjects(HXs, i, ipdes, imission, igas, port, type, "sizing")
-            HXgeom.Δpdes = max(maximum(ac.pare[iept3,:,:]), maximum(ac.pare[ieRadiatorCoolantP,:,:])) #size wall thickness for maximum HPC or coolant pressure
+            max_RadCoolantP = maximum(pt.engine.RadCoolantP for mis in ac.missions for pt in mis.points; init=0.0)
+            HXgeom.Δpdes = max(maximum(ac.pare[iept3,:,:]), max_RadCoolantP) #size wall thickness for maximum HPC or coolant pressure
             HXgeom.maxL = HX.maximum_length #HXgeom.maxL is redundant with HX.maximum_length. TODO: make more elegant
 
             # Guess starting point for optimization
@@ -1435,7 +1440,8 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
             for ip = 1:size(pare)[2] #For every point
 
                   eng = mission_points[ip].engine
-                  port = HXPort(pare[:, ip], eng.Tfuel_tank, eng.hvapcombustor)   # typed snapshot for this operating point
+                  port = HXPort(pare[:, ip], eng.Tfuel_tank, eng.hvapcombustor,
+                                eng.RadCoolantT, eng.RadCoolantP, eng.Qradiator)   # typed snapshot for this operating point
 
                   _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 
