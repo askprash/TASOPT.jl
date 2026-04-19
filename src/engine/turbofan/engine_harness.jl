@@ -967,10 +967,6 @@ function run_engine_sweep(ac;
     for ip in ip_range
         # Run engine off-design at this mission point
         tfwrap!(ac, "off_design", imission, ip, initializes_engine)
-
-        # Map converged pare column → typed EngineState in mission
-        pare_to_engine_state!(mission.points[ip].engine,
-                               view(ac.pare, :, ip, imission))
     end
 
     return mission
