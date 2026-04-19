@@ -284,7 +284,7 @@ default_output_indices =
                     iaCL, iaCD, iaCDi, iaCLh,iaspaneff, #performance
                     iaxCG, iaxCP,                       #balance
                     ],
-        "pare" => [iehfuel, ieTfuel, ieff, ieTSFC, ieBPR, ieOPR, iepif, iepilc, iepihc
+        "pare" => [iehfuel, ieTfuel, ieff, ieTSFC, ieBPR, iepif, iepilc, iepihc
         ])
 
 output_indices_wEngine = deepcopy(default_output_indices)
@@ -301,7 +301,7 @@ pare_toadd = [
             iept2, iept21, iept9,
             
             iedeNOx, iemdotf, ieEINOx1, ieEINOx2,
-            ieFAR, ieOPR
+            ieFAR
             ]
 append!(pareinds, pare_toadd)
 output_indices_wEngine["pare"] = pareinds
