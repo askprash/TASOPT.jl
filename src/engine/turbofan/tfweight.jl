@@ -22,9 +22,10 @@ function tfweight(ac)
     HXs = ac.engine.heat_exchangers	
     engwgt = ac.engine.model.weight_model_name
     Gearf = ac.parg[igGearf]
+    eng_ip = ac.missions[1].points[ip].engine
     mdotc = ac.pared[iemblcD, ip] * sqrt(Tref / TSL) * (pSL / pref)
-    BPR = ac.pared[ieBPR, ip]
-    OPR = ac.pared[iepilc, ip] * ac.pared[iepihc, ip]
+    BPR = eng_ip.BPR
+    OPR = eng_ip.pilc * eng_ip.pihc
     dfan = ac.parg[igdfan]
     dlcomp = ac.parg[igdlcomp]
     rSnace = ac.parg[igrSnace]
