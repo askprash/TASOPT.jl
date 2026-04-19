@@ -971,6 +971,163 @@ function reset_regression_test(ac)
     end
 end
 
+"""
+    reset_regression_test_engine_state(ac)
+
+Write `test/fixtures/default_sized_engine_state.toml` — a typed-state regression
+baseline for the "Propulsion (typed EngineState)" testset in
+`test/regression_test_size_aircraft.jl`.
+
+Serialises every field of `ac.missions[1].points[ip].engine` that has a
+bare-`pare` mirror (i.e. every field written by `pare_to_engine_state!`) for
+each of the `nip` mission points.  Used alongside the existing bare-`pare`
+Propulsion check (temporarily coexisting) so downstream tasks can delete the
+`tfcalc!` → `pare` projection without breaking the regression suite.
+
+## Usage
+```julia
+ac = load_default_model()
+size_aircraft!(ac; printiter=false)
+TASOPT.reset_regression_test_engine_state(ac)
+```
+"""
+function reset_regression_test_engine_state(ac)
+    path = joinpath(__TASOPTroot__, "../test/fixtures/default_sized_engine_state.toml")
+    mission = ac.missions[1]
+    nip = length(mission.points)
+
+    # Station field names serialised (mirrors _station_to_dict in engine_harness.jl)
+    _st_fields = (:Tt, :ht, :pt, :cpt, :Rt, :Ts, :ps, :cps, :Rs, :u, :A, :mdot)
+
+    points = Vector{Dict{String,Any}}(undef, nip)
+    for ip in 1:nip
+        eng = mission.points[ip].engine
+        ds  = eng.design
+
+        # ---- DesignState fields with bare-pare backing ----
+        design_dict = Dict{String,Any}(
+            "pifD"    => Float64(ds.pifD),    "pilcD" => Float64(ds.pilcD),
+            "pihcD"   => Float64(ds.pihcD),   "pihtD" => Float64(ds.pihtD),
+            "piltD"   => Float64(ds.piltD),
+            "mbfD"    => Float64(ds.mbfD),    "mblcD" => Float64(ds.mblcD),
+            "mbhcD"   => Float64(ds.mbhcD),   "mbhtD" => Float64(ds.mbhtD),
+            "mbltD"   => Float64(ds.mbltD),
+            "NbfD"    => Float64(ds.NbfD),    "NblcD" => Float64(ds.NblcD),
+            "NbhcD"   => Float64(ds.NbhcD),   "NbhtD" => Float64(ds.NbhtD),
+            "NbltD"   => Float64(ds.NbltD),
+            "A2"      => Float64(ds.A2),       "A25"   => Float64(ds.A25),
+            "A5"      => Float64(ds.A5),       "A7"    => Float64(ds.A7),
+            "epsrow"  => collect(Float64, ds.epsrow),
+            "Tmrow"   => collect(Float64, ds.Tmrow),
+            "fc"      => Float64(ds.fc),
+            "ruc"     => Float64(ds.ruc),      "M4a"   => Float64(ds.M4a),
+            "pid"     => Float64(ds.pid),      "pib"   => Float64(ds.pib),
+            "pifn"    => Float64(ds.pifn),     "pitn"  => Float64(ds.pitn),
+            "epolf"   => Float64(ds.epolf),    "epollc" => Float64(ds.epollc),
+            "epolhc"  => Float64(ds.epolhc),  "epolht" => Float64(ds.epolht),
+            "epollt"  => Float64(ds.epollt),
+            "pifK"    => Float64(ds.pifK),    "epfK"  => Float64(ds.epfK),
+            "M2"      => Float64(ds.M2),       "M25"   => Float64(ds.M25),
+            "epsl"    => Float64(ds.epsl),     "epsh"  => Float64(ds.epsh),
+            "etab"    => Float64(ds.etab),
+            "dTstrk"  => Float64(ds.dTstrk),  "Mtexit" => Float64(ds.Mtexit),
+            "StA"     => Float64(ds.StA),      "efilm" => Float64(ds.efilm),
+            "tfilm"   => Float64(ds.tfilm),
+            "fc0"     => Float64(ds.fc0),      "dehtdfc" => Float64(ds.dehtdfc),
+        )
+
+        # ---- FlowStation fields ----
+        stations = Dict{String,Any}()
+        for (_, _, stfld) in engine._TOML_STATION_ORDER
+            st = getfield(eng, stfld)
+            stations[String(stfld)] = Dict{String,Any}(
+                String(f) => Float64(getproperty(st, f)) for f in _st_fields
+            )
+        end
+
+        # ---- EngineState scalar fields with bare-pare backing ----
+        pt = Dict{String,Any}(
+            "ip" => ip,
+            # ambient
+            "M0"          => Float64(eng.M0),
+            "T0"          => Float64(eng.T0),
+            "p0"          => Float64(eng.p0),
+            "a0"          => Float64(eng.a0),
+            "rho0"        => Float64(eng.rho0),
+            "mu0"         => Float64(eng.mu0),
+            "Tfuel"       => Float64(eng.Tfuel),
+            "Tfuel_tank"  => Float64(eng.Tfuel_tank),
+            "RadCoolantT" => Float64(eng.RadCoolantT),
+            "RadCoolantP" => Float64(eng.RadCoolantP),
+            "Qradiator"   => Float64(eng.Qradiator),
+            "hfuel"       => Float64(eng.hfuel),
+            # cycle outputs
+            "ff"          => Float64(eng.ff),
+            "mofft"       => Float64(eng.mofft),
+            "Pofft"       => Float64(eng.Pofft),
+            "Phiinl"      => Float64(eng.Phiinl),
+            "Kinl"        => Float64(eng.Kinl),
+            # spool speeds
+            "Nf"          => Float64(eng.Nf),
+            "N1"          => Float64(eng.N1),
+            "N2"          => Float64(eng.N2),
+            "Nbf"         => Float64(eng.Nbf),
+            "Nblc"        => Float64(eng.Nblc),
+            "Nbhc"        => Float64(eng.Nbhc),
+            # polytropic losses
+            "epf"         => Float64(eng.epf),
+            "eplc"        => Float64(eng.eplc),
+            "ephc"        => Float64(eng.ephc),
+            "epht"        => Float64(eng.epht),
+            "eplt"        => Float64(eng.eplt),
+            # performance rollup
+            "TSFC"        => Float64(eng.TSFC),
+            "Fe"          => Float64(eng.Fe),
+            "Fsp"         => Float64(eng.Fsp),
+            "BPR"         => Float64(eng.BPR),
+            "mfuel"       => Float64(eng.mfuel),
+            # ducted-fan outputs
+            "Pfan"        => Float64(eng.Pfan),
+            "TSEC"        => Float64(eng.TSEC),
+            "mfan"        => Float64(eng.mfan),
+            "Pfanmax"     => Float64(eng.Pfanmax),
+            # map operating points
+            "mbf"         => Float64(eng.mbf),
+            "mblc"        => Float64(eng.mblc),
+            "mbhc"        => Float64(eng.mbhc),
+            "pif"         => Float64(eng.pif),
+            "pilc"        => Float64(eng.pilc),
+            "pihc"        => Float64(eng.pihc),
+            # component efficiencies
+            "etaf"        => Float64(eng.etaf),
+            "etalc"       => Float64(eng.etalc),
+            "etahc"       => Float64(eng.etahc),
+            "etaht"       => Float64(eng.etaht),
+            "etalt"       => Float64(eng.etalt),
+            # derived overall efficiencies
+            "eta_thermal" => Float64(eng.eta_thermal),
+            "eta_prop"    => Float64(eng.eta_prop),
+            "eta_overall" => Float64(eng.eta_overall),
+            # sub-tables
+            "design"      => design_dict,
+            "stations"    => stations,
+        )
+        points[ip] = pt
+    end
+
+    data = Dict{String,Any}(
+        "meta" => Dict{String,Any}(
+            "description" => "Typed EngineState regression baseline — default TASOPT aircraft post-sizing.",
+            "generated_by" => "reset_regression_test_engine_state",
+            "n_points"     => nip,
+        ),
+        "points" => points,
+    )
+    open(path, "w") do io
+        TOML.print(io, data)
+    end
+    return path
+end
 
 
 #NOTE:  the following functions are not currently used in the codebase, 
