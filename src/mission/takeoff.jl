@@ -44,9 +44,9 @@ function takeoff!(ac; imission=1, printTO = true)
     CDspoiler = parg[igCDspoil]
     CDivert = 0.002
 
-    Fmax = pare[ieFe, ipstatic]
+    Fmax = get_eng(ipstatic).Fe
     pare[ieFe, iptakeoff] = Fmax; get_eng(iptakeoff).Fe = Fmax  # dual-write
-    Fref = pare[ieFe, iprotate]
+    Fref = get_eng(iprotate).Fe
 
     #---- single-engine thrust-curve constants for takeoff roll calculations
     F01 = (Fmax + Fref) / 2.0
@@ -130,8 +130,8 @@ function takeoff!(ac; imission=1, printTO = true)
         #---- calculate fuel burn during takeoff run
         ip1 = ipstatic
         ip2 = iprotate
-        mdotf1 = pare[iemcore, ip1] * pare[ieff, ip1] * neng
-        mdotf2 = pare[iemcore, ip2] * pare[ieff, ip2] * neng
+        mdotf1 = get_eng(ip1).mfuel
+        mdotf2 = get_eng(ip2).mfuel
         WfTO = 0.5 * (mdotf1 + mdotf2) * tTO * gee
         para[iafracW, ipstatic] = para[iafracW, iptakeoff] +
                                   WfTO / parg[igWMTO]
@@ -211,8 +211,8 @@ function takeoff!(ac; imission=1, printTO = true)
             #---- calculate fuel burn during takeoff run
             ip1 = ipstatic
             ip2 = iprotate
-            mdotf1 = pare[iemcore, ip1] * pare[ieff, ip1] * neng
-            mdotf2 = pare[iemcore, ip2] * pare[ieff, ip2] * neng
+            mdotf1 = get_eng(ip1).mfuel
+            mdotf2 = get_eng(ip2).mfuel
             WfTO = 0.5 * (mdotf1 + mdotf2) * tTO * gee
             para[iafracW, ipstatic] = para[iafracW, iptakeoff] +
                                       WfTO / parg[igWMTO]
