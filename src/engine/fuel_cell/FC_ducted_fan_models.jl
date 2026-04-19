@@ -34,12 +34,15 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
     # pay a small redundant copy; callers that do not (standalone tests) need this.
     pare_to_engine_state!(ac.missions[imission].points[ip].engine,
                           view(ac.pare, :, ip, imission))
+    eng_ip = ac.missions[imission].points[ip].engine
 
     if case == "design"
         #Design ducted fan for start of cruise
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
+        # ductedfancalc! dual-writes all outputs to both bare pare and typed state,
+        # so eng_ip.design.{A2,A7,mbfD,pifD,NbfD} and eng_ip.{A7fac,Pfan} are current.
 
-        parg[igA7] = pare[ieA7, ip] / pare[ieA7fac, ip]
+        parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
         pare[ieA2, :] .= pare[ieA2, ip]
         pare[ieA7, :] .= parg[igA7] .* pare[ieA7fac, :]
@@ -48,9 +51,21 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         pare[iepifD, :] .= pare[iepifD, ip]
         pare[ieNbfD, :] .= pare[ieNbfD, ip]
 
+        # Typed-state dual-writes: propagate design constants to all mission points.
+        # Mirrors the bare pare broadcasts above (tasopt-048).
+        for pt in ac.missions[imission].points
+            pt.engine.design.A2   = eng_ip.design.A2
+            pt.engine.design.A7   = parg[igA7] * pt.engine.A7fac
+            pt.engine.design.mbfD = eng_ip.design.mbfD
+            pt.engine.design.pifD = eng_ip.design.pifD
+            pt.engine.design.NbfD = eng_ip.design.NbfD
+        end
+
         #Design fuel cell for takeoff conditions
         ip_fcdes = iprotate
-        Pfanmax = pare[iePfanmax, ip_fcdes]
+        eng_fcdes = ac.missions[imission].points[ip_fcdes].engine
+        eng_fcdes.Pfanmax = pare[iePfanmax, ip_fcdes]   # sync Pfanmax to typed state
+        Pfanmax = eng_fcdes.Pfanmax
 
         ## Model of electric machine to deliver Pfanmax
         Pmotormax = Pfanmax #100% efficiency for now
@@ -60,7 +75,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         size_fuel_cell!(ac, ip_fcdes, imission)
 
         #Evaluate state at design point ip
-        Pfan = pare[iePfan, ip]
+        Pfan = eng_ip.Pfan
         ## Model of electric machine to deliver Pfan
         Pmotor = Pfan #100% efficiency for now
         ##
@@ -82,8 +97,9 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         end
 
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
+        # ductedfancalc! dual-writes Pfan to both bare pare and typed state.
 
-        Pfan = pare[iePfan, ip]
+        Pfan = eng_ip.Pfan
         ## Model of electric machine to deliver Pfan
         Pmotor = Pfan #100% efficiency for now
         ##
