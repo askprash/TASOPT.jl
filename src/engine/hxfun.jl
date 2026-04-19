@@ -1176,6 +1176,45 @@ function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor
 end
 
 """
+    HXPort(eng, Di)
+
+Construct an `HXPort` entirely from typed `EngineState` fields (tasopt-n9f).
+`Di` (inner duct diameter) is a geometry constant set by `read_input!` and
+stored in `pare[ieDi]`; it is not in `EngineState`, so it must be passed
+separately.  All dynamic engine-state fields are read from `eng` rather than
+bare pare, making this constructor safe to call before `engine_state_to_pare!`.
+"""
+function HXPort(eng::EngineState, Di::Real)
+    HXPort(
+        Di,
+        eng.Tfuel_tank,
+        eng.hvap,
+        eng.st2.mdot,
+        eng.mofft,
+        eng.design.fc,
+        eng.ff,
+        eng.mfan,
+        eng.st19.Tt,
+        eng.st25.Tt,
+        eng.st49.Tt,
+        eng.st3.Tt,
+        eng.st21.Tt,
+        eng.st4.Tt,
+        eng.Tfuel,
+        eng.st19.pt,
+        eng.st25.pt,
+        eng.st49.pt,
+        eng.st3.pt,
+        eng.st21.pt,
+        eng.RadCoolantT,
+        eng.RadCoolantP,
+        eng.Qradiator,
+        eng.hvapcombustor,
+        eng.design.etab,
+    )
+end
+
+"""
       hxdesign!(pare, igas, ipdes, HXs_prev)
 
 Heat exchanger design and operation function. It calls hxoptim!() to optimize the heat exchanger at the design point and 
@@ -1200,8 +1239,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       HXs = ac.engine.heat_exchangers
 
       eng_des = ac.missions[imission].points[ipdes].engine
-      port = HXPort(pare_sl, eng_des.Tfuel_tank, eng_des.hvapcombustor,
-                    eng_des.RadCoolantT, eng_des.RadCoolantP, eng_des.Qradiator)   # typed snapshot of engine state at design point
+      port = HXPort(eng_des, pare_sl[ieDi])   # typed snapshot of engine state at design point (tasopt-n9f)
 
       #Initialize Heat Exchanger vector
       Mc_opts = []
@@ -1441,8 +1479,7 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
             for ip = 1:size(pare)[2] #For every point
 
                   eng = mission_points[ip].engine
-                  port = HXPort(pare[:, ip], eng.Tfuel_tank, eng.hvapcombustor,
-                                eng.RadCoolantT, eng.RadCoolantP, eng.Qradiator)   # typed snapshot for this operating point
+                  port = HXPort(eng, pare[ieDi, ip])   # typed snapshot for this operating point (tasopt-n9f)
 
                   _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 

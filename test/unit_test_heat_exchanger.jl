@@ -357,7 +357,27 @@
         pare[ieTt4, :] = [1833.0, 1833.0, 1833.0, 1587.0, 1783.800000500471, 1783.800000500471, 1783.800000500471, 1783.800000500471, 1783.800000500471, 1587.0000027196975, 1574.533165729207, 969.4335330427257, 995.4348851793429, 1075.9794968072274, 1100.3581190368097, 917.1708155839043, 1587.0]
         pare[ieTt49, :] =  [960.8605760851929, 961.0667107064039, 0.0, 0.0, 932.5623722599007, 931.379114632356, 930.1373020210664, 928.7863005237981, 927.5751258835901, 813.5557634539438, 806.0067604348123, 496.65626350066435, 518.3928731493768, 568.4261428950612, 599.2792291588116, 566.1504455492202, 0.0]
         pare[iept49, :] =  [187280.4402482879, 190414.81523352303, 0.0, 0.0, 181171.69203683006, 152997.44286231213, 124245.76373035634, 99618.48689089209, 79891.17968319073, 65200.92315926424, 52808.02414631647, 24694.846569804093, 37740.31793925859, 57359.1351869912, 82195.04563774749, 107666.7265230664, 0.0]
- 
+
+        # Mirror HX-relevant bare-pare fields to typed EngineState (tasopt-n9f:
+        # HXPort now reads from eng rather than bare pare).
+        for ip in 1:iptotal
+            eng = ac.missions[1].points[ip].engine
+            pare_ip = view(ac.pare, :, ip, 1)
+            eng.hvap         = pare_ip[iehvap]
+            eng.st2.mdot     = pare_ip[iemcore]
+            eng.mofft        = pare_ip[iemofft]
+            eng.design.fc    = pare_ip[iefc]
+            eng.ff           = pare_ip[ieff]
+            eng.st19.Tt      = pare_ip[ieTt19];  eng.st19.pt = pare_ip[iept19]
+            eng.st25.Tt      = pare_ip[ieTt25];  eng.st25.pt = pare_ip[iept25]
+            eng.st49.Tt      = pare_ip[ieTt49];  eng.st49.pt = pare_ip[iept49]
+            eng.st3.Tt       = pare_ip[ieTt3];   eng.st3.pt  = pare_ip[iept3]
+            eng.st21.pt      = pare_ip[iept21]
+            eng.st4.Tt       = pare_ip[ieTt4]
+            eng.Tfuel        = pare_ip[ieTfuel]
+            eng.design.etab  = pare_ip[ieetab]
+        end
+
         ipdes = ipcruise1
 
         #Test precooler
@@ -440,6 +460,8 @@
 
         #Test regenerative cooler
         pare[ieTfuel, :] .= 20
+        # Mirror ieTfuel update to typed state (tasopt-n9f)
+        for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
         HXs = [TASOPT.engine.make_HeatExchanger(1)]
         HXs[1].type = "Regen"
         HXs[1].design_effectiveness = 0.5
@@ -467,6 +489,8 @@
 
         #Test regenerative cooler with recirculation
         pare[ieTfuel, :] .= 20
+        # Mirror ieTfuel update to typed state (tasopt-n9f)
+        for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
         HXs = [TASOPT.engine.make_HeatExchanger(1)]
@@ -498,7 +522,9 @@
 
         #Test two HXs: intercooler and regenerative cooler
         pare[ieTfuel, :] .= 20
-        
+        # Mirror ieTfuel update to typed state (tasopt-n9f)
+        for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
+
         HXs = [TASOPT.engine.make_HeatExchanger(1), TASOPT.engine.make_HeatExchanger(1)]
         HXs[1].type = "InterC"
         HXs[1].design_effectiveness = 0.8
@@ -541,7 +567,15 @@
             ac.missions[im].points[ip].engine.Qradiator   = pare[ieRadiatorHeat, ip, 1]
         end
         
-        pare[ieDi,:,1] .= 0.4 #Inner diameter of HEX 
+        pare[ieDi,:,1] .= 0.4 #Inner diameter of HEX
+
+        # Mirror HX-relevant bare-pare fields to typed EngineState (tasopt-n9f).
+        for ip in 1:iptotal
+            eng = ac.missions[1].points[ip].engine
+            eng.st21.Tt = pare[ieTt21, ip, 1]
+            eng.st21.pt = pare[iept21, ip, 1]
+            eng.mfan    = pare[iemfan,  ip, 1]
+        end
 
         HXs = [TASOPT.engine.make_HeatExchanger(1)]
         HXs[1].type = "Radiator"
