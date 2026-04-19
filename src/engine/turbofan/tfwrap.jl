@@ -84,7 +84,6 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         end
         opt_cooling = CoolingOpt.FixedCoolingFlowRatio
 
-        pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
         ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
@@ -92,15 +91,12 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
     elseif case == "cooling_sizing"
         opt_calc_call = CalcMode.FixedTt4OffDes
         opt_cooling = CoolingOpt.FixedTmetal
-        pare_to_engine_state!(ac.missions[imission].points[ip].engine, view(pare, :, ip))
         ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
         # Tmetal was specified... propagate blade-row cooling fractions to all points.
-        # sync_cooling_scalars_to_pare! keeps bare pare in sync so that the
-        # pre-sync in mission_iteration.jl does not clobber the freshly computed
-        # values with stale bare-pare values (tasopt-j9l.45.14.2).
+        # sync_cooling_scalars_to_pare! keeps bare pare in sync.
         eng_ip = ac.missions[imission].points[ip].engine
         for jp = 1:iptotal
             eng_jp = ac.missions[imission].points[jp].engine

@@ -68,7 +68,7 @@ Only fields that the legacy `pare` array actually stores are written:
   Stations 6 and 8 have static state but no total state in `pare`.
 - **Area** (A): stations 2, 25, 5, 6, 7, 8, 9.
 - **Mass flow** (mdot): station 2 (`mcore`, the core mass flow).
-- **Ambient scalars**: `M0`, `T0`, `p0`, `a0`.
+- **Ambient scalars**: `M0`, `T0`, `p0`, `a0`, `rho0`, `mu0`.
 - **Cooling design state**: `design.epsrow` (per-row cooling bypass ratios),
   `design.Tmrow` (blade metal temperatures), `design.fc` (total cooling fraction),
   `design.ruc` (cooling-flow velocity ratio), `design.M4a` (start-of-mixing Mach).
@@ -381,6 +381,30 @@ function pare_to_engine_state!(eng::EngineState, pare)
 end
 
 # ---------------------------------------------------------------------------
+# sync_freestream_to_pare! — write ambient freestream from EngineState to pare
+# ---------------------------------------------------------------------------
+
+"""
+    sync_freestream_to_pare!(eng, pare)
+
+Write the seven ambient freestream scalars (`p0`, `T0`, `a0`, `rho0`, `mu0`,
+`M0`, `u0`) from an `EngineState` into the corresponding `pare` column entries.
+
+Used by mission_iteration.jl for mission points that do not go through a full
+engine calculation (iptakeoff, ipcutback, intermediate cruise), so that
+`pare[iep0..ieu0, ip]` stays consistent with typed state between iterations.
+"""
+function sync_freestream_to_pare!(eng::EngineState, pare)
+    pare[iep0]   = eng.p0
+    pare[ieT0]   = eng.T0
+    pare[iea0]   = eng.a0
+    pare[ierho0] = eng.rho0
+    pare[iemu0]  = eng.mu0
+    pare[ieM0]   = eng.M0
+    pare[ieu0]   = eng.st0.u
+end
+
+# ---------------------------------------------------------------------------
 # engine_state_to_pare! — inverse of pare_to_engine_state!
 # ---------------------------------------------------------------------------
 
@@ -393,7 +417,7 @@ column of the `pare` array.  This is the inverse of [`pare_to_engine_state!`](@r
 Only fields that the legacy `pare` array actually stores are written (same
 coverage as `pare_to_engine_state!`):
 
-- **Ambient scalars**: `M0`, `T0`, `p0`, `a0`.
+- **Ambient scalars**: `M0`, `T0`, `p0`, `a0`, `rho0`, `mu0`.
 - **Total state** (Tt, ht, pt, cpt, Rt): stations 0, 18, 19, 2, 21, 25, 3,
   4 (ht/pt/cpt/Rt only — Tt4 is an input, not written), 41, 45, 49, 5, 7.
 - **Static state** (ps, Ts, Rs, cps, u): stations 2, 25, 5, 6, 7, 8.
@@ -412,6 +436,8 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieT0]    = eng.T0
     pare[iep0]    = eng.p0
     pare[iea0]    = eng.a0
+    pare[ierho0]  = eng.rho0
+    pare[iemu0]   = eng.mu0
     pare[ieTfuel] = eng.Tfuel
     # hfuel is a computed output of tfsize!/tfoper! written to typed state in
     # the sizing/off-des EXIT blocks (tasopt-j9l.45.14.1); sync back to pare so
@@ -541,11 +567,13 @@ function engine_state_to_pare!(eng::EngineState, pare)
     pare[ieM25]  = eng.design.M25
 
     # Performance rollup scalars (tasopt-j9l.52)
-    # Fe is NOT written here — it is mode-dependent (tasopt-j9l.45.14.1):
-    #   Sizing / FixedTt4OffDes: Fe is a COMPUTED OUTPUT → written by tfcalc! EXIT block.
-    #   FixedFeOffDes:           Fe is an INPUT target  → pare[ieFe] must be left unchanged
-    #     so that the next iteration's pre-sync (pare_to_engine_state!) reads the correct
-    #     target thrust from flight mechanics, not the Newton residual at convergence.
+    # Fe: written unconditionally from typed state.  Typed state is always the
+    # source of truth now that the pare_to_engine_state! pre-sync in tfwrap! has
+    # been removed (tasopt-j9l.45.14.3).  For FixedFeOffDes, eng.Fe = input
+    # target (unchanged by tfcalc!); for Sizing/FixedTt4OffDes, eng.Fe = the
+    # computed thrust (set in the EXIT block before this call).  The explicit
+    # bare pare write in the tfcalc EXIT blocks is now redundant but harmless.
+    pare[ieFe]    = eng.Fe
     pare[ieTSFC]  = eng.TSFC
     pare[ieFsp]   = eng.Fsp
     pare[ieBPR]   = eng.BPR
