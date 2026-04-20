@@ -134,12 +134,12 @@ function initialize_sizing_loop!(ac)
     # End-of-cruise pressure
     p0c = get_eng(ipcruise1).p0
     p0d = p0c * (1.0 - ffuel + ffueld) / (1.0 - ffuel + ffuelc)
-    pare[iep0, ipcruisen] = p0d; get_eng(ipcruisen).p0 = p0d
+    get_eng(ipcruisen).p0 = p0d
 
     # ===== Initial OEI thrust and fan sizing =====
     Fe_rot = 2.0 * Wpay
-    pare[ieFe, iprotate] = Fe_rot; get_eng(iprotate).Fe = Fe_rot
-    pare[ieu0, iprotate] = 70.0;   get_eng(iprotate).u0 = 70.0
+    get_eng(iprotate).Fe = Fe_rot
+    get_eng(iprotate).u0 = 70.0
     Afan = 3.0e-5 * Wpay / neng
     parg[igdfan] = sqrt(Afan * 4.0 / π)
 

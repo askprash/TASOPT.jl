@@ -140,21 +140,21 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     ReCR = parad[iaReunit,ip]
 
     for ip = iprotate: ipclimb1
-      pare[ieu0,ip] = VTO; ac.missions[imission].points[ip].engine.u0 = VTO  # dual-write
+      ac.missions[imission].points[ip].engine.u0 = VTO
       para[iaReunit,ip] = ReTO
     end
     for ip = ipclimb1+1 : ipclimbn
       frac = float(ip-ipclimb1) / float(ipclimbn-ipclimb1)
       V  =  VTO*(1.0-frac) +  VCR*frac
       Re = ReTO*(1.0-frac) + ReCR*frac
-      pare[ieu0,ip] = V; ac.missions[imission].points[ip].engine.u0 = V  # dual-write
+      ac.missions[imission].points[ip].engine.u0 = V
       para[iaReunit,ip] = Re
     end
     for ip = ipdescent1: ipdescentn
       frac = float(ip-ipdescent1) / float(ipdescentn-ipdescent1)
       V  =  VTO*frac +  VCR*(1.0-frac)
       Re = ReTO*frac + ReCR*(1.0-frac)
-      pare[ieu0,ip] = V; ac.missions[imission].points[ip].engine.u0 = V  # dual-write
+      ac.missions[imission].points[ip].engine.u0 = V
       para[iaReunit,ip] = Re
     end
 
@@ -263,9 +263,6 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
 
     #Simulate heat exchanger performance if the engine contains any
     if eng.model.model_name == "ducted_fan"
-        pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
-        pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
-        pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
         # dual-write to typed state (tasopt-keh)
         for ip in eachindex(ac.missions[imission].points)
             pt = ac.missions[imission].points[ip]

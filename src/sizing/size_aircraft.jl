@@ -559,9 +559,6 @@ function _size_aircraft!(ac; itermax=35,
         if iterw > 2 #Only include heat exchangers after second iteration
             if eng.model.model_name == "fuel_cell_with_ducted_fan"
                 ipdes = iprotate #Design point: takeoff rotation
-                pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
-                pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
-                pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
                 # dual-write to typed state (tasopt-keh)
                 for ip in eachindex(ac.missions[imission].points)
                     pt = ac.missions[imission].points[ip]
@@ -630,7 +627,7 @@ function _size_aircraft!(ac; itermax=35,
         Fdes = BW * (1 / LoD + gamV)
 
         Fdes_per_eng = Fdes / neng
-        pare[ieFe, ip] = Fdes_per_eng; get_eng(ip).Fe = Fdes_per_eng
+        get_eng(ip).Fe = Fdes_per_eng
 
         # Size engine for TOC
         case = "design" #Design the engine for this mission point
@@ -925,8 +922,6 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_point
         hvap = fuel_mix.hvap
 
         # Set fuel properties in parameter arrays and tank struct
-        pare[ieTft, :] .= Tfuel
-        pare[ieTfuel, :] .= Tfuel
         for mp in mission_points   # mirror to typed state (tasopt-fgs)
             mp.engine.Tfuel_tank = Tfuel
         end

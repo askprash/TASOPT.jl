@@ -45,7 +45,7 @@ function takeoff!(ac; imission=1, printTO = true)
     CDivert = 0.002
 
     Fmax = get_eng(ipstatic).Fe
-    pare[ieFe, iptakeoff] = Fmax; get_eng(iptakeoff).Fe = Fmax  # dual-write
+    get_eng(iptakeoff).Fe = Fmax
     Fref = get_eng(iprotate).Fe
 
     #---- single-engine thrust-curve constants for takeoff roll calculations
