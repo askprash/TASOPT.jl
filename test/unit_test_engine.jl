@@ -2372,37 +2372,6 @@ isGradient = false
         @test eng.st2.mdot > 0.0    # core mass flow
 
         # ------------------------------------------------------------------
-        # pare_to_engine_state! round-trip: after a run, reading pare
-        # into a fresh EngineState must reproduce the same values.
-        # ------------------------------------------------------------------
-        eng2 = TASOPT.engine.EngineState{Float64}()
-        TASOPT.engine.pare_to_engine_state!(eng2, view(ac.pare, :, ipcruise1, 1))
-
-        @test eng2.Tt4  ≈ eng.Tt4   rtol = 1e-12
-        @test eng2.pt3  ≈ eng.pt3   rtol = 1e-12
-        @test eng2.Tt49 ≈ eng.Tt49  rtol = 1e-12
-        @test eng2.A2   ≈ eng.A2    rtol = 1e-12
-        @test eng2.M0   ≈ eng.M0    rtol = 1e-12
-
-        # ------------------------------------------------------------------
-        # Consistency with pare: EngineState values must equal pare directly.
-        # This verifies the mapping is correct, not just round-trip stable.
-        # ------------------------------------------------------------------
-        pare_ip = view(ac.pare, :, ipcruise1, 1)
-
-        @test eng.Tt4  ≈ pare_ip[ieTt4]   rtol = 1e-12
-        @test eng.ht4  ≈ pare_ip[ieht4]   rtol = 1e-12
-        @test eng.pt4  ≈ pare_ip[iept4]   rtol = 1e-12
-        @test eng.Tt3  ≈ pare_ip[ieTt3]   rtol = 1e-12
-        @test eng.pt3  ≈ pare_ip[iept3]   rtol = 1e-12
-        @test eng.Tt49 ≈ pare_ip[ieTt49]  rtol = 1e-12
-        @test eng.pt49 ≈ pare_ip[iept49]  rtol = 1e-12
-        @test eng.Ts2  ≈ pare_ip[ieT2]    rtol = 1e-12
-        @test eng.ps2  ≈ pare_ip[iep2]    rtol = 1e-12
-        @test eng.A2   ≈ pare_ip[ieA2]    rtol = 1e-12
-        @test eng.st2.mdot ≈ pare_ip[iemcore] rtol = 1e-12
-
-        # ------------------------------------------------------------------
         # Station 6 and 8 (nozzle exits): tfcalc! writes only static fields;
         # total temperature is never assigned → remains zero in typed state.
         # ------------------------------------------------------------------
@@ -2425,11 +2394,8 @@ isGradient = false
 
         # ------------------------------------------------------------------
         # Cooling mixing constants (tasopt-j9l.54): ruc and M4a are frozen
-        # design inputs read via DesignState, not bare pare reads.
-        # Verify they match pare and are physically sensible.
+        # design inputs read via DesignState.
         # ------------------------------------------------------------------
-        @test eng.design.ruc ≈ pare_ip[ieruc] rtol = 1e-12
-        @test eng.design.M4a ≈ pare_ip[ieM4a] rtol = 1e-12
         @test eng.design.ruc > 0.0    # velocity ratio is positive
         @test eng.design.M4a > 0.0    # Mach number is positive
 
@@ -2440,7 +2406,7 @@ isGradient = false
         # where mdotf_per_engine = eng.mfuel / neng.
         # ------------------------------------------------------------------
         neng  = ac.parg[TASOPT.igneng]
-        hfuel = ac.pare[TASOPT.iehfuel, ipcruise1, 1]
+        hfuel = eng.hfuel
 
         @test 0.0 < eng.eta_overall < 1.0
         @test 0.0 < eng.eta_prop    < 1.0

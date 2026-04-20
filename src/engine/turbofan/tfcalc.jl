@@ -420,15 +420,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                     eng_design.eta_thermal = 0.0
                 end
 
-                # ── PROJECT design scalars back to pare ──────────────────────
-                # design_state_to_pare! writes frozen design-point scalars.
-                # engine_state_to_pare! writes ambient scalars, station
-                # thermodynamics, and performance rollup scalars; the shared
-                # ambient+inlet writes below the if/else (st0/st18/st19/u0)
-                # are now redundant and removed.
-
-                # Scalar fields not covered by engine_state_to_pare! — set in
-                # typed state before the projection call so pare is correct.
+                # Scalar fields written to typed state (these populate eng_design for
+                # downstream consumers that read from typed state).
                 eng_design.hfuel  = hfuel
                 eng_design.ff     = ff
                 eng_design.mofft  = mofft
@@ -441,14 +434,6 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 eng_design.pif   = pif;   eng_design.pilc = pilc;  eng_design.pihc = pihc
                 eng_design.epf   = epf;   eng_design.eplc = eplc;  eng_design.ephc = ephc
                 eng_design.epht  = epht;  eng_design.eplt = eplt
-
-                design_state_to_pare!(eng_design.design, pare)
-                engine_state_to_pare!(eng_design, pare)
-                # Fe is a COMPUTED OUTPUT in Sizing mode — write to pare after engine_state_to_pare!
-                # (not written inside engine_state_to_pare! because Fe is mode-dependent;
-                #  tasopt-j9l.45.14.1).
-                pare[ieFe] = eng_design.Fe
-                # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
 
                 HTRf = parg[igHTRf]
                 HTRlc = parg[igHTRlc]

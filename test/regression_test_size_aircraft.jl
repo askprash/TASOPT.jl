@@ -81,12 +81,6 @@ end
         end
     end
 
-    @testset "Propulsion" begin
-        for i in eachindex(pare)
-            @test pare[i] ≈ ac.pare[i]
-        end
-    end
-
     @testset "Propulsion (typed EngineState)" begin
         import TOML
         _baseline_path = joinpath(TASOPT.__TASOPTroot__, "../test/fixtures/default_sized_engine_state.toml")
