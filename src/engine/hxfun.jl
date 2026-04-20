@@ -1181,8 +1181,7 @@ end
 Construct an `HXPort` entirely from typed `EngineState` fields (tasopt-n9f).
 `Di` (inner duct diameter) is a geometry constant set by `read_input!` and
 stored in `pare[ieDi]`; it is not in `EngineState`, so it must be passed
-separately.  All dynamic engine-state fields are read from `eng` rather than
-bare pare, making this constructor safe to call before `engine_state_to_pare!`.
+separately.  All dynamic engine-state fields are read from `eng` rather than bare pare.
 """
 function HXPort(eng::EngineState, Di::Real)
     HXPort(

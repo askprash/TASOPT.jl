@@ -10,10 +10,10 @@ The hierarchy mirrors the legacy array layout:
                 └─ engine                :: EngineState{T}
                 └─ (future) aero         :: AeroState{T}  (replaces para[:,ip,im])
 
-During the current adapter-walk wave, `pare` remains the source of truth.
-`pare_to_engine_state!` mirrors engine state into each `MissionPoint.engine`
-after every `tfwrap!` call.  `pare` indices are retired incrementally as
-downstream consumers migrate to typed access.
+Typed `EngineState` is now the source of truth; `tfcalc!` / `ductedfancalc!`
+write outputs directly into `MissionPoint.engine` without a bare-`pare`
+round-trip. Remaining `pare` indices are retired incrementally as downstream
+consumers migrate to typed access.
 """
 
 # ---------------------------------------------------------------------------

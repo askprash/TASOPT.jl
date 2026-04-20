@@ -978,11 +978,8 @@ Write `test/fixtures/default_sized_engine_state.toml` — a typed-state regressi
 baseline for the "Propulsion (typed EngineState)" testset in
 `test/regression_test_size_aircraft.jl`.
 
-Serialises every field of `ac.missions[1].points[ip].engine` that has a
-bare-`pare` mirror (i.e. every field written by `pare_to_engine_state!`) for
-each of the `nip` mission points.  Used alongside the existing bare-`pare`
-Propulsion check (temporarily coexisting) so downstream tasks can delete the
-`tfcalc!` → `pare` projection without breaking the regression suite.
+Serialises every field of `ac.missions[1].points[ip].engine` for each of the
+`nip` mission points.
 
 ## Usage
 ```julia

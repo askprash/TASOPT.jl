@@ -1,13 +1,118 @@
+using StaticArrays
+
 # Test-local shim: test fixtures seed typed state via bare pare, so we need to
 # sync pare → typed EngineState before each enginecalc! call that relies on it.
 # Production callers populate typed state directly; the src-side pre-sync was
-# removed in tasopt-j9l.45.14.6.5. Remove this helper when FC fixtures are
-# rewritten to populate typed state directly — see tasopt-j9l.45.14.6.
+# removed in tasopt-j9l.45.14.6.5.
+# pare_to_engine_state! was deleted in tasopt-j9l.45.14.6; body inlined here.
 function _sync_pare_to_engine_state!(ac, imission, ip)
-    TASOPT.engine.pare_to_engine_state!(
-        ac.missions[imission].points[ip].engine,
-        view(ac.pare, :, ip, imission),
-    )
+    eng  = ac.missions[imission].points[ip].engine
+    pare = view(ac.pare, :, ip, imission)
+    eng.M0    = pare[ieM0];   eng.T0    = pare[ieT0];   eng.p0    = pare[iep0]
+    eng.a0    = pare[iea0];   eng.rho0  = pare[ierho0]; eng.mu0   = pare[iemu0]
+    eng.Tfuel      = pare[ieTfuel];   eng.Tfuel_tank = pare[ieTft]
+    eng.RadCoolantT = pare[ieRadiatorCoolantT]; eng.RadCoolantP = pare[ieRadiatorCoolantP]
+    eng.Qradiator   = pare[ieRadiatorHeat];     eng.hfuel  = pare[iehfuel]
+    eng.ff = pare[ieff]; eng.mofft = pare[iemofft]; eng.Pofft = pare[iePofft]
+    eng.Phiinl = pare[iePhiinl]; eng.Kinl = pare[ieKinl]
+    eng.Nf = pare[ieNf]; eng.N1 = pare[ieN1]; eng.N2 = pare[ieN2]
+    eng.Nbf = pare[ieNbf]; eng.Nblc = pare[ieNblc]; eng.Nbhc = pare[ieNbhc]
+    eng.epf = pare[ieepf]; eng.eplc = pare[ieeplc]; eng.ephc = pare[ieephc]
+    eng.epht = pare[ieepht]; eng.eplt = pare[ieeplt]
+    # Station 0
+    eng.st0.Tt = pare[ieTt0]; eng.st0.ht = pare[ieht0]; eng.st0.pt = pare[iept0]
+    eng.st0.cpt = pare[iecpt0]; eng.st0.Rt = pare[ieRt0]; eng.st0.u = pare[ieu0]
+    # Station 18
+    eng.st18.Tt = pare[ieTt18]; eng.st18.ht = pare[ieht18]; eng.st18.pt = pare[iept18]
+    eng.st18.cpt = pare[iecpt18]; eng.st18.Rt = pare[ieRt18]
+    # Station 19
+    eng.st19.Tt = pare[ieTt19]; eng.st19.ht = pare[ieht19]; eng.st19.pt = pare[iept19]
+    eng.st19.cpt = pare[iecpt19]; eng.st19.Rt = pare[ieRt19]
+    # Station 2
+    eng.st2.Tt = pare[ieTt2]; eng.st2.ht = pare[ieht2]; eng.st2.pt = pare[iept2]
+    eng.st2.cpt = pare[iecpt2]; eng.st2.Rt = pare[ieRt2]
+    eng.st2.ps = pare[iep2]; eng.st2.Ts = pare[ieT2]; eng.st2.Rs = pare[ieR2]
+    eng.st2.cps = pare[iecp2]; eng.st2.u = pare[ieu2]
+    eng.st2.A = pare[ieA2]; eng.st2.mdot = pare[iemcore]
+    # Station 21
+    eng.st21.Tt = pare[ieTt21]; eng.st21.ht = pare[ieht21]; eng.st21.pt = pare[iept21]
+    eng.st21.cpt = pare[iecpt21]; eng.st21.Rt = pare[ieRt21]
+    # Station 25
+    eng.st25.Tt = pare[ieTt25]; eng.st25.ht = pare[ieht25]; eng.st25.pt = pare[iept25]
+    eng.st25.cpt = pare[iecpt25]; eng.st25.Rt = pare[ieRt25]
+    eng.st25.ps = pare[iep25]; eng.st25.Ts = pare[ieT25]; eng.st25.Rs = pare[ieR25]
+    eng.st25.cps = pare[iecp25]; eng.st25.u = pare[ieu25]; eng.st25.A = pare[ieA25]
+    # Station 3
+    eng.st3.Tt = pare[ieTt3]; eng.st3.ht = pare[ieht3]; eng.st3.pt = pare[iept3]
+    eng.st3.cpt = pare[iecpt3]; eng.st3.Rt = pare[ieRt3]
+    # Station 4
+    eng.st4.Tt = pare[ieTt4]; eng.st4.ht = pare[ieht4]; eng.st4.pt = pare[iept4]
+    eng.st4.cpt = pare[iecpt4]; eng.st4.Rt = pare[ieRt4]
+    # Station 41
+    eng.st41.Tt = pare[ieTt41]; eng.st41.ht = pare[ieht41]; eng.st41.pt = pare[iept41]
+    eng.st41.cpt = pare[iecpt41]; eng.st41.Rt = pare[ieRt41]
+    # Station 45
+    eng.st45.Tt = pare[ieTt45]; eng.st45.ht = pare[ieht45]; eng.st45.pt = pare[iept45]
+    eng.st45.cpt = pare[iecpt45]; eng.st45.Rt = pare[ieRt45]
+    # Station 49
+    eng.st49.Tt = pare[ieTt49]; eng.st49.ht = pare[ieht49]; eng.st49.pt = pare[iept49]
+    eng.st49.cpt = pare[iecpt49]; eng.st49.Rt = pare[ieRt49]
+    # Station 5
+    eng.st5.Tt = pare[ieTt5]; eng.st5.ht = pare[ieht5]; eng.st5.pt = pare[iept5]
+    eng.st5.cpt = pare[iecpt5]; eng.st5.Rt = pare[ieRt5]
+    eng.st5.ps = pare[iep5]; eng.st5.Ts = pare[ieT5]; eng.st5.Rs = pare[ieR5]
+    eng.st5.cps = pare[iecp5]; eng.st5.u = pare[ieu5]; eng.st5.A = pare[ieA5]
+    # Station 6
+    eng.st6.ps = pare[iep6]; eng.st6.Ts = pare[ieT6]; eng.st6.Rs = pare[ieR6]
+    eng.st6.cps = pare[iecp6]; eng.st6.u = pare[ieu6]; eng.st6.A = pare[ieA6]
+    # Station 7
+    eng.st7.Tt = pare[ieTt7]; eng.st7.ht = pare[ieht7]; eng.st7.pt = pare[iept7]
+    eng.st7.cpt = pare[iecpt7]; eng.st7.Rt = pare[ieRt7]
+    eng.st7.ps = pare[iep7]; eng.st7.Ts = pare[ieT7]; eng.st7.Rs = pare[ieR7]
+    eng.st7.cps = pare[iecp7]; eng.st7.u = pare[ieu7]; eng.st7.A = pare[ieA7]
+    # Station 8
+    eng.st8.ps = pare[iep8]; eng.st8.Ts = pare[ieT8]; eng.st8.Rs = pare[ieR8]
+    eng.st8.cps = pare[iecp8]; eng.st8.u = pare[ieu8]; eng.st8.A = pare[ieA8]
+    # Station 9
+    eng.st9.Tt = pare[ieTt9]; eng.st9.pt = pare[iept9]; eng.st9.u = pare[ieu9]
+    eng.st9.A  = pare[ieA9]
+    # Cooling design state
+    eng.design.epsrow = SVector{4,Float64}(pare[ieepsc1], pare[ieepsc2], pare[ieepsc3], pare[ieepsc4])
+    eng.design.Tmrow  = SVector{4,Float64}(pare[ieTmet1], pare[ieTmet2], pare[ieTmet3], pare[ieTmet4])
+    eng.design.fc  = pare[iefc]; eng.design.ruc = pare[ieruc]; eng.design.M4a = pare[ieM4a]
+    # Design map anchors
+    eng.design.pifD = pare[iepifD]; eng.design.pilcD = pare[iepilcD]
+    eng.design.pihcD = pare[iepihcD]; eng.design.pihtD = pare[iepihtD]; eng.design.piltD = pare[iepiltD]
+    eng.design.mbfD = pare[iembfD]; eng.design.mblcD = pare[iemblcD]
+    eng.design.mbhcD = pare[iembhcD]; eng.design.mbhtD = pare[iembhtD]; eng.design.mbltD = pare[iembltD]
+    eng.design.NbfD = pare[ieNbfD]; eng.design.NblcD = pare[ieNblcD]
+    eng.design.NbhcD = pare[ieNbhcD]; eng.design.NbhtD = pare[ieNbhtD]; eng.design.NbltD = pare[ieNbltD]
+    eng.design.A2 = pare[ieA2]; eng.design.A25 = pare[ieA25]
+    eng.design.A5 = pare[ieA5]; eng.design.A7  = pare[ieA7]
+    # Performance rollup
+    eng.TSFC = pare[ieTSFC]; eng.Fe = pare[ieFe]; eng.Fsp = pare[ieFsp]
+    eng.BPR  = pare[ieBPR];  eng.mfuel = pare[iemfuel]
+    # Ducted-fan outputs
+    eng.Pfan = pare[iePfan]; eng.TSEC = pare[ieTSEC]; eng.mfan = pare[iemfan]
+    eng.Pfanmax = pare[iePfanmax]
+    # Compressor map operating points
+    eng.mbf = pare[iembf]; eng.mblc = pare[iemblc]; eng.mbhc = pare[iembhc]
+    eng.pif = pare[iepif]; eng.pilc = pare[iepilc]; eng.pihc = pare[iepihc]
+    # Adiabatic efficiencies
+    eng.etaf = pare[ieetaf]; eng.etalc = pare[ieetalc]; eng.etahc = pare[ieetahc]
+    eng.etaht = pare[ieetaht]; eng.etalt = pare[ieetalt]
+    # Design-constant scalars
+    eng.design.pid = pare[iepid]; eng.design.pib = pare[iepib]
+    eng.design.pifn = pare[iepifn]; eng.design.pitn = pare[iepitn]
+    eng.design.epolf = pare[ieepolf]; eng.design.epollc = pare[ieepollc]
+    eng.design.epolhc = pare[ieepolhc]; eng.design.epolht = pare[ieepolht]; eng.design.epollt = pare[ieepollt]
+    eng.design.pifK = pare[iepifK]; eng.design.epfK = pare[ieepfK]
+    eng.design.M2 = pare[ieM2]; eng.design.M25 = pare[ieM25]
+    eng.design.epsl = pare[ieepsl]; eng.design.epsh = pare[ieepsh]; eng.design.etab = pare[ieetab]
+    eng.design.dTstrk = pare[iedTstrk]; eng.design.Mtexit = pare[ieMtexit]; eng.design.StA = pare[ieStA]
+    eng.design.efilm = pare[ieefilm]; eng.design.tfilm = pare[ietfilm]
+    eng.design.fc0 = pare[iefc0]; eng.design.dehtdfc = pare[iedehtdfc]
+    return eng
 end
 
 @testset "Ducted fan" begin

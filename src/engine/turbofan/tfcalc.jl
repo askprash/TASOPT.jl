@@ -9,7 +9,7 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
     - `eng_hx::EngineState`: per-point typed engine state supplying HX delta inputs
       (hvapcombustor, PreCDeltah/p, InterCDeltah/p, RegenDeltah/p, TurbCDeltah, HXrecircP).
       Populated by `resetHXs`/`HXOffDesign!` before this call. These fields override the
-      values built by `pare_to_engine_state!` so that HX delta reads come from typed state
+      (hvapcombustor, PreCDeltah/p, etc.) so that HX delta reads come from typed state
       (tasopt-dti / tasopt-w82).
     - `opt_calc_call::CalcMode.T`:
       - `CalcMode.Sizing`: call on-design sizing routine `tfsize!`
@@ -28,12 +28,10 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         opt_calc_call::CalcMode.T, opt_cooling::CoolingOpt.T, initializes_engine::Bool)
 
         # ── ENTRY: alias per-point EngineState (tasopt-j9l.45.16) ────────────────
-        # pare_to_engine_state! is now called by tfwrap.jl callers before each
-        # tfcalc! invocation, populating pare-backed fields on the per-point
-        # EngineState.  HX delta fields (removed from pare in tasopt-w82) are
-        # already set by resetHXs/HXOffDesign! and are preserved across that
-        # call.  The per-point state accumulates non-pare outputs (st19c/st25c)
-        # across calls, which is the desired behaviour for downstream consumers.
+        # Typed EngineState is the single source of truth; tfcalc! reads all
+        # inputs from eng and writes all outputs directly back to eng.
+        # HX delta fields are set by resetHXs/HXOffDesign! before this call.
+        # Non-pare outputs (st19c/st25c) accumulate across calls.
         eng = eng_hx
 
         Lprint = false
@@ -453,7 +451,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 # ── ENTRY ────────────────────────────────────────────────────
                 # Alias the top-level EngineState built before the if/else.
                 # After tfoper! returns we populate every station from local
-                # variables and project back to pare via engine_state_to_pare!.
+                # variables directly into typed EngineState.
                 eng_offdes = eng
 
                 #----- fixed parameters (tasopt-j9l.53: read design flow areas from typed DesignState)
@@ -463,7 +461,6 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 A7  = eng_offdes.design.A7
 
                 # tasopt-j9l.23: read map anchors from typed DesignState
-                # (populated by pare_to_engine_state! at harness entry)
                 NbfD  = eng_offdes.design.NbfD
                 NblcD = eng_offdes.design.NblcD
                 NbhcD = eng_offdes.design.NbhcD
@@ -658,8 +655,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
 
                 eng_offdes.st9.u   = u9;   eng_offdes.st9.A   = A9
 
-                # Cooling — mirror the sizing EXIT block (lines 376-378) so that
-                # engine_state_to_pare! can write cooling data to pare for both
+                # Cooling — mirror the sizing EXIT block (lines 376-378) for both
                 # operating modes (FixedCoolingFlowRatio and FixedTmetal).
                 # epsrow/Tmrow are populated by tfoper! in place; mofft/mcore
                 # are available as tfoper! return values.
@@ -697,8 +693,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                     eng_offdes.eta_thermal = 0.0
                 end
 
-                # Scalar fields set in typed state before engine_state_to_pare! so
-                # the projection call writes correct values to pare (tasopt-j9l.45.14.1).
+                # Scalar fields written directly into typed EngineState (tasopt-j9l.45.14.1).
                 eng_offdes.hfuel  = hfuel
                 eng_offdes.ff     = ff
                 eng_offdes.mofft  = mofft
@@ -734,26 +729,14 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
         # Cooling (tasopt-j9l.20):
-        # FixedCoolingFlowRatio — Tmrow bare-write removed; now written via
-        #   engine_state_to_pare! from eng.design.Tmrow (set in EXIT blocks).
-        # FixedCoolingFlowRatio — epsrow is an INPUT (read from pare at entry);
-        #   writing it back via engine_state_to_pare! is idempotent.
-        # FixedTmetal — epsrow bare-write removed; now written via
-        #   engine_state_to_pare! from eng.design.epsrow (set in EXIT blocks).
-        # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode;
-        #   pare[iefc] is NOT touched in FixedCoolingFlowRatio mode (retains
-        #   initialization value).  Route through eng.design.fc (set in EXIT
-        #   block at line 656 as (1 - mofft/mcore)*sum(epsrow)) — tasopt-j9l.54.
-        # pare[iefc] removed (tasopt-j9l.45.14.1): eng.design.fc set in EXIT blocks;
-        #   engine_state_to_pare! writes it for FixedTmetal via sync_cooling_scalars_to_pare!.
-        # pare[ieTSFC] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.TSFC
-        # pare[ieFsp]  removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.Fsp
-        # pare[iemcore] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.st2.mdot
-        # pare[iehfuel..ieKinl], pare[ieNf..ieNbhc], pare[iembf..iepihc], pare[ieepf..ieeplt]
-        #   removed (tasopt-j9l.45.14.1): written by engine_state_to_pare! via typed EngineState
-        #   fields set in the sizing/off-des EXIT blocks.
-        # pare[ieetaf..ieetalt] removed (tasopt-j9l.63.1): written by engine_state_to_pare! via eng.etaf..etalt
-        # pare[iemfuel] removed (tasopt-j9l.52): written by engine_state_to_pare! via eng.mfuel
+        # FixedCoolingFlowRatio — Tmrow is written into eng.design.Tmrow in EXIT block.
+        # FixedCoolingFlowRatio — epsrow is an INPUT (read from eng.design.epsrow at entry).
+        # FixedTmetal — epsrow is written into eng.design.epsrow in EXIT block.
+        # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode; written via
+        #   eng.design.fc (set in EXIT block at line 656) and sync_cooling_scalars_to_pare!
+        #   (tasopt-j9l.54).
+        # pare[ieTSFC/ieFsp/iemcore/iehfuel..ieKinl/ieNf..iepihc/ieepf..ieeplt/ieetaf..ieetalt/iemfuel]
+        #   removed (tasopt-j9l.45.14.1/52/63.1): written directly into typed EngineState.
 
         if (M5 <= 0.999999)
                 ichoke5 = 0

@@ -149,8 +149,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Engine-level performance outputs
-    # Written by tfcalc! EXIT blocks and flushed to pare via
-    # engine_state_to_pare!.  Read back from pare via pare_to_engine_state!.
+    # Written by tfcalc! EXIT blocks directly into typed EngineState.
     # -----------------------------------------------------------------------
     TSFC  ::T   # thrust-specific fuel consumption [kg/N/s]
     Fe    ::T   # net thrust per engine            [N]
@@ -169,8 +168,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Compressor map operating points (tasopt-drd)
-    # Written by tfcalc! EXIT block; read back via pare_to_engine_state!.
-    # Synced to pare before off-design calls via engine_state_to_pare!.
+    # Written by tfcalc! EXIT block directly into typed EngineState.
     # Back-propagated from previous mission point as Newton initial guesses
     # (see _mission_iteration! descent initialisation).
     # -----------------------------------------------------------------------
@@ -185,8 +183,7 @@ mutable struct EngineState{T<:AbstractFloat}
     # Per-point nozzle area schedule factors (tasopt-dw7)
     # A5fac: core nozzle throat area relative to design value  [—]
     # A7fac: fan  nozzle throat area relative to design value  [—]
-    # Set by read_input.jl for each flight point; synced from
-    # pare[ieA5fac] / pare[ieA7fac] via pare_to_engine_state!.
+    # Set by read_input.jl for each flight point.
     # -----------------------------------------------------------------------
     A5fac   ::T   # core nozzle area factor             [—]
     A7fac   ::T   # fan  nozzle area factor             [—]
@@ -204,8 +201,8 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Overall propulsion efficiencies (tasopt-j9l.63.2)
-    # Derived quantities — no pare backing; set to zero by pare_to_engine_state!.
-    # Written by tfcalc! EXIT blocks only; engine_state_to_pare! is a no-op.
+    # Derived quantities — no pare backing; written by tfcalc! EXIT blocks.
+    # Zero at ground-idle (Fe ≤ 0 or Fsp ≤ 0).
     #
     # Definitions (standard propulsion, Cumpsty Ch.1, Hill & Peterson Ch.5):
     #   eta_overall  = Fe * u0 / (mdotf_per_engine * hfuel)
