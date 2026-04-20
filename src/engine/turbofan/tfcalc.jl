@@ -713,20 +713,9 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 eng_offdes.pif   = pif;   eng_offdes.pilc = pilc;  eng_offdes.pihc = pihc
                 eng_offdes.epf   = epf;   eng_offdes.eplc = eplc;  eng_offdes.ephc = ephc
                 eng_offdes.epht  = epht;  eng_offdes.eplt = eplt
-                # M2/M25: off-design converged values used as initial guess for next call;
-                # written here so engine_state_to_pare! syncs them to pare.
+                # M2/M25: off-design converged values used as initial guess for next call.
                 eng_offdes.design.M2  = M2
                 eng_offdes.design.M25 = M25
-
-                # Project thermodynamic state back to pare.
-                engine_state_to_pare!(eng_offdes, pare)
-                # Fe is mode-dependent (tasopt-j9l.45.14.1):
-                #   FixedTt4OffDes — Fe is a COMPUTED OUTPUT; write to pare.
-                #   FixedFeOffDes  — Fe is an INPUT target; pare[ieFe] must retain the
-                #     target value set by flight mechanics (not the Newton residual).
-                if opt_calc_call == CalcMode.FixedTt4OffDes
-                        pare[ieFe] = Fe
-                end
 
                 if (Lprint)
                         println("exited TFOPER", Lconv)
@@ -738,14 +727,6 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
                 end
 
                 fo = mofft / mcore
-
-                # pare[iBPR] removed (tasopt-j9l.52): always computed output, written by
-                #   engine_state_to_pare! via eng.BPR for both FixedTt4 and FixedFe.
-                # pare[ieFe]: mode-dependent — written above (after engine_state_to_pare!)
-                #   for FixedTt4OffDes only; for FixedFeOffDes pare[ieFe] retains the
-                #   input target thrust set by flight mechanics (tasopt-j9l.45.14.1).
-                # pare[ieTt4] removed (tasopt-j9l.45.14.1): engine_state_to_pare! writes
-                #   it via eng_offdes.st4.Tt, which captures Tt4 in both modes.
 
                 # println("exited TFOPER call")
 

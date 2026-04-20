@@ -2645,25 +2645,7 @@ isGradient = false
         @test all(ip -> ac.para[iaMach, ip, 1] >= 0.0, ips)
         @test all(ip -> ac.para[iaalt,  ip, 1] >= 0.0, ips)
 
-        # ---- Engine states match pare at every mission point ----
         eng_cr = mission.points[ipcruise1].engine
-        pare_cr = view(ac.pare, :, ipcruise1, 1)
-
-        @test eng_cr.Tt4  ≈ pare_cr[ieTt4]    rtol = 1e-12
-        @test eng_cr.pt3  ≈ pare_cr[iept3]    rtol = 1e-12
-        @test eng_cr.Tt49 ≈ pare_cr[ieTt49]   rtol = 1e-12
-        @test eng_cr.BPR  ≈ pare_cr[ieBPR]    rtol = 1e-12
-        @test eng_cr.Fe   ≈ pare_cr[ieFe]     rtol = 1e-12
-        @test eng_cr.TSFC ≈ pare_cr[ieTSFC]   rtol = 1e-12
-        @test eng_cr.st2.mdot ≈ pare_cr[iemcore] rtol = 1e-12
-        @test eng_cr.mfuel    ≈ pare_cr[iemfuel] rtol = 1e-12
-
-        # Check a climb point too (ipclimb1 uses FixedTt4OffDes mode)
-        eng_cl  = mission.points[ipclimb1].engine
-        pare_cl = view(ac.pare, :, ipclimb1, 1)
-
-        @test eng_cl.Tt4 ≈ pare_cl[ieTt4] rtol = 1e-12
-        @test eng_cl.pt3 ≈ pare_cl[iept3] rtol = 1e-12
 
         # ---- Thermodynamic invariants on cruise point ----
         # Total temperature must rise through compressor, fall through turbine
