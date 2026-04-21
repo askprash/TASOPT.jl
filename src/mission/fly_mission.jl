@@ -53,7 +53,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     #Initialize arrays with the design mission values if desired
     if (initializes_engine)
         #----- use design case as initial guess for engine state
-        pare[:,:] .= pared[:,:]  # non-engine bare pare (ieu0, ierho0, parad aero, etc.)
+        pare[:,:] .= pared[:,:]  # bare-pare copy for downstream callers not yet migrated to typed state
         # Initialize typed engine state from design mission typed state.
         # Design typed state is authoritative after .14.3 (tasopt-j9l.45.14.3); deepcopy
         # replaces the old bare-pare-copy + pare_to_engine_state! pattern (.14.5).
@@ -63,8 +63,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
             mis_pts[ip].engine = deepcopy(des_pts[ip].engine)
         end
     else
-        pare[ieu0, ipcruise1] = pared[ieu0, ipcruise1] #Copy flight speed for altitude calculation
-        ac.missions[imission].points[ipcruise1].engine.u0 = ac.missions[1].points[ipcruise1].engine.u0  # dual-write
+        ac.missions[imission].points[ipcruise1].engine.u0 = ac.missions[1].points[ipcruise1].engine.u0
     end
 
     for ip = ipstatic: ipdescentn
@@ -132,11 +131,13 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
 #---- estimate takeoff speed and set V,Re over climb and descent
 #-    (needed to start trajectory integration)
     ip = iptakeoff
-    VTO = pared[ieu0,ip] * sqrt(pared[ierho0,ip]/pare[ierho0,ip])
-    ReTO = VTO*pare[ierho0,ip]/pare[iemu0,ip]
+    eng_des_to = ac.missions[1].points[ip].engine
+    eng_mis_to = ac.missions[imission].points[ip].engine
+    VTO = eng_des_to.u0 * sqrt(eng_des_to.rho0 / eng_mis_to.rho0)
+    ReTO = VTO * eng_mis_to.rho0 / eng_mis_to.mu0
 
     ip = ipcruise1
-    VCR = pared[ieu0,ip]
+    VCR = ac.missions[1].points[ip].engine.u0
     ReCR = parad[iaReunit,ip]
 
     for ip = iprotate: ipclimb1
