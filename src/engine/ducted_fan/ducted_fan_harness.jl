@@ -3,7 +3,7 @@ ducted_fan_harness.jl — Ducted-fan engine-standalone runners.
 
 Provides:
 - `DuctedFanState`: typed container for one ducted-fan operating point.
-- `pare_to_ducted_fan_state!`: populate DuctedFanState from a pare slice or typed EngineState.
+- `pare_to_ducted_fan_state!`: populate DuctedFanState from a typed EngineState.
 - `run_ducted_fan_design_point`: single-point sizing runner.
 - `run_ducted_fan_sweep`: multi-point off-design sweep.
 - `write_ducted_fan_sweep_toml`: serialize sweep to TOML regression baseline.
@@ -154,115 +154,13 @@ DuctedFanState() = DuctedFanState{Float64}()
 # ---------------------------------------------------------------------------
 
 """
-    pare_to_ducted_fan_state!(state, pare) -> state
-
-Populate a (typically zero-initialised) `DuctedFanState` from a single
-column of the `pare` array — `view(ac.pare, :, ip, imission)` — after a
-successful `ductedfancalc!` call.
-
-Fields written by `ductedfancalc!` (design or off-design):
-- Ambient: `M0`, `T0`, `p0`, `a0`, `u0`.
-- Performance: `Fe`, `Fsp`, `TSEC`, `TSFC`, `Pfan`, `mfan`, `etaf`, `epf`.
-- Fan map: `pif`, `mbf`, `Nbf`.
-- Design anchors: `pifD`, `mbfD`, `NbfD`, `A2`, `A7`.
-- Station totals (Tt, ht, pt, cpt, Rt): stations 0, 18, 2, 21, 7.
-- Station static (ps, Ts, Rs, cps, u): stations 2, 7, 8.
-- Station area (A): stations 2, 7, 8.
-- Station mass flow (mdot): station 2 (set to `mfan`).
-
-See also the typed-state overload `pare_to_ducted_fan_state!(state, eng_ip::EngineState)`.
-"""
-function pare_to_ducted_fan_state!(state::DuctedFanState, pare)
-    # -----------------------------------------------------------------------
-    # Ambient
-    # -----------------------------------------------------------------------
-    state.M0 = pare[ieM0]
-    state.T0 = pare[ieT0]
-    state.p0 = pare[iep0]
-    state.a0 = pare[iea0]
-    state.u0 = pare[ieu0]
-
-    # -----------------------------------------------------------------------
-    # Performance
-    # -----------------------------------------------------------------------
-    state.Fe   = pare[ieFe]
-    state.Fsp  = pare[ieFsp]
-    state.TSEC = pare[ieTSEC]
-    state.TSFC = pare[ieTSFC]
-    state.Pfan = pare[iePfan]
-    state.mfan = pare[iemfan]
-    state.etaf = pare[ieetaf]
-    state.epf  = pare[ieepf]
-
-    # -----------------------------------------------------------------------
-    # Fan map operating point
-    # -----------------------------------------------------------------------
-    state.pif  = pare[iepif]
-    state.mbf  = pare[iembf]
-    state.Nbf  = pare[ieNbf]
-
-    # -----------------------------------------------------------------------
-    # Design anchors
-    # -----------------------------------------------------------------------
-    state.pifD = pare[iepifD]
-    state.mbfD = pare[iembfD]
-    state.NbfD = pare[ieNbfD]
-    state.A2   = pare[ieA2]
-    state.A7   = pare[ieA7]
-
-    # -----------------------------------------------------------------------
-    # Station 0 — freestream (total + u)
-    # -----------------------------------------------------------------------
-    _fill_total!(state.st0, pare, ieTt0, ieht0, iept0, iecpt0, ieRt0)
-    state.st0.u = pare[ieu0]
-
-    # -----------------------------------------------------------------------
-    # Station 18 — FanFaceOuter (total only)
-    # -----------------------------------------------------------------------
-    _fill_total!(state.st18, pare, ieTt18, ieht18, iept18, iecpt18, ieRt18)
-
-    # -----------------------------------------------------------------------
-    # Station 2 — FanFace (total + static + A + mfan)
-    # -----------------------------------------------------------------------
-    _fill_total!(state.st2, pare, ieTt2, ieht2, iept2, iecpt2, ieRt2)
-    _fill_static!(state.st2, pare, iep2, ieT2, ieR2, iecp2, ieu2)
-    state.st2.A    = pare[ieA2]
-    state.st2.mdot = pare[iemfan]
-
-    # -----------------------------------------------------------------------
-    # Station 21 — FanExit (total only)
-    # -----------------------------------------------------------------------
-    _fill_total!(state.st21, pare, ieTt21, ieht21, iept21, iecpt21, ieRt21)
-
-    # -----------------------------------------------------------------------
-    # Station 7 — FanNozzle (total + static + A7)
-    # -----------------------------------------------------------------------
-    _fill_total!(state.st7, pare, ieTt7, ieht7, iept7, iecpt7, ieRt7)
-    _fill_static!(state.st7, pare, iep7, ieT7, ieR7, iecp7, ieu7)
-    state.st7.A = pare[ieA7]
-
-    # -----------------------------------------------------------------------
-    # Station 8 — FanNozzleExit (static + A8 only; no total in pare)
-    # -----------------------------------------------------------------------
-    _fill_static!(state.st8, pare, iep8, ieT8, ieR8, iecp8, ieu8)
-    state.st8.A = pare[ieA8]
-
-    return state
-end
-
-"""
     pare_to_ducted_fan_state!(state, eng_ip::EngineState) -> state
 
-Typed-state overload: populate a `DuctedFanState` from a typed `EngineState`
+Populate a `DuctedFanState` from a typed `EngineState`
 (`ac.missions[imission].points[ip].engine`) after a successful `ductedfancalc!`
 call.  Reads exclusively from the typed surface; no bare `pare` access.
 
-`ductedfancalc!` dual-writes every output field to both `pare` and the typed
-`EngineState`, so this overload and the `pare` overload yield identical values.
-
-Used internally by `run_ducted_fan_design_point` and `run_ducted_fan_sweep`
-(tasopt-j9l.45.15).  The `pare` overload is retained for backward compatibility
-and for the test round-trip check in `unit_test_ductedfan.jl`.
+Used internally by `run_ducted_fan_design_point` and `run_ducted_fan_sweep`.
 """
 function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     # -----------------------------------------------------------------------

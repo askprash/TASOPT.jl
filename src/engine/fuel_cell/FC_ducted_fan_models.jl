@@ -39,19 +39,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
 
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
-        pare[ieA2, :] .= pare[ieA2, ip]
-        # A7fac is typed-state-authoritative (not in bare pare post tasopt-4wr),
-        # so read per-point A7fac from typed state for this broadcast.
-        for (ip2, pt) in enumerate(ac.missions[imission].points)
-            pare[ieA7, ip2] = parg[igA7] * pt.engine.A7fac
-        end
-
-        pare[iembfD, :] .= pare[iembfD, ip]
-        pare[iepifD, :] .= pare[iepifD, ip]
-        pare[ieNbfD, :] .= pare[ieNbfD, ip]
-
-        # Typed-state dual-writes: propagate design constants to all mission points.
-        # Mirrors the bare pare broadcasts above (tasopt-048).
+        # Typed-state: propagate design constants to all mission points.
         for pt in ac.missions[imission].points
             pt.engine.design.A2   = eng_ip.design.A2
             pt.engine.design.A7   = parg[igA7] * pt.engine.A7fac
@@ -63,7 +51,6 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         #Design fuel cell for takeoff conditions
         ip_fcdes = iprotate
         eng_fcdes = ac.missions[imission].points[ip_fcdes].engine
-        eng_fcdes.Pfanmax = pare[iePfanmax, ip_fcdes]   # sync Pfanmax to typed state
         Pfanmax = eng_fcdes.Pfanmax
 
         ## Model of electric machine to deliver Pfanmax

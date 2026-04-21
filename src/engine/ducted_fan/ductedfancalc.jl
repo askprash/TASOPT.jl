@@ -115,13 +115,13 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
         Nbf = Nf / sqrt(Tt2 / Tref)
         NbfD = Nbf
 
-        #----- store design-point parameters (dual-write: bare pare + typed state)
-        pare[ieA2] = A2;  eng_ip.design.A2  = A2
-        pare[ieA7] = A7;  eng_ip.design.A7  = A7
+        #----- store design-point parameters
+        eng_ip.design.A2  = A2
+        eng_ip.design.A7  = A7
 
-        pare[iembfD] = mbfD;  eng_ip.design.mbfD = mbfD
-        pare[iepifD] = pifD;  eng_ip.design.pifD = pifD
-        pare[ieNbfD] = Nbf;   eng_ip.design.NbfD = Nbf
+        eng_ip.design.mbfD = mbfD
+        eng_ip.design.pifD = pifD
+        eng_ip.design.NbfD = Nbf
 
     else
         #----- fixed parameters
@@ -170,7 +170,7 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
                             M2, pif, mbf,
                             Δh_radiator, Δp_radiator,
                             iPspec)
-            pare[ieFe] = Feng;  eng_ip.Fe = Feng
+            eng_ip.Fe = Feng
 
         else #Thrust is specified, power to be computed
             Feng = eng_ip.Fe
@@ -204,75 +204,75 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     dfan = sqrt(4.0 * A2 / (pi * (1.0 - HTRf^2)))
     parg[igdfan] = dfan
 
-    pare[iePfan] = Pfan;   eng_ip.Pfan  = Pfan
-    pare[ieTSEC] = TSEC;   eng_ip.TSEC  = TSEC
-    pare[ieTSFC] = TSEC / 120e6;  eng_ip.TSFC = TSEC / 120e6  #TODO change when fuel is not burnt
-    pare[ieFsp]  = Fsp;    eng_ip.Fsp   = Fsp
-    pare[iemfan] = mfan;   eng_ip.mfan  = mfan
-    pare[iePhiinl] = Phiinl;  eng_ip.Phiinl = Phiinl
-    pare[ieKinl]   = Kinl;    eng_ip.Kinl   = Kinl
+    eng_ip.Pfan  = Pfan
+    eng_ip.TSEC  = TSEC
+    eng_ip.TSFC = TSEC / 120e6  #TODO change when fuel is not burnt
+    eng_ip.Fsp   = Fsp
+    eng_ip.mfan  = mfan
+    eng_ip.Phiinl = Phiinl
+    eng_ip.Kinl   = Kinl
 
-    pare[iembf] = mbf;  eng_ip.mbf = mbf
-    pare[iepif] = pif;  eng_ip.pif = pif
-    pare[ieNbf] = Nbf;  eng_ip.Nbf = Nbf
+    eng_ip.mbf = mbf
+    eng_ip.pif = pif
+    eng_ip.Nbf = Nbf
     Nf_val = Nbf * sqrt(Tt2 / Tref)
-    pare[ieNf] = Nf_val;  eng_ip.Nf = Nf_val
+    eng_ip.Nf = Nf_val
 
-    pare[ieTt0]  = Tt0;   eng_ip.st0.Tt  = Tt0
-    pare[ieht0]  = ht0;   eng_ip.st0.ht  = ht0
-    pare[iept0]  = pt0;   eng_ip.st0.pt  = pt0
-    pare[iecpt0] = cpt0;  eng_ip.st0.cpt = cpt0
-    pare[ieRt0]  = Rt0;   eng_ip.st0.Rt  = Rt0
+    eng_ip.st0.Tt  = Tt0
+    eng_ip.st0.ht  = ht0
+    eng_ip.st0.pt  = pt0
+    eng_ip.st0.cpt = cpt0
+    eng_ip.st0.Rt  = Rt0
 
-    pare[ieTt18]  = Tt18;   eng_ip.st18.Tt  = Tt18
-    pare[ieht18]  = ht18;   eng_ip.st18.ht  = ht18
-    pare[iept18]  = pt18;   eng_ip.st18.pt  = pt18
-    pare[iecpt18] = cpt18;  eng_ip.st18.cpt = cpt18
-    pare[ieRt18]  = Rt18;   eng_ip.st18.Rt  = Rt18
+    eng_ip.st18.Tt  = Tt18
+    eng_ip.st18.ht  = ht18
+    eng_ip.st18.pt  = pt18
+    eng_ip.st18.cpt = cpt18
+    eng_ip.st18.Rt  = Rt18
 
-    pare[ieTt2]  = Tt2;   eng_ip.st2.Tt  = Tt2
-    pare[ieht2]  = ht2;   eng_ip.st2.ht  = ht2
-    pare[iept2]  = pt2;   eng_ip.st2.pt  = pt2
-    pare[iecpt2] = cpt2;  eng_ip.st2.cpt = cpt2
-    pare[ieRt2]  = Rt2;   eng_ip.st2.Rt  = Rt2
+    eng_ip.st2.Tt  = Tt2
+    eng_ip.st2.ht  = ht2
+    eng_ip.st2.pt  = pt2
+    eng_ip.st2.cpt = cpt2
+    eng_ip.st2.Rt  = Rt2
 
-    pare[ieTt21]  = Tt21;   eng_ip.st21.Tt  = Tt21
-    pare[ieht21]  = ht21;   eng_ip.st21.ht  = ht21
-    pare[iept21]  = pt21;   eng_ip.st21.pt  = pt21
-    pare[iecpt21] = cpt21;  eng_ip.st21.cpt = cpt21
-    pare[ieRt21]  = Rt21;   eng_ip.st21.Rt  = Rt21
+    eng_ip.st21.Tt  = Tt21
+    eng_ip.st21.ht  = ht21
+    eng_ip.st21.pt  = pt21
+    eng_ip.st21.cpt = cpt21
+    eng_ip.st21.Rt  = Rt21
 
-    pare[ieTt7]  = Tt7;   eng_ip.st7.Tt  = Tt7
-    pare[ieht7]  = ht7;   eng_ip.st7.ht  = ht7
-    pare[iept7]  = pt7;   eng_ip.st7.pt  = pt7
-    pare[iecpt7] = cpt7;  eng_ip.st7.cpt = cpt7
-    pare[ieRt7]  = Rt7;   eng_ip.st7.Rt  = Rt7
+    eng_ip.st7.Tt  = Tt7
+    eng_ip.st7.ht  = ht7
+    eng_ip.st7.pt  = pt7
+    eng_ip.st7.cpt = cpt7
+    eng_ip.st7.Rt  = Rt7
 
-    pare[ieu0] = u0;  eng_ip.st0.u = u0
+    eng_ip.st0.u = u0
 
-    pare[iep2]  = p2;   eng_ip.st2.ps  = p2
-    pare[ieT2]  = T2;   eng_ip.st2.Ts  = T2
-    pare[ieR2]  = R2;   eng_ip.st2.Rs  = R2
-    pare[iecp2] = cp2;  eng_ip.st2.cps = cp2
-    pare[ieu2]  = u2;   eng_ip.st2.u   = u2
+    eng_ip.st2.ps  = p2
+    eng_ip.st2.Ts  = T2
+    eng_ip.st2.Rs  = R2
+    eng_ip.st2.cps = cp2
+    eng_ip.st2.u   = u2
 
-    pare[iep7]  = p7;   eng_ip.st7.ps  = p7
-    pare[ieT7]  = T7;   eng_ip.st7.Ts  = T7
-    pare[ieR7]  = R7;   eng_ip.st7.Rs  = R7
-    pare[iecp7] = cp7;  eng_ip.st7.cps = cp7
-    pare[ieu7]  = u7;   eng_ip.st7.u   = u7
+    eng_ip.st7.ps  = p7
+    eng_ip.st7.Ts  = T7
+    eng_ip.st7.Rs  = R7
+    eng_ip.st7.cps = cp7
+    eng_ip.st7.u   = u7
 
-    pare[iep8]  = p8;   eng_ip.st8.ps  = p8
-    pare[ieT8]  = T8;   eng_ip.st8.Ts  = T8
-    pare[ieR8]  = R8;   eng_ip.st8.Rs  = R8
-    pare[iecp8] = cp8;  eng_ip.st8.cps = cp8
-    pare[ieu8]  = u8;   eng_ip.st8.u   = u8
+    eng_ip.st8.ps  = p8
+    eng_ip.st8.Ts  = T8
+    eng_ip.st8.Rs  = R8
+    eng_ip.st8.cps = cp8
+    eng_ip.st8.u   = u8
 
-    pare[ieA8] = A8;  eng_ip.st8.A = A8
+    eng_ip.st8.A = A8
 
-    pare[ieepf]  = epf;   eng_ip.epf  = epf
+    eng_ip.epf  = epf
 
-    pare[ieetaf] = etaf;  eng_ip.etaf = etaf
+    eng_ip.etaf = etaf
 
 
     if (M7 <= 0.999999)

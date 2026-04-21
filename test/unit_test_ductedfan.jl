@@ -323,6 +323,9 @@ end
         pare[ieu0,ipcruise1,1] = 237.4846310775805
 
         _sync_pare_to_engine_state!(ac, 1, ipcruise1)
+        # FC design uses ip_fcdes=iprotate for Pfanmax; set it directly in typed state.
+        # (bare pare[iePfanmax] is no longer synced at design time — tasopt-j9l.45.14.7.7.1)
+        ac.missions[1].points[iprotate].engine.Pfanmax = pare[iePfanmax, iprotate, 1]
         engine.enginecalc!(ac, "design", 1, ipcruise1, true)
 
         @test ac.missions[1].points[ipcruise1].engine.mfuel ≈ 0.0005481461619779067
@@ -358,7 +361,15 @@ end
         pare[iemu0,iprotate,1] = 1.78e-5
         pare[ieT0,iprotate,1] = 288.2
         pare[ieu0,iprotate,1] = 73.89982446679213
-        _sync_pare_to_engine_state!(ac, 1, iprotate)
+        # Sync ambient fields to typed state for off-design, but preserve design anchors
+        # (ductedfancalc! no longer writes them to bare pare — tasopt-j9l.45.14.7.7.1)
+        let eng = ac.missions[1].points[iprotate].engine
+            _A2 = eng.design.A2; _A7 = eng.design.A7
+            _mbfD = eng.design.mbfD; _pifD = eng.design.pifD; _NbfD = eng.design.NbfD
+            _sync_pare_to_engine_state!(ac, 1, iprotate)
+            eng.design.A2 = _A2; eng.design.A7 = _A7
+            eng.design.mbfD = _mbfD; eng.design.pifD = _pifD; eng.design.NbfD = _NbfD
+        end
         engine.enginecalc!(ac, "off_design", 1, iprotate, true)
 
         @test ac.missions[1].points[iprotate].engine.mfuel ≈ 0.0010447183729991173
@@ -435,6 +446,9 @@ end
         # (the src-side pre-sync in calculate_fuel_cell_with_ducted_fan! was removed
         # in tasopt-j9l.45.14.6.5; this shim is the test-local replacement).
         _sync_pare_to_engine_state!(ac_h, 1, ipcruise1)
+        # FC design uses ip_fcdes=iprotate for Pfanmax; set it directly in typed state.
+        # (bare pare[iePfanmax] is no longer synced at design time — tasopt-j9l.45.14.7.7.1)
+        ac_h.missions[1].points[iprotate].engine.Pfanmax = pare_h[iePfanmax, iprotate, 1]
 
         # ------------------------------------------------------------------
         # run_ducted_fan_design_point
@@ -472,20 +486,23 @@ end
         # Nozzle ideally expanded at design point: p_exit ≈ p0
         @test df.st8.ps ≈ df.p0 rtol=1e-6
 
-        # Round-trip consistency: DuctedFanState values match pare directly
-        @test df.Fe   ≈ pare_h[ieFe,   ipcruise1, 1] rtol=1e-12
-        @test df.Pfan ≈ pare_h[iePfan, ipcruise1, 1] rtol=1e-12
-        @test df.A2   ≈ pare_h[ieA2,   ipcruise1, 1] rtol=1e-12
-        @test df.A7   ≈ pare_h[ieA7,   ipcruise1, 1] rtol=1e-12
-        @test df.pif  ≈ pare_h[iepif,  ipcruise1, 1] rtol=1e-12
-        @test df.etaf ≈ pare_h[ieetaf, ipcruise1, 1] rtol=1e-12
-        @test df.st2.Tt ≈ pare_h[ieTt2, ipcruise1, 1] rtol=1e-12
+        # Round-trip consistency: DuctedFanState values match typed EngineState
+        # (bare pare is no longer written by ductedfancalc! after tasopt-j9l.45.14.7.7.1)
+        let eng = ac_h.missions[1].points[ipcruise1].engine
+            @test df.Fe     ≈ pare_h[ieFe,  ipcruise1, 1] rtol=1e-12   # Fe: test-set input
+            @test df.Pfan   ≈ eng.Pfan          rtol=1e-12
+            @test df.A2     ≈ eng.design.A2     rtol=1e-12
+            @test df.A7     ≈ eng.design.A7     rtol=1e-12
+            @test df.pif    ≈ pare_h[iepif, ipcruise1, 1] rtol=1e-12   # pif: test-set input
+            @test df.etaf   ≈ eng.etaf          rtol=1e-12
+            @test df.st2.Tt ≈ eng.st2.Tt       rtol=1e-12
+        end
 
         # ------------------------------------------------------------------
         # pare_to_ducted_fan_state! round-trip: fresh state matches harness
         # ------------------------------------------------------------------
         df2 = TASOPT.engine.DuctedFanState{Float64}()
-        TASOPT.engine.pare_to_ducted_fan_state!(df2, view(ac_h.pare, :, ipcruise1, 1))
+        TASOPT.engine.pare_to_ducted_fan_state!(df2, ac_h.missions[1].points[ipcruise1].engine)
         @test df2.Fe   ≈ df.Fe   rtol=1e-12
         @test df2.pif  ≈ df.pif  rtol=1e-12
         @test df2.A2   ≈ df.A2   rtol=1e-12
