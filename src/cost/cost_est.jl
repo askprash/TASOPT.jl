@@ -49,7 +49,7 @@ function CostEst(pari, parg, pare, parm, parpt, prod_Q)
     # a modified OEW (in kg) that assigns more weight to systems with a higher cost per pound
     # based on methods using in Markish (2000), with componenent weights determined from data for a 777-200
     #println(Wmod)
-    Vmax = maximum(pare[ieu0,:]) * 3.6 #maximum velocity (km/h)
+    Vmax = NaN  # TODO: update CostEst to typed EngineState before using (was pare[ieu0,:] * 3.6)
     #println(Vmax)
     Npax =  parm[imWpay]/215/lbf_to_N #number of pax
     P_hp = parpt[ipt_Ptshaft]/745.7 #turboshaft gas turbine engine power [hp]

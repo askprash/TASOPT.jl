@@ -225,7 +225,6 @@ end
 has_centerbox_fuel  = readfuel("fuel_in_wingcen")
 parg[igrWfmax] = readfuel("fuel_usability_factor")
 hvap_init = readfuel("fuel_enthalpy_vaporization")
-pare[iehvap, :, :] .= hvap_init          #Heat of vaporization of the fuel
 
 # tasopt-j9l.45.7: mirror Tfuel to typed engine state from local Tfuel_init (not bare pare).
 # JET-A: Tfuel_init = fuel_temp; LH2/CH4: Tfuel_init = 0.0 matches zero-init EngineState default.
@@ -1202,8 +1201,6 @@ elseif compare_strings(propsys,"fuel_cell_with_ducted_fan")
     fcdata.thickness_anode  = 250e-6
     fcdata.thickness_cathode  = 250e-6
     fcdata.design_voltage = 200.0
-    pare[ieRadiatorepsilon,:,:] .= 0.7
-    pare[ieRadiatorMp,:,:] .= 0.12
 
     para[iaROCdes, ipclimb1:ipclimbn,:] .= 500 * ft_to_m / 60
     engdata = fcdata

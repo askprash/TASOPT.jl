@@ -40,18 +40,6 @@ function find_mdot_time(t::Float64, para::Array{Float64}, mdots::AbstractVector{
 
 end
 
-"""
-    find_mdot_time(t, tank_count, parg, para, pare)
-
-Legacy overload: reads `ieff`/`iemcore` from bare `pare` array and delegates to the
-precomputed-mdots form.  Prefer calling `find_mdot_time(t, para, mdots)` with a
-precomputed `mdots` vector built from typed `EngineState`.
-"""
-function find_mdot_time(t::Float64, tank_count::Int64, parg::Vector{Float64}, para::Array{Float64}, pare::Array{Float64})
-    scale = parg[igneng] / tank_count
-    mdots = scale .* pare[ieff, :] .* pare[iemcore, :]
-    return find_mdot_time(t, para, mdots)
-end
 
 """
     calc_Q_points(fuse, fuse_tank, ifuel, parg, para, TSL::Float64)
@@ -62,7 +50,7 @@ This function calculates the heat transfer rate into the tank at the design miss
     - `fuse_tank::FuselageTank`: struct with aircraft cryogenic tank parameters
     - `ifuel::Integer`: fuel type specification for gas calcs from ac.options
     - `parg::Vector{Float64}`: vector with aircraft geometric parameters
-    - `pare::Array{Float64}`: array with aircraft engine parameters
+    - `para::Array{Float64}`: array with aircraft aerodynamic parameters
     - `TSL::Float64`: sea-level temperature (K)
     
     **Outputs:**
@@ -202,7 +190,6 @@ accounting for operational constraints (i.e., holding times and venting).
 """
 function analyze_TASOPT_tank(ac::aircraft, t_hold_orig::Float64 = 0.0, t_hold_dest::Float64 = 0.0, im::Int64 = 1)
     para_orig = ac.para[:, :, im]
-    pare_orig = ac.pare[:, :, im]
 
     #Modify aircraft with holding times
     para_alt = zeros(size(para_orig, 1), size(para_orig, 2) + 3)
@@ -213,14 +200,10 @@ function analyze_TASOPT_tank(ac::aircraft, t_hold_orig::Float64 = 0.0, t_hold_de
     Np = size(para_alt, 2)
     para_alt[iatime, Np-1] = maximum(para_alt[iatime, :])
     para_alt[iatime, Np] = para_alt[iatime, Np-1] + t_hold_dest
-    
-    pare_alt = zeros(size(pare_orig, 1), size(pare_orig, 2) + 3)
-    pare_alt[:, 3:(iptotal + 2)] .= pare_orig
 
     # Build mdots_alt from typed EngineState (eng.ff and eng.mcore dual-written by tfcalc!).
-    # pare_alt column layout: [hold1, hold2, pt1..pt_iptotal, hold_dest]
-    # mission point ip maps to pare_alt column 2+ip (same layout as pare_alt[:, 3:(iptotal+2)]).
-    # Hold columns (1, 2, Np) stay at 0.0 — no fuel burn during ground holds.
+    # Hold columns (1, 2, Np_alt) stay at 0.0 — no fuel burn during ground holds.
+    # Mission point ip maps to mdots_alt column 2+ip.
     scale_eng  = ac.parg[igneng] / ac.fuse_tank.tank_count
     mpts       = ac.missions[im].points
     Np_alt     = size(para_alt, 2)
