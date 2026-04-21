@@ -327,20 +327,13 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     ac.parm[imDeltaTatm] = ac.parm[imT0TO] - T_std
 
     # -----------------------------------------------------------------------
-    # Set T0, p0, a0, M0, u0, ρ0, μ0 in pare from design altitude + Mach.
+    # Set ReUnit from design altitude + Mach.
     # -----------------------------------------------------------------------
     ΔTatmos = ac.parm[imDeltaTatm]
     alt_m   = ac.para[iaalt, ip, imission]
     as      = atmos(alt_m, ΔTatmos)
     Mach    = ac.para[iaMach, ip, imission]
 
-    ac.pare[iep0,   ip, imission] = as.p
-    ac.pare[ieT0,   ip, imission] = as.T
-    ac.pare[iea0,   ip, imission] = as.a
-    ac.pare[ierho0, ip, imission] = as.ρ
-    ac.pare[iemu0,  ip, imission] = as.μ
-    ac.pare[ieM0,   ip, imission] = Mach
-    ac.pare[ieu0,   ip, imission] = Mach * as.a
     ac.para[iaReunit, ip, imission] = Mach * as.a * as.ρ / as.μ
 
     # -----------------------------------------------------------------------

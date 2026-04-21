@@ -22,7 +22,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     end
     
     #Extract aircraft components and storage arrays
-    parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
     
     parad = ac.parad
 
@@ -325,7 +325,7 @@ from the weight and density. If "CL" is selected, it calculates the altitude fro
     - No explicit outputs. Computed quantities are saved to `par` arrays of `aircraft` model for the mission selected
 """
 function calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, ac, imission)
-    parg, parm, para, _, _, fuse, _, wing, _, _, _ = unpack_ac(ac, imission)
+    parg, parm, para, _, fuse, _, wing, _, _, _, _ = unpack_ac(ac, imission)
 
     #Calculate ΔT for the atmosphere
     altTO = parm[imaltTO] 

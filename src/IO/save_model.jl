@@ -33,7 +33,7 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #unpack aircraft struct
     imission = 1 #design mission for now
-    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
+    parg, parm, para, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
     #TODO: fuse_tank fields are not saved
 
     # Alias for typed engine state at the design cruise point (ip=1, tasopt-sxv).

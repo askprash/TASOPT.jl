@@ -13,7 +13,7 @@ A model to estimate the required thrust based on the rate of climb and lift and 
     No outputs. The `ac` object gets modified with the thrust Fe.
 """
 function calculate_thrust_from_ROC!(ac, ip, imission)
-    parg, _, para, pare, _, _, _, wing, _, _, _, _ = unpack_ac(ac, imission, ip = ip)
+    parg, _, para, _, _, _, wing, _, _, _, _ = unpack_ac(ac, imission, ip = ip)
 
     neng = ac.parg[igneng]
     #Calculate climb angle from desired climb rate
@@ -35,6 +35,5 @@ function calculate_thrust_from_ROC!(ac, ip, imission)
     ϕ = (sqrt(-A^2*B^6 - 2*A^2*B^4 - A^2*B^2 + B^6 + 2*B^4 + B^2) + A*B^2 + A)/(B^2 + 1)#Closed form solution
     Ftotal = BW * ϕ #Total thrust required for climb
     Fe = Ftotal / neng #required thrust per engine
-    pare[ieFe] = Fe  # Store computed thrust (bare pare + typed state dual-write, tasopt-j9l.45.12)
     ac.missions[imission].points[ip].engine.Fe = Fe
 end

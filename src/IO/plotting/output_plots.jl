@@ -20,7 +20,7 @@ function stickfig(ac::aircraft; plot_obj = nothing, label_fs = 16,
     end
 
     # Unpack aircraft components
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac,1) #imission = 1 
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac,1) #imission = 1
 
     # Wing
         co = wing.layout.root_chord
@@ -615,7 +615,7 @@ weight and drag buildup stacked bar charts to present results.
 """
 function plot_details(ac::aircraft; imission::Int=1)
 
-    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
+    parg, parm, para, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
 
   ## Gather data to be plotted
     # Drag build-up for subplot 2
@@ -1080,14 +1080,10 @@ function PayloadRange(ac_og::TASOPT.aircraft;
     #Duplicate design mission as second aircraft, which will be modified
     parm = cat(ac_og.parm[:,1], ac_og.parm[:,1], dims=2)
     para = cat(ac_og.para[:,:,1], ac_og.para[:,:,1], dims=3)
-    # Build pare from typed engine state for mission 1; duplicate for 2-mission aircraft.
-    # (tasopt-j9l.45.14.7.6: replaces ac_og.pare[:,:,1] bare-pare slice)
-    pare1 = reduce(hcat, [engine_state_to_pare_vec(pt.engine) for pt in ac_og.missions[1].points])
-    pare  = cat(pare1, pare1, dims=3)
     # Duplicate typed missions so fly_mission!(ac, 2) can access typed engine state.
     missions = [deepcopy(ac_og.missions[1]), deepcopy(ac_og.missions[1])]
     ac = aircraft(ac_og.name, ac_og.description,
-    ac_og.options, ac_og.parg, parm, para, pare, [true],
+    ac_og.options, ac_og.parg, parm, para, [true],
     ac_og.fuselage, ac_og.fuse_tank, ac_og.wing, ac_og.htail, ac_og.vtail, ac_og.engine, ac_og.landing_gear,
     missions)
 

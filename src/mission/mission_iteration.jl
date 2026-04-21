@@ -20,7 +20,7 @@ They are updated and returned in the same para[iagamV,ip] array.
 """
 function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #Unpack aircraft
-      parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
+      parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
       mission = ac.missions[imission]  # typed per-mission state (Mission{Float64})
 
       ifirst = true

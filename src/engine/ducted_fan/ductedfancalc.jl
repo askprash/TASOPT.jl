@@ -19,7 +19,7 @@ Calls function ductedfansize! or ductedfanoper! for one operating point.
 """
 function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initializes_engine::Bool, iterw::Int64 = 0)
     #Unpack data storage arrays
-    parg, _, para, pare, options, _, _, wing, _, _, eng, _ = unpack_ac(ac, imission, ip=ip)
+    parg, _, para, options, _, _, wing, _, _, eng, _ = unpack_ac(ac, imission, ip=ip)
     iBLIc = eng.model.has_BLI_cores
 
     neng = parg[igneng]

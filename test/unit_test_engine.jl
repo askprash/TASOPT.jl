@@ -1318,8 +1318,6 @@ isGradient = false
         MTOW = 1e5
         feng = 0.05
 
-        ac.pare[ieTSFC, ip, 1] = TSFC
-        ac.pare[ieFe, ip, 1] = Fe
         ac.missions[1].points[ip].engine.TSFC = TSFC
         ac.missions[1].points[ip].engine.Fe   = Fe
         ac.parg[igWMTO] = MTOW

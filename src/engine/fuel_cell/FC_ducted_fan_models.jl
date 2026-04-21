@@ -21,12 +21,12 @@ In the off-design case, it computes the power and thrust requirements for each m
     **Output:**
     No direct outputs. The `ac` object is modified with:
     - Updated fuel cell power (`fcdata.FC_power`)
-    - Updated ducted fan performance parameters (`pare`)
+    - Updated ducted fan performance parameters (typed engine state)
     - Updated engine size and power requirements during the design phase
 """
 function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initializes_engine, iterw = 0)
     #Unpack aircraft data
-    parg, _, para, pare, _, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
+    parg, _, para, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
     fcdata = ac.engine.data #Extract fuel cell data
 
     eng_ip = ac.missions[imission].points[ip].engine

@@ -8,7 +8,7 @@ The aircraft must be defined in parg array. The ipstatic and iprotate points are
 """
 function takeoff!(ac; imission=1, printTO = true)
 
-    parg, parm, para, pare, _, _, _, wing, _, _, _, _  = unpack_ac(ac, imission)
+    parg, parm, para, _, _, _, wing, _, _, _, _  = unpack_ac(ac, imission)
     get_eng(ip) = ac.missions[imission].points[ip].engine
 
     #---- Newton convergence tolerance

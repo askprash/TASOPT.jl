@@ -34,8 +34,7 @@ end
 @testset "aircraft missions field" begin
     ac = load_default_model()
     # missions is populated with one entry per N_missions (default input has 2)
-    nmisx = size(ac.pare, 3)
-    @test length(ac.missions) == nmisx
+    @test length(ac.missions) == 2
     # Each mission has iptotal (17) points
     @test length(ac.missions[1].points) == 17
     # design_mission_state shortcut returns the design Mission

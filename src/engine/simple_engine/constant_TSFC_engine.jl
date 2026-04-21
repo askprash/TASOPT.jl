@@ -17,7 +17,7 @@ the thrust specific fuel consumption (TSFC) of the engine, which is an input.
 """
 function constant_TSFC_engine!(ac, d1, imission::Int64, ip::Int64, d2, d3 = 0)
     #Unpack data storage arrays
-    parg, _, para, pare, _, _, _, wing, _, _, _, _ = unpack_ac(ac, imission, ip = ip)
+    parg, _, para, _, _, _, wing, _, _, _, _ = unpack_ac(ac, imission, ip = ip)
     eng = ac.missions[imission].points[ip].engine
     TSFC = eng.TSFC #Extract TSFC at this mission point
     neng = parg[igneng]
@@ -33,6 +33,5 @@ function constant_TSFC_engine!(ac, d1, imission::Int64, ip::Int64, d2, d3 = 0)
     end
 
     mfuel_per_eng =  TSFC * Fe / gee #Calculate fuel flow per engine from set TSFC
-    pare[iemfuel] = mfuel_per_eng * neng #Store total fuel flow for all engines
     eng.mfuel = mfuel_per_eng * neng
 end

@@ -14,7 +14,7 @@ Function to update the fuselage layout when there is a change in fuselage fuel-t
 """
 function update_fuse!(ac, imission::Int64 = 1)
     #Unpack storage objects
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac, imission) 
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac, imission)
     parm = view(parm, :, imission)
     para = view(para, :, :, imission)
 

@@ -27,7 +27,7 @@ function _size_aircraft!(ac; itermax=35,
 
     # Unpack data storage arrays and components
     imission = 1 #Design mission
-    parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear  = unpack_ac(ac, imission)
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
     get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Initialize variables

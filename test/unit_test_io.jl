@@ -300,10 +300,7 @@
         # Patch architecture to ConstantTSFC.
         ac_ctsfc.options.opt_prop_sys_arch = PropSysArch.ConstantTSFC
 
-        # Inject known TSFC schedule into typed state AND pare per-point.
-        # save_aircraft_model calls pare_to_engine_state! for several points
-        # (nozzle sync, Tt4 sync) which overwrites typed state from pare; so both
-        # must agree for the assertion to hold after save.
+        # Inject known TSFC schedule into typed state per-point.
         tsfc_climb   = 1.8e-4  # [kg/N/s = 1/s for consistent units]
         tsfc_cruise  = 1.6e-4
         tsfc_descent = 2.1e-4
@@ -311,15 +308,12 @@
 
         for ip in ipclimb1:ipclimbn
             ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_climb
-            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_climb
         end
         for ip in ipcruise1:ipcruisen
             ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_cruise
-            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_cruise
         end
         for ip in ipdescent1:ipdescentn
             ac_ctsfc.missions[im].points[ip].engine.TSFC = tsfc_descent
-            ac_ctsfc.pare[ieTSFC, ip, im] = tsfc_descent
         end
         ac_ctsfc.para[iaROCdes, ipclimb1:ipclimbn, im] .= roc_ms
 
@@ -359,8 +353,8 @@
         @test eng_d.design.HTRhc  ≈ 0.80
 
         # uniform across all flight points and missions
-        for im in 1:size(ac_def.pare, 3)
-            for ip in 1:size(ac_def.pare, 2)
+        for im in 1:length(ac_def.missions)
+            for ip in 1:length(ac_def.missions[im].points)
                 e = ac_def.missions[im].points[ip].engine
                 @test e.design.Gearf  == eng_d.design.Gearf
                 @test e.design.HTRf   == eng_d.design.HTRf

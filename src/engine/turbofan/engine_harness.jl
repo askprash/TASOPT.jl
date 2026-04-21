@@ -323,13 +323,6 @@ function run_engine_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     as      = atmos(alt_m, ΔTatmos)
     Mach    = ac.para[iaMach, ip, imission]
 
-    ac.pare[iep0,   ip, imission] = as.p
-    ac.pare[ieT0,   ip, imission] = as.T
-    ac.pare[iea0,   ip, imission] = as.a
-    ac.pare[ierho0, ip, imission] = as.ρ
-    ac.pare[iemu0,  ip, imission] = as.μ
-    ac.pare[ieM0,   ip, imission] = Mach
-    ac.pare[ieu0,   ip, imission] = Mach * as.a
     ac.para[iaReunit, ip, imission] = Mach * as.a * as.ρ / as.μ
 
     # -----------------------------------------------------------------------
