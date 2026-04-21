@@ -1,5 +1,5 @@
 """
-    tfcalc!(wing, engine, parg, para, pare, eng_hx, ip, ifuel, opt_calc_call, opt_cooling, initializes_engine)
+    tfcalc!(wing, engine, parg, para, eng_hx, ip, ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
 Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis function
 [`tfoper!`](@ref) for one operating point `ip`.
@@ -24,7 +24,7 @@ Calls on-design sizing function [`tfsize!`](@ref) or off-design analysis functio
       - `true`: initialize variables for iteration in `tfoper!`
       - `false`: use current variables as initial guesses in `tfoper!`
 """
-function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::EngineState, ip::Int64, ifuel::Int64,
+function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState, ip::Int64, ifuel::Int64,
         opt_calc_call::CalcMode.T, opt_cooling::CoolingOpt.T, initializes_engine::Bool)
 
         # ── ENTRY: alias per-point EngineState (tasopt-j9l.45.16) ────────────────
@@ -733,8 +733,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, pare, eng_hx::Engine
         # FixedCoolingFlowRatio — epsrow is an INPUT (read from eng.design.epsrow at entry).
         # FixedTmetal — epsrow is written into eng.design.epsrow in EXIT block.
         # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode; written via
-        #   eng.design.fc (set in EXIT block at line 656) and sync_cooling_scalars_to_pare!
-        #   (tasopt-j9l.54).
+        #   eng.design.fc (set in EXIT block at line 656).
         # pare[ieTSFC/ieFsp/iemcore/iehfuel..ieKinl/ieNf..iepihc/ieepf..ieeplt/ieetaf..ieetalt/iemfuel]
         #   removed (tasopt-j9l.45.14.1/52/63.1): written directly into typed EngineState.
 

@@ -20,7 +20,7 @@ They are updated and returned in the same para[iagamV,ip] array.
 """
 function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #Unpack aircraft
-      parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
+      parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
       mission = ac.missions[imission]  # typed per-mission state (Mission{Float64})
 
       ifirst = true
@@ -198,7 +198,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       para[iaMach, ip] = M2
       para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
-      sync_freestream_to_pare!(mission.points[ip].engine, view(pare, :, ip))
 
       #---- set pitch trim by adjusting CLh
       Wf = WTO - Wzero
@@ -224,7 +223,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       para[iaMach, ip] = M2
       para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
-      sync_freestream_to_pare!(mission.points[ip].engine, view(pare, :, ip))
       para[iaxCG, ip] = xCG2
       para[iaxCP, ip] = xCP2
       para[iaxNP, ip] = xNP2
@@ -579,7 +577,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
             eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
             para[iaReunit, ip] = Mach * a0 * rho0 / mu0
-            sync_freestream_to_pare!(eng_ip, view(pare, :, ip))
 
             rhocab = max(parg[igpcabin], p0) / (RSL * Tref)
             para[iaWbuoy, ip] = (rhocab - rho0) * gee * parg[igcabVol]

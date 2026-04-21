@@ -22,10 +22,9 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     end
     
     #Extract aircraft components and storage arrays
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
+    parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
     
     parad = ac.parad
-    pared = ac.pared
 
     time_propsys = 0.0
 
@@ -53,7 +52,6 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     #Initialize arrays with the design mission values if desired
     if (initializes_engine)
         #----- use design case as initial guess for engine state
-        pare[:,:] .= pared[:,:]  # bare-pare copy for downstream callers not yet migrated to typed state
         # Initialize typed engine state from design mission typed state.
         # Design typed state is authoritative after .14.3 (tasopt-j9l.45.14.3); deepcopy
         # replaces the old bare-pare-copy + pare_to_engine_state! pattern (.14.5).

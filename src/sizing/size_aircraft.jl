@@ -27,7 +27,7 @@ function _size_aircraft!(ac; itermax=35,
 
     # Unpack data storage arrays and components
     imission = 1 #Design mission
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear  = unpack_ac(ac, imission)
+    parg, parm, para, _, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear  = unpack_ac(ac, imission)
     get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Initialize variables
@@ -113,7 +113,7 @@ function _size_aircraft!(ac; itermax=35,
     xfuel = ltank = 0.0
 
     # Set up fuel storage parameters (wing vs fuselage)
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, ac.missions[imission].points)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, ac.missions[imission].points)
 
     # -------------------------------------------------------
     ## Initial guess section [Section 3.2 of TASOPT docs]
@@ -853,16 +853,8 @@ function set_ambient_conditions!(ac, ip, Mach=NaN; im = 1)
     if Mach === NaN
         Mach = ac.para[iaMach, ip, im]
     end
-    ac.pare[iep0, ip, im] = p0
-    ac.pare[ieT0, ip, im] = T0
-    ac.pare[iea0, ip, im] = a0
-    ac.pare[ierho0, ip, im] = ρ0
-    ac.pare[iemu0, ip, im] = μ0
-    ac.pare[ieM0, ip, im] = Mach
-    ac.pare[ieu0, ip, im] = Mach * a0
     ac.para[iaReunit, ip, im] = Mach * a0 * ρ0 / μ0
 
-    # tasopt-j9l.45.8: dual-write freestream scalars to typed EngineState.
     eng = ac.missions[im].points[ip].engine
     eng.p0   = p0
     eng.T0   = T0
@@ -896,7 +888,7 @@ function update_wing_pitching_moments!(para, ip_range, wing)
 end
 
 """
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_points)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, mission_points)
 
 Initializes fuel storage parameters based on whether fuel is stored in the
 wings or fuselage. For fuselage storage, computes fuel properties from the
@@ -906,7 +898,7 @@ necessarily true.
 
 Also resets heat exchanger values for the engine.
 """
-function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_points)
+function setup_fuel_storage!(options, fuse, fuse_tank, parg, mission_points)
     if options.has_wing_fuel
         xftank = xftankaft = 0.0
     else

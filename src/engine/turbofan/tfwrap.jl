@@ -21,7 +21,7 @@ basic engine inputs to those required by the function and storing the outputs.
 """
 function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engine::Bool, iterw::Int64 = 0)
     #Unpack data storage arrays
-    parg, _, para, pare, options, _, _, wing, _, _, engine = unpack_ac(ac, imission)
+    parg, _, para, _, options, _, _, wing, _, _, engine = unpack_ac(ac, imission)
     
     if case == "design"
         opt_calc_call = CalcMode.Sizing
@@ -34,17 +34,13 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             initializes_engine_firstiter  = false
         end
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
 
         # Propagate design-point scalars to all per-point typed EngineStates.
-        # sync_design_scalars_to_pare! also writes the same 19 fields to bare
-        # pare so that the pre-sync loop in mission_iteration.jl does not
-        # overwrite mbfD/NbfD/etc. with zero values from an un-initialised bare
-        # pare column (tasopt-j9l.45.14.2).  ruc/M4a are intentionally excluded
-        # (written only for the design point inside tfcalc!; overwriting
-        # non-design-point bare-pare columns triggers H2-sizing NaN).
+        # ruc/M4a are intentionally excluded (written only for the design point
+        # inside tfcalc!).
         eng_ip = ac.missions[imission].points[ip].engine
         parg[igA5] = eng_ip.design.A5 / eng_ip.A5fac
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
@@ -70,7 +66,6 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             eng_jp.design.pihcD = eng_ip.design.pihcD
             eng_jp.design.pihtD = eng_ip.design.pihtD
             eng_jp.design.piltD = eng_ip.design.piltD
-            sync_design_scalars_to_pare!(eng_jp.design, view(pare, :, jp))
         end
         
     elseif case == "off_design"
@@ -83,25 +78,23 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         end
         opt_cooling = CoolingOpt.FixedCoolingFlowRatio
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
     elseif case == "cooling_sizing"
         opt_calc_call = CalcMode.FixedTt4OffDes
         opt_cooling = CoolingOpt.FixedTmetal
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip),
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
             ac.missions[imission].points[ip].engine,
             ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
         # Tmetal was specified... propagate blade-row cooling fractions to all points.
-        # sync_cooling_scalars_to_pare! keeps bare pare in sync.
         eng_ip = ac.missions[imission].points[ip].engine
         for jp = 1:iptotal
             eng_jp = ac.missions[imission].points[jp].engine
             eng_jp.design.epsrow = eng_ip.design.epsrow
             eng_jp.design.fc     = eng_ip.design.fc
-            sync_cooling_scalars_to_pare!(eng_jp.design, view(pare, :, jp))
         end
     end
 end

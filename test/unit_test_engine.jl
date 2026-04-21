@@ -1174,12 +1174,13 @@ isGradient = false
 
         ac = TASOPT.load_default_model()
         ip = ipcruise1
+        eng_ip = ac.missions[1].points[ip].engine
 
         ac.parg[igGearf] = 1.0
-        ac.pared[iemblcD, ip] = 46.110246609262873
-        ac.pared[ieBPR, ip] = 5.0999999999999996
-        ac.pared[iepilc, ip] = 3.0
-        ac.pared[iepihc, ip] = 10.000000000000000 
+        eng_ip.design.mblcD = 46.110246609262873
+        eng_ip.BPR  = 5.0999999999999996
+        eng_ip.pilc = 3.0
+        eng_ip.pihc = 10.000000000000000
         ac.parg[igdfan] = 1.3927234305722356
         ac.parg[igdlcomp] = 0.67240459668963337
         ac.parg[igrSnace] = 16.000000000000000

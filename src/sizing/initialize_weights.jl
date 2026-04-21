@@ -15,7 +15,7 @@ All values are approximate and will be refined during iteration.
 function initialize_sizing_loop!(ac)
     # Unpack aircraft components and parameter arrays
     imission = 1
-    parg, parm, para, pare, _, fuse, _, wing, htail, vtail, _, landing_gear = unpack_ac(ac, imission)
+    parg, parm, para, _, _, fuse, _, wing, htail, vtail, _, landing_gear = unpack_ac(ac, imission)
     get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Extract design parameters
@@ -183,7 +183,6 @@ across all mission points as a starting estimate.
 function initialize_cooling_flow!(ac)
     imission = 1
     parg = ac.parg
-    pare = view(ac.pare, :, :, imission)
     get_eng(ip) = ac.missions[imission].points[ip].engine
     ip = iprotate
     eng_rot = get_eng(ip)
