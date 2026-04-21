@@ -322,7 +322,7 @@
         ac = read_aircraft_model(joinpath(TASOPT.__TASOPTroot__, "../example/cryo_input.toml"))
         pare = ac.pare
 
-        pare[ieDi, :] .= 0.564
+        Di_test = 0.564
         pare[ieTft, :] .= 20
         pare[ieetab,:] .= 1.0
         # mirror bare-pare ieTft write to typed state (tasopt-fgs: HXPort now reads eng.Tfuel_tank)
@@ -387,6 +387,7 @@
         HXs[1].design_Mach = 0.1
         HXs[1].order = 1
         HXs[1].maximum_length = 0.25
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -413,6 +414,7 @@
         HXs[1].design_Mach = 0.1
         HXs[1].order = 1
         HXs[1].maximum_length = 0.25
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -439,6 +441,7 @@
         HXs[1].design_Mach = 0.02
         HXs[1].order = 1
         HXs[1].maximum_length = 0.25
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -468,6 +471,7 @@
         HXs[1].design_Mach = 0.2
         HXs[1].order = 1
         HXs[1].maximum_length = 0.25
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -501,6 +505,7 @@
         HXs[1].maximum_length = 0.25
         HXs[1].has_recirculation = true
         HXs[1].recirculation_temperature = 200.0
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -539,6 +544,7 @@
         HXs[2].design_Mach = 0.2
         HXs[2].order = 2
         HXs[2].maximum_length = 0.25
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
 
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
@@ -567,7 +573,7 @@
             ac.missions[im].points[ip].engine.Qradiator   = pare[ieRadiatorHeat, ip, 1]
         end
         
-        pare[ieDi,:,1] .= 0.4 #Inner diameter of HEX
+        Di_test = 0.4 #Inner diameter of HEX
 
         # Mirror HX-relevant bare-pare fields to typed EngineState (tasopt-n9f).
         for ip in 1:iptotal
@@ -583,6 +589,7 @@
         HXs[1].design_Mach = 0.12
         HXs[1].order = 1
         HXs[1].maximum_length = 2.0
+        for HX in HXs; HX.Di = Di_test; end
         ac.engine.heat_exchangers = HXs
         HXs = TASOPT.hxdesign!(ac, ipstatic, 1)
 

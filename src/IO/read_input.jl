@@ -1204,7 +1204,6 @@ elseif compare_strings(propsys,"fuel_cell_with_ducted_fan")
     fcdata.design_voltage = 200.0
     pare[ieRadiatorepsilon,:,:] .= 0.7
     pare[ieRadiatorMp,:,:] .= 0.12
-    pare[ieDi,:,:] .= 0.4
 
     para[iaROCdes, ipclimb1:ipclimbn,:] .= 500 * ft_to_m / 60
     engdata = fcdata
@@ -1234,7 +1233,7 @@ if "HeatExchangers" in keys(prop) && !isempty(prop["HeatExchangers"])
     
     has_recirculation = read_input("has_recirculation", HEx, dHEx)
     recircT = Temp(read_input("recirculation_temperature", HEx, dHEx))
-    pare[ieDi, :, :] .= Distance(read_input("core_inner_diameter", HEx, dHEx))
+    HX_Di = Distance(read_input("core_inner_diameter", HEx, dHEx))
     HXmaxL = Distance(read_input("maximum_heat_exchanger_length", HEx, dHEx))
     
     PreCorder = read_input("precooler_order", HEx, dHEx)
@@ -1281,6 +1280,7 @@ if "HeatExchangers" in keys(prop) && !isempty(prop["HeatExchangers"])
         HX.design_Mach = Mp_in[i]
         HX.added_mass_fraction = HX_add_mass
         HX.maximum_length = HXmaxL
+        HX.Di = HX_Di
         if i == 1 #For first HX
             HX.has_recirculation = has_recirculation
             HX.recirculation_temperature = recircT

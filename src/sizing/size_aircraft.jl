@@ -937,7 +937,7 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare, mission_point
     parg[igxftankaft] = xftankaft
 
     # Reset engine values for heat exchangers
-    resetHXs(pare, mission_points)
+    resetHXs(mission_points)
 
     return nothing
 end

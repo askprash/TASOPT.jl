@@ -145,8 +145,6 @@ function initialize_sizing_loop!(ac)
 
     # Fan face Mach numbers
     M2des = 0.6
-    pare[ieM2, ipstatic:ipcruisen] .= M2des
-    pare[ieM2, ipdescent1:ipdescentn] .= 0.8 * M2des
     for ip in ipstatic:ipcruisen
         get_eng(ip).design.M2 = M2des
     end
@@ -227,9 +225,6 @@ function initialize_cooling_flow!(ac)
     epsrow_sv = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
     Tmrow_sv  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
     for jp in 1:iptotal
-        pare[iefc, jp] = fc
-        pare[ieepsc1:ieepsc1+ncrowx-1, jp] .= epsrow
-        pare[ieTmet1:ieTmet1+ncrowx-1, jp] .= Tmrow
         eng_jp = get_eng(jp)
         eng_jp.design.fc = fc
         eng_jp.design.epsrow = epsrow_sv

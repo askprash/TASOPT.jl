@@ -163,6 +163,8 @@ Structure containing all the heat exchanger geometry and operational information
       recirculation_temperature::Float64 = 0.0 #temperature of recirculating flow at HX inlet (K)
       "Minimum wall temperature in the sizing mission"
       min_wall_temperature::Float64 = 0.0 #Minimum wall temperature (K)
+      "Inner duct diameter [m] (geometry constant set by read_input)"
+      Di::Float64 = 0.0
 end
 
 # Outer constructor with custom size for HXgas_mission
@@ -1137,50 +1139,11 @@ struct HXPort
 end
 
 """
-    HXPort(pare_sl, Tfuel_tank, hvapcombustor, RadCoolantT, RadCoolantP, Qradiator)
-
-Construct an `HXPort` from a 1-D pare slice at a single operating point.
-`Tfuel_tank`, `hvapcombustor`, `RadCoolantT`, `RadCoolantP`, and `Qradiator`
-are passed explicitly from typed EngineState (tasopt-fgs, tasopt-w82, tasopt-keh)
-rather than read from bare pare.
-"""
-function HXPort(pare_sl::AbstractVector{<:Real}, Tfuel_tank::Real, hvapcombustor::Real,
-                RadCoolantT::Real, RadCoolantP::Real, Qradiator::Real)
-    HXPort(
-        pare_sl[ieDi],
-        Tfuel_tank,
-        pare_sl[iehvap],
-        pare_sl[iemcore],
-        pare_sl[iemofft],
-        pare_sl[iefc],
-        pare_sl[ieff],
-        pare_sl[iemfan],
-        pare_sl[ieTt19],
-        pare_sl[ieTt25],
-        pare_sl[ieTt49],
-        pare_sl[ieTt3],
-        pare_sl[ieTt21],
-        pare_sl[ieTt4],
-        pare_sl[ieTfuel],
-        pare_sl[iept19],
-        pare_sl[iept25],
-        pare_sl[iept49],
-        pare_sl[iept3],
-        pare_sl[iept21],
-        RadCoolantT,
-        RadCoolantP,
-        Qradiator,
-        hvapcombustor,
-        pare_sl[ieetab],
-    )
-end
-
-"""
     HXPort(eng, Di)
 
 Construct an `HXPort` entirely from typed `EngineState` fields (tasopt-n9f).
-`Di` (inner duct diameter) is a geometry constant set by `read_input!` and
-stored in `pare[ieDi]`; it is not in `EngineState`, so it must be passed
+`Di` (inner duct diameter) is a geometry constant stored in `HeatExchanger.Di`
+(set by `read_input!`); it is not in `EngineState`, so it must be passed
 separately.  All dynamic engine-state fields are read from `eng` rather than bare pare.
 """
 function HXPort(eng::EngineState, Di::Real)
@@ -1231,14 +1194,15 @@ then evaluates performance for all missions and points with hxoper!().
     - Also modifies `pare` with the fuel temperature and the HX enthalpy and pressure changes
 """
 function hxdesign!(ac, ipdes, imission; rlx = 1.0)
-      #Unpack aircraft
-      pare = view(ac.pare,:, :, imission)
-      pare_sl = view(pare,:, ipdes)
       igas = ac.options.ifuel
       HXs = ac.engine.heat_exchangers
 
+      if isempty(HXs)
+            return HXs
+      end
+
       eng_des = ac.missions[imission].points[ipdes].engine
-      port = HXPort(eng_des, pare_sl[ieDi])   # typed snapshot of engine state at design point (tasopt-n9f)
+      port = HXPort(eng_des, HXs[1].Di)   # typed snapshot of engine state at design point (tasopt-n9f)
 
       #Initialize Heat Exchanger vector
       Mc_opts = []
@@ -1281,7 +1245,7 @@ function hxdesign!(ac, ipdes, imission; rlx = 1.0)
       # Analyze off-design performance
       #---------------------------------
      
-      HXOffDesign!(HXs, pare, igas, imission, ac.missions[imission].points, rlx = rlx)
+      HXOffDesign!(HXs, igas, imission, ac.missions[imission].points, rlx = rlx)
 
       for i in 1:length(HXs)
             HXs[i].HXgas_mission[ipdes,imission].Mc_in = Mc_opts[i] #Store optimum Mc_in
@@ -1449,36 +1413,38 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, port::HXPort,
 end
 
 """
-     HXOffDesign!(HeatExchangers, pare, igas, imission; rlx = 1.0)
+     HXOffDesign!(HeatExchangers, igas, imission, mission_points; rlx = 1.0)
 This function runs the heat exchangers through an aircraft mission and calculates performance at every
-mission point.      
+mission point.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `HeatExchangers::Vector{HeatExchanger}`: vector with heat exchanger data
-    - `pare::Array{Float64 , 3}`: array with engine parameters
     - `igas::Int64`: gas index
     - `imission::Int64`: mission index
-    - `rlx::Float64`: relaxation factor for pare update
+    - `mission_points`: vector of `MissionPoint` for the current mission
+    - `rlx::Float64`: relaxation factor
     **Outputs:**
-    Modifies `pare` with the fuel temperature and the HX enthalpy and pressure changes and
-    `HeatExchangers` with the gas properties at every mission point.
+    Modifies typed `EngineState` in each `MissionPoint` with fuel temperature and HX
+    enthalpy/pressure changes; modifies `HeatExchangers` with gas properties at every
+    mission point.
 """
-function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx = 1.0)
+function HXOffDesign!(HeatExchangers, igas, imission, mission_points; rlx = 1.0)
       if length(HeatExchangers) == 0 #Skip if no HXs
             return
       end
+      npoints = length(mission_points)
       has_recirculation = HeatExchangers[1].has_recirculation #Check if there is recirculation in the first HX
       #Operate off-design for engine-integrated HEXs
       for (i,HX) in enumerate(HeatExchangers)
-            HXgas_mis = Vector{Any}(undef, size(pare)[2]) #Vector to store gas properties across missions and segments
+            HXgas_mis = Vector{Any}(undef, npoints) #Vector to store gas properties across missions and segments
 
             type = HX.type
 
-            for ip = 1:size(pare)[2] #For every point
+            for ip = 1:npoints #For every point
 
                   eng = mission_points[ip].engine
-                  port = HXPort(eng, pare[ieDi, ip])   # typed snapshot for this operating point (tasopt-n9f)
+                  port = HXPort(eng, HX.Di)   # typed snapshot for this operating point (tasopt-n9f)
 
                   _, HXgasp = PrepareHXobjects(HeatExchangers, i, ip, imission, igas, port, type)
 
@@ -1551,14 +1517,13 @@ function HXOffDesign!(HeatExchangers, pare, igas, imission, mission_points; rlx 
       #---------------------------------
 
       if HeatExchangers[end].type != "Radiator" #If HX is in the engine TODO make more robust to future HEX options
-            for ip = 1:size(pare)[2] #For every mission point
+            for ip = 1:npoints #For every mission point
                   if length(HeatExchangers) > 0
                         lastHX = HeatExchangers[end]
                         HXgas = lastHX.HXgas_mission[ip, imission]
                         Tf = HXgas.Tc_out
 
                         new_Tfuel = (1 - rlx) * mission_points[ip].engine.Tfuel + rlx * Tf
-                        pare[ieTfuel, ip] = new_Tfuel
                         mission_points[ip].engine.Tfuel = new_Tfuel  # typed state (tasopt-j9l.41.2)
                   end
             end
@@ -1595,31 +1560,24 @@ function findLiquidCoolant!(HXgas)
 end
 
 """
-      resetHXs(pare, mission_points)
+      resetHXs(mission_points)
 
 This function sets the fuel temperature to the temperature in the tank and sets the enthalpy and pressure changes
 across the HXs to zero.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
-    - `pare::Array{Float64 , 3}`: array with engine parameters
     - `mission_points`: vector of `MissionPoint` for the current mission
 
     **Outputs:**
-    Modifies `pare` and the typed `EngineState` in each `MissionPoint` with the fuel temperature and the HX
+    Modifies the typed `EngineState` in each `MissionPoint` with the fuel temperature and the HX
     enthalpy and pressure changes
 """
-function resetHXs(pare, mission_points)
-      #Reset fuel temperature
-      pare[ieTfuel, :] = pare[ieTft, :] #Fuel tank temperature
-
+function resetHXs(mission_points)
       # Reset typed EngineState for every mission point (tasopt-w82 / tasopt-p1e)
-      # Tfuel: read from eng.Tfuel_tank (typed source-of-truth, tasopt-fgs) rather
-      # than bare pare[ieTft] — eliminates the last bare ieTft read in resetHXs.
-      # hvapcombustor: reset from eng.hvap (initial value, set by read_input) instead
-      # of bare pare[iehvap] — fully removes the iehvap bare-pare read (tasopt-p1e).
-      npoints = size(pare, 2)
-      for ip in 1:npoints
+      # Tfuel: read from eng.Tfuel_tank (typed source-of-truth, tasopt-fgs).
+      # hvapcombustor: reset from eng.hvap (initial value, set by read_input).
+      for ip in 1:length(mission_points)
             eng = mission_points[ip].engine
             eng.Tfuel          = eng.Tfuel_tank
             eng.PreCDeltah     = 0.0
