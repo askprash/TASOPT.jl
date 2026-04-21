@@ -311,39 +311,36 @@ return
 end
 
 """
-    calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, parg, para, pare, wing, ΔTatmos, imission)
+    calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, ac, imission)
 
-Calculates the cruise altitude or lift coefficient based on the specified option. If "altitude" is selected, it calculates the lift coefficient 
+Calculates the cruise altitude or lift coefficient based on the specified option. If "altitude" is selected, it calculates the lift coefficient
 from the weight and density. If "CL" is selected, it calculates the altitude from the lift coefficient and updates the fuselage drag.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `opt_prescribed_cruise_parameter::String`: option for whether cruise altitude or lift coefficient is specified. Options are "altitude" or "CL"
     - `WMTO::Float64`: Maximum takeoff weight (N)
-    - `parg::Vector{Float64}`: vector with aircraft geometric parameters
-    - `para::Matrix{Float64}`: array with aerodynamic parameters
-    - `pare::Matrix{Float64}`: array with engine parameters
-    - `wing::Wing`: Wing model object
-    - `ΔTatmos::Float64`: Temperature difference between sea level and standard sea-level (K)
+    - `ac`: aircraft model object
     - `imission::Int64`: Mission index
 **Outputs:**
     - No explicit outputs. Computed quantities are saved to `par` arrays of `aircraft` model for the mission selected
 """
 function calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, ac, imission)
-    parg, parm, para, pare, _, fuse, _, wing, _, _, _ = unpack_ac(ac, imission)
+    parg, parm, para, _, _, fuse, _, wing, _, _, _ = unpack_ac(ac, imission)
 
     #Calculate ΔT for the atmosphere
     altTO = parm[imaltTO] 
     T_std = atmos(altTO).T
     ΔTatmos = parm[imT0TO] - T_std #temperature difference such that T(altTO) = T0TO
 
-    ρ0 = pare[ierho0, ipcruise1]
-    ρcab = max(parg[igpcabin], pare[iep0, ipcruise1]) / (RSL * TSL)
+    eng_cr = ac.missions[imission].points[ipcruise1].engine
+    ρ0 = eng_cr.rho0
+    ρcab = max(parg[igpcabin], eng_cr.p0) / (RSL * TSL)
     WbuoyCR = (ρcab - ρ0) * gee * parg[igcabVol]
 
     ip = ipcruise1
     We = WMTO * para[iafracW, ip]
-    u0 = pare[ieu0, ip]
+    u0 = eng_cr.u0
     BW = We + WbuoyCR # Weight including buoyancy
     S = wing.layout.S
 

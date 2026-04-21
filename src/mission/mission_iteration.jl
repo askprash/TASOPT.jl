@@ -449,9 +449,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Wpay = parg[igWpay]
 
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-            # Sync freestream to bare-pare so calculate_cruise_altitude_or_CL! reads
-            # the off-design ambient state on the next weight-loop iteration.
-            sync_freestream_to_pare!(mission.points[ip].engine, view(pare, :, ip))
       end
 
       # set cruise-climb climb angle, from fuel burn rate and atmospheric dp/dz
