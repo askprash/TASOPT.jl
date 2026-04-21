@@ -1079,11 +1079,17 @@ function PayloadRange(ac_og::TASOPT.aircraft;
 
     #Duplicate design mission as second aircraft, which will be modified
     parm = cat(ac_og.parm[:,1], ac_og.parm[:,1], dims=2)
-    pare = cat(ac_og.pare[:,:,1], ac_og.pare[:,:,1], dims=3)
     para = cat(ac_og.para[:,:,1], ac_og.para[:,:,1], dims=3)
+    # Build pare from typed engine state for mission 1; duplicate for 2-mission aircraft.
+    # (tasopt-j9l.45.14.7.6: replaces ac_og.pare[:,:,1] bare-pare slice)
+    pare1 = reduce(hcat, [engine_state_to_pare_vec(pt.engine) for pt in ac_og.missions[1].points])
+    pare  = cat(pare1, pare1, dims=3)
+    # Duplicate typed missions so fly_mission!(ac, 2) can access typed engine state.
+    missions = [deepcopy(ac_og.missions[1]), deepcopy(ac_og.missions[1])]
     ac = aircraft(ac_og.name, ac_og.description,
-    ac_og.options, ac_og.parg, parm, para, pare, [true], 
-    ac_og.fuselage, ac_og.fuse_tank, ac_og.wing, ac_og.htail, ac_og.vtail, ac_og.engine, ac_og.landing_gear)
+    ac_og.options, ac_og.parg, parm, para, pare, [true],
+    ac_og.fuselage, ac_og.fuse_tank, ac_og.wing, ac_og.htail, ac_og.vtail, ac_og.engine, ac_og.landing_gear,
+    missions)
 
     for HX in ac.engine.heat_exchangers
         HX.HXgas_mission = cat(HX.HXgas_mission[:,1], HX.HXgas_mission[:,1], dims=2)

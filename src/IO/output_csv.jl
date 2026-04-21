@@ -31,7 +31,23 @@ Output is customizable by:
     **Outputs:**
     - `newfilepath::String`: actual output filepath; updates in case of header conflicts. same as input filepath if `overwrite = true`.
 """
-function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(), 
+
+# _engine_pare_array — build ietotal×iptotal×nmissions array from typed state
+#
+# Returns the same layout as ac.pare, populated from ac.missions typed EngineState.
+# Slots without a typed-state equivalent (NOx indices, radiator ε, ieDi, etc.)
+# are NaN.  Used by output_csv to eliminate bare-pare reads.
+function _engine_pare_array(ac::TASOPT.aircraft)
+    n_im = length(ac.missions)
+    n_ip = n_im > 0 ? length(ac.missions[1].points) : iptotal
+    result = fill(NaN, ietotal, n_ip, n_im)
+    for im in 1:n_im, ip in 1:n_ip
+        result[:, ip, im] = engine_state_to_pare_vec(ac.missions[im].points[ip].engine)
+    end
+    return result
+end
+
+function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     filepath::String=joinpath(TASOPT.__TASOPTroot__, "IO/default_output.csv");
     overwrite::Bool = false, indices::Dict = default_output_indices,
     includeMissions::Union{AbstractVector,Colon,Bool,Integer} = false, 
@@ -130,7 +146,11 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
         append!(csv_row,array2nestedvectors(ac.para[indices["para"], includeFlightPoints , includeMissions]))
     end
     if (indices["pare"]==Colon()) || !isempty(indices["pare"])    # ( " )
-        append!(csv_row,array2nestedvectors(ac.pare[indices["pare"], includeFlightPoints , includeMissions]))
+        # Build ietotal×iptotal×nmissions array from typed EngineState, then
+        # slice with the same semantics as ac.pare[ie, ip, im] would give.
+        # Requires ac.missions to be populated (sized aircraft).
+        pare_typed = _engine_pare_array(ac)
+        append!(csv_row, array2nestedvectors(pare_typed[indices["pare"], includeFlightPoints, includeMissions]))
     end
 
     #jUlIa iS cOluMn MaJoR

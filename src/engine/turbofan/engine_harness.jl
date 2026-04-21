@@ -142,6 +142,220 @@ function sync_cooling_scalars_to_pare!(ds::DesignState, pare)
 end
 
 # ---------------------------------------------------------------------------
+# engine_state_to_pare_vec — read typed EngineState → bare-pare-layout vector
+# ---------------------------------------------------------------------------
+
+"""
+    engine_state_to_pare_vec(eng::EngineState) -> Vector{Float64}
+
+Return a `ietotal`-length `Float64` vector whose layout mirrors the bare-pare
+`ie*` index table (index.inc).  Each slot that has a typed-state equivalent is
+filled from `eng` or `eng.design`; slots with no typed-state mapping (NOx
+indices, radiator ε, ieDi, etc.) are set to `NaN`.
+
+Used by `output_csv` to eliminate bare-pare reads from IO without requiring
+a parallel `ac.pare` access.
+"""
+function engine_state_to_pare_vec(eng::EngineState)::Vector{Float64}
+    ds = eng.design
+    v  = fill(NaN, ietotal)
+
+    # ---- scalars: per-point operating outputs ----
+    v[iehfuel]  = eng.hfuel
+    v[ieTfuel]  = eng.Tfuel
+    v[ieff]     = eng.ff
+    # ---- frozen design inputs (iepid..iepitn) ----
+    v[iepid]    = ds.pid
+    v[iepib]    = ds.pib
+    v[iepifn]   = ds.pifn
+    v[iepitn]   = ds.pitn
+    # ---- performance output ----
+    v[ieBPR]    = eng.BPR
+    # ---- frozen polytropic efficiencies ----
+    v[ieepolf]  = ds.epolf
+    v[ieepollc] = ds.epollc
+    v[ieepolhc] = ds.epolhc
+    v[ieepolht] = ds.epolht
+    v[ieepollt] = ds.epollt
+    # ---- combustor efficiency ----
+    v[ieetab]   = ds.etab
+    # ---- fan map constants ----
+    v[iepifK]   = ds.pifK
+    v[ieepfK]   = ds.epfK
+    # ---- spool speeds ----
+    v[ieNf]     = eng.Nf
+    v[ieN1]     = eng.N1
+    v[ieN2]     = eng.N2
+    v[ieNbf]    = eng.Nbf
+    v[ieNblc]   = eng.Nblc
+    v[ieNbhc]   = eng.Nbhc
+    # ---- compressor map operating points ----
+    v[iembf]    = eng.mbf
+    v[iemblc]   = eng.mblc
+    v[iembhc]   = eng.mbhc
+    v[iepif]    = eng.pif
+    v[iepilc]   = eng.pilc
+    v[iepihc]   = eng.pihc
+    # ---- design-point map scalars ----
+    v[ieNbfD]   = ds.NbfD
+    v[ieNblcD]  = ds.NblcD
+    v[ieNbhcD]  = ds.NbhcD
+    v[ieNbhtD]  = ds.NbhtD
+    v[ieNbltD]  = ds.NbltD
+    v[iembfD]   = ds.mbfD
+    v[iemblcD]  = ds.mblcD
+    v[iembhcD]  = ds.mbhcD
+    v[iembhtD]  = ds.mbhtD
+    v[iembltD]  = ds.mbltD
+    v[iepifD]   = ds.pifD
+    v[iepilcD]  = ds.pilcD
+    v[iepihcD]  = ds.pihcD
+    v[iepihtD]  = ds.pihtD
+    v[iepiltD]  = ds.piltD
+    # ---- duct design Mach numbers ----
+    v[ieM2]     = ds.M2
+    v[ieM25]    = ds.M25
+    # ---- freestream (ambient) ----
+    v[ieM0]     = eng.M0
+    v[iep0]     = eng.p0
+    v[iea0]     = eng.a0
+    v[ierho0]   = eng.rho0
+    v[iemu0]    = eng.mu0
+    v[ieT0]     = eng.T0
+    v[ieu0]     = eng.st0.u
+
+    # ---- station total thermodynamic state (Tt, ht, pt, cpt, Rt) ----
+    # st0
+    v[ieTt0]   = eng.st0.Tt;  v[ieht0]  = eng.st0.ht;  v[iept0]  = eng.st0.pt
+    v[iecpt0]  = eng.st0.cpt; v[ieRt0]  = eng.st0.Rt
+    # st18
+    v[ieTt18]  = eng.st18.Tt; v[ieht18] = eng.st18.ht; v[iept18] = eng.st18.pt
+    v[iecpt18] = eng.st18.cpt;v[ieRt18] = eng.st18.Rt
+    # st19
+    v[ieTt19]  = eng.st19.Tt; v[ieht19] = eng.st19.ht; v[iept19] = eng.st19.pt
+    v[iecpt19] = eng.st19.cpt;v[ieRt19] = eng.st19.Rt
+    # st2
+    v[ieTt2]   = eng.st2.Tt;  v[ieht2]  = eng.st2.ht;  v[iept2]  = eng.st2.pt
+    v[iecpt2]  = eng.st2.cpt; v[ieRt2]  = eng.st2.Rt
+    # st21
+    v[ieTt21]  = eng.st21.Tt; v[ieht21] = eng.st21.ht; v[iept21] = eng.st21.pt
+    v[iecpt21] = eng.st21.cpt;v[ieRt21] = eng.st21.Rt
+    # st25
+    v[ieTt25]  = eng.st25.Tt; v[ieht25] = eng.st25.ht; v[iept25] = eng.st25.pt
+    v[iecpt25] = eng.st25.cpt;v[ieRt25] = eng.st25.Rt
+    # st3
+    v[ieTt3]   = eng.st3.Tt;  v[ieht3]  = eng.st3.ht;  v[iept3]  = eng.st3.pt
+    v[iecpt3]  = eng.st3.cpt; v[ieRt3]  = eng.st3.Rt
+    # st4
+    v[ieTt4]   = eng.st4.Tt;  v[ieht4]  = eng.st4.ht;  v[iept4]  = eng.st4.pt
+    v[iecpt4]  = eng.st4.cpt; v[ieRt4]  = eng.st4.Rt
+    # st41
+    v[ieTt41]  = eng.st41.Tt; v[ieht41] = eng.st41.ht; v[iept41] = eng.st41.pt
+    v[iecpt41] = eng.st41.cpt;v[ieRt41] = eng.st41.Rt
+    # st45
+    v[ieTt45]  = eng.st45.Tt; v[ieht45] = eng.st45.ht; v[iept45] = eng.st45.pt
+    v[iecpt45] = eng.st45.cpt;v[ieRt45] = eng.st45.Rt
+    # st49
+    v[ieTt49]  = eng.st49.Tt; v[ieht49] = eng.st49.ht; v[iept49] = eng.st49.pt
+    v[iecpt49] = eng.st49.cpt;v[ieRt49] = eng.st49.Rt
+    # st5
+    v[ieTt5]   = eng.st5.Tt;  v[ieht5]  = eng.st5.ht;  v[iept5]  = eng.st5.pt
+    v[iecpt5]  = eng.st5.cpt; v[ieRt5]  = eng.st5.Rt
+    # st7 (no st6 total state in bare-pare)
+    v[ieTt7]   = eng.st7.Tt;  v[ieht7]  = eng.st7.ht;  v[iept7]  = eng.st7.pt
+    v[iecpt7]  = eng.st7.cpt; v[ieRt7]  = eng.st7.Rt
+    # st9 — only Tt and pt in bare-pare
+    v[ieTt9]   = eng.st9.Tt;  v[iept9]  = eng.st9.pt
+
+    # ---- station static state (p, T, R, cp, u, A) ----
+    # st2
+    v[iep2]    = eng.st2.ps;  v[ieT2]   = eng.st2.Ts;  v[ieR2]   = eng.st2.Rs
+    v[iecp2]   = eng.st2.cps; v[ieu2]   = eng.st2.u;   v[ieA2]   = ds.A2
+    # st25
+    v[iep25]   = eng.st25.ps; v[ieT25]  = eng.st25.Ts; v[ieR25]  = eng.st25.Rs
+    v[iecp25]  = eng.st25.cps;v[ieu25]  = eng.st25.u;  v[ieA25]  = ds.A25
+    # st5
+    v[iep5]    = eng.st5.ps;  v[ieT5]   = eng.st5.Ts;  v[ieR5]   = eng.st5.Rs
+    v[iecp5]   = eng.st5.cps; v[ieu5]   = eng.st5.u;   v[ieA5]   = ds.A5
+    # st6
+    v[iep6]    = eng.st6.ps;  v[ieT6]   = eng.st6.Ts;  v[ieR6]   = eng.st6.Rs
+    v[iecp6]   = eng.st6.cps; v[ieu6]   = eng.st6.u;   v[ieA6]   = eng.st6.A
+    # st7
+    v[iep7]    = eng.st7.ps;  v[ieT7]   = eng.st7.Ts;  v[ieR7]   = eng.st7.Rs
+    v[iecp7]   = eng.st7.cps; v[ieu7]   = eng.st7.u;   v[ieA7]   = ds.A7
+    # st8
+    v[iep8]    = eng.st8.ps;  v[ieT8]   = eng.st8.Ts;  v[ieR8]   = eng.st8.Rs
+    v[iecp8]   = eng.st8.cps; v[ieu8]   = eng.st8.u;   v[ieA8]   = eng.st8.A
+    # st9
+    v[ieu9]    = eng.st9.u;   v[ieA9]   = eng.st9.A
+
+    # ---- polytropic loss fractions ----
+    v[ieepf]   = eng.epf
+    v[ieeplc]  = eng.eplc
+    v[ieephc]  = eng.ephc
+    v[ieepht]  = eng.epht
+    v[ieeplt]  = eng.eplt
+    # ---- adiabatic efficiencies ----
+    v[ieetaf]  = eng.etaf
+    v[ieetalc] = eng.etalc
+    v[ieetahc] = eng.etahc
+    v[ieetaht] = eng.etaht
+    v[ieetalt] = eng.etalt
+    # ---- mass flows and power offtakes ----
+    v[iemcore]  = eng.st2.mdot
+    v[iemofft]  = eng.mofft
+    v[iePofft]  = eng.Pofft
+    v[iePhiinl] = eng.Phiinl
+    v[ieKinl]   = eng.Kinl
+    # ---- spool mechanical losses ----
+    v[ieepsl]  = ds.epsl
+    v[ieepsh]  = ds.epsh
+    # ---- engine performance ----
+    v[ieFe]    = eng.Fe
+    v[ieFsp]   = eng.Fsp
+    v[ieTSFC]  = eng.TSFC
+    # ---- nozzle area schedule factors ----
+    v[ieA5fac] = eng.A5fac
+    v[ieA7fac] = eng.A7fac
+    # ---- cooling design parameters ----
+    v[iedTstrk] = ds.dTstrk
+    v[ieStA]    = ds.StA
+    v[ieMtexit] = ds.Mtexit
+    v[ieM4a]    = ds.M4a
+    v[ieruc]    = ds.ruc
+    v[ieefilm]  = ds.efilm
+    v[ietfilm]  = ds.tfilm
+    v[iefc]     = ds.fc
+    for icrow in 1:length(ds.epsrow)
+        v[ieepsc1 + icrow - 1] = ds.epsrow[icrow]
+        v[ieTmet1 + icrow - 1] = ds.Tmrow[icrow]
+    end
+    # iedeNOx (196), iePLH2 (198), ieyg (199), ieEINOx1/2 (200/201),
+    # ieFAR (202), ieOPR (203), ieWc3 (204): no typed-state equivalent → NaN
+    v[iemdotf]  = eng.mfuel   # total fuel mass flow (all engines)
+    # ---- fuel / HX properties ----
+    v[ieTft]   = eng.Tfuel_tank
+    v[iehvap]  = eng.hvap
+    # ieRadiatorepsilon (216), ieRadiatorMp (217): no typed-state equivalent → NaN
+    v[ieRadiatorCoolantT] = eng.RadCoolantT
+    v[ieRadiatorCoolantP] = eng.RadCoolantP
+    v[ieRadiatorHeat]     = eng.Qradiator
+    # ---- ducted-fan performance ----
+    v[iemfuel]   = eng.mfuel
+    v[iemfan]    = eng.mfan
+    v[iePfan]    = eng.Pfan
+    v[iePfanmax] = eng.Pfanmax
+    v[ieTSEC]    = eng.TSEC
+    # ---- HPT cooling model constants ----
+    v[iefc0]     = ds.fc0
+    v[iedehtdfc] = ds.dehtdfc
+    # ---- convergence flag ----
+    v[ieConvFail] = eng.ConvFail
+
+    return v
+end
+
+# ---------------------------------------------------------------------------
 # run_engine_design_point
 # ---------------------------------------------------------------------------
 
