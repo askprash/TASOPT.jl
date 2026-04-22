@@ -374,7 +374,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_design.design.Nb_hpc_des = Nb_hpc_des; eng_design.design.Nb_hpt_des = Nb_hpt_des
                 eng_design.design.Nb_lpt_des = Nb_lpt_des
                 eng_design.design.A2    = A2;    eng_design.design.A25   = A2_5
-                eng_design.design.A5    = A5;    eng_design.design.A7    = A7
+                eng_design.design.A8    = A5;    eng_design.design.A18   = A7
                 eng_design.design.epsrow = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
                 eng_design.design.Tmrow  = SVector{4,Float64}(Tmrow[1],  Tmrow[2],  Tmrow[3],  Tmrow[4])
                 eng_design.design.fc    = (1.0 - fo) * sum(epsrow)
@@ -454,8 +454,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 #----- fixed parameters (tasopt-j9l.53: read design flow areas from typed DesignState)
                 A2  = eng_offdes.design.A2
                 A2_5 = eng_offdes.design.A25
-                A5  = eng_offdes.design.A5
-                A7  = eng_offdes.design.A7
+                A5  = eng_offdes.design.A8
+                A7  = eng_offdes.design.A18
 
                 # tasopt-j9l.23: read map anchors from typed DesignState
                 Nb_fan_des  = eng_offdes.design.Nb_fan_des

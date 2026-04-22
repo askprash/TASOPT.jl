@@ -117,7 +117,7 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
 
         #----- store design-point parameters
         eng_ip.design.A2  = A2
-        eng_ip.design.A7  = A7
+        eng_ip.design.A18 = A7
 
         eng_ip.design.mb_fan_des = mb_fan_des
         eng_ip.design.pi_fan_des = pi_fan_des
@@ -126,7 +126,7 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     else
         #----- fixed parameters
         A2   = eng_ip.design.A2
-        A7   = eng_ip.design.A7
+        A7   = eng_ip.design.A18
 
         mb_fan_des = eng_ip.design.mb_fan_des
         pi_fan_des = eng_ip.design.pi_fan_des

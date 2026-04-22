@@ -956,7 +956,7 @@ function reset_regression_test_engine_state(ac)
             "Nb_hpc_des"   => Float64(ds.Nb_hpc_des),   "Nb_hpt_des" => Float64(ds.Nb_hpt_des),
             "Nb_lpt_des"   => Float64(ds.Nb_lpt_des),
             "A2"      => Float64(ds.A2),       "A25"   => Float64(ds.A25),
-            "A5"      => Float64(ds.A5),       "A7"    => Float64(ds.A7),
+            "A8"      => Float64(ds.A8),       "A18"   => Float64(ds.A18),
             "epsrow"  => collect(Float64, ds.epsrow),
             "Tmrow"   => collect(Float64, ds.Tmrow),
             "fc"      => Float64(ds.fc),

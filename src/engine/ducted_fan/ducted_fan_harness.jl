@@ -118,7 +118,7 @@ mutable struct DuctedFanState{T<:AbstractFloat}
     mb_fan_des ::T   # design fan corrected flow          [kg/s corrected]
     Nb_fan_des ::T   # design fan corrected speed         [—]
     A2   ::T   # fan-face area                      [m²]
-    A7   ::T   # fan-nozzle throat area             [m²]
+    A18  ::T   # fan-nozzle throat area at station 18 [m²]
 
     # -----------------------------------------------------------------------
     # Flow stations
@@ -127,7 +127,7 @@ mutable struct DuctedFanState{T<:AbstractFloat}
     st12  ::FlowStation{T}   # FanFaceOuter (total)
     st2  ::FlowStation{T}   # FanFace (total + static + A2 + mfan)
     st13  ::FlowStation{T}   # FanExit (total)
-    st18  ::FlowStation{T}   # FanNozzle (total + static + A7)
+    st18  ::FlowStation{T}   # FanNozzle (total + static + A18)
     st19  ::FlowStation{T}   # FanNozzleExit (static + A8 only)
 end
 
@@ -198,7 +198,7 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     state.mb_fan_des = eng_ip.design.mb_fan_des
     state.Nb_fan_des = eng_ip.design.Nb_fan_des
     state.A2   = eng_ip.design.A2
-    state.A7   = eng_ip.design.A7
+    state.A18  = eng_ip.design.A18
 
     # -----------------------------------------------------------------------
     # Station 0 — freestream (total + u)
@@ -267,7 +267,7 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
         state.st18.cps = st.cps
         state.st18.u   = st.u
     end
-    state.st18.A = eng_ip.design.A7
+    state.st18.A = eng_ip.design.A18
 
     # -----------------------------------------------------------------------
     # Station 8 — FanNozzleExit (static + A8 only; no total in EngineState)

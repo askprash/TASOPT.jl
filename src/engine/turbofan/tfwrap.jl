@@ -42,15 +42,15 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         # ruc/M4a are intentionally excluded (written only for the design point
         # inside tfcalc!).
         eng_ip = ac.missions[imission].points[ip].engine
-        parg[igA5] = eng_ip.design.A5 / eng_ip.A5fac
-        parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
+        parg[igA5] = eng_ip.design.A8 / eng_ip.A5fac
+        parg[igA7] = eng_ip.design.A18 / eng_ip.A7fac
 
         for jp = 1:iptotal
             eng_jp = ac.missions[imission].points[jp].engine
             eng_jp.design.A2    = eng_ip.design.A2
             eng_jp.design.A25   = eng_ip.design.A25
-            eng_jp.design.A5    = parg[igA5] * eng_jp.A5fac
-            eng_jp.design.A7    = parg[igA7] * eng_jp.A7fac
+            eng_jp.design.A8    = parg[igA5] * eng_jp.A5fac
+            eng_jp.design.A18   = parg[igA7] * eng_jp.A7fac
             eng_jp.design.Nb_fan_des  = eng_ip.design.Nb_fan_des
             eng_jp.design.Nb_lpc_des = eng_ip.design.Nb_lpc_des
             eng_jp.design.Nb_hpc_des = eng_ip.design.Nb_hpc_des

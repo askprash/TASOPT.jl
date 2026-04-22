@@ -333,7 +333,7 @@ using StaticArrays
 
         # Design areas are positive
         @test df.A2 > 0.0
-        @test df.A7 > 0.0
+        @test df.A18 > 0.0
 
         # Fan mass flow stored in st2.mdot
         @test df.st2.mdot > 0.0
@@ -352,7 +352,7 @@ using StaticArrays
             @test df.Fe     ≈ 16981.808185580507 rtol=1e-12   # Fe: test-set input
             @test df.Pfan   ≈ eng.Pfan          rtol=1e-12
             @test df.A2     ≈ eng.design.A2     rtol=1e-12
-            @test df.A7     ≈ eng.design.A7     rtol=1e-12
+            @test df.A18    ≈ eng.design.A18    rtol=1e-12
             @test df.pif    ≈ 1.685             rtol=1e-12   # pif: test-set input
             @test df.etaf   ≈ eng.etaf          rtol=1e-12
             @test df.st2.Tt ≈ eng.st2.Tt       rtol=1e-12

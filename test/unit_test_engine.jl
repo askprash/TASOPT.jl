@@ -1346,7 +1346,7 @@ isGradient = false
         for fname in (:pi_fan_des, :pi_lpc_des, :pi_hpc_des, :pi_hpt_des, :pi_lpt_des,
                       :mb_fan_des, :mb_lpc_des, :mb_hpc_des, :mb_hpt_des, :mb_lpt_des,
                       :Nb_fan_des, :Nb_lpc_des, :Nb_hpc_des, :Nb_hpt_des, :Nb_lpt_des,
-                      :A2, :A25, :A5, :A7,
+                      :A2, :A25, :A8, :A18,
                       :fc, :ruc, :M4a)
             @test getfield(ds, fname) == 0.0
         end
@@ -1413,13 +1413,13 @@ isGradient = false
         # ------------------------------------------------------------------
         ds.A2  = 3.14
         ds.A25 = 0.52
-        ds.A5  = 0.18
-        ds.A7  = 1.20
+        ds.A8  = 0.18
+        ds.A18 = 1.20
 
         @test ds.A2  == 3.14
         @test ds.A25 == 0.52
-        @test ds.A5  == 0.18
-        @test ds.A7  == 1.20
+        @test ds.A8  == 0.18
+        @test ds.A18 == 1.20
 
         # ------------------------------------------------------------------
         # Mutation: cooling fields round-trip

@@ -72,8 +72,8 @@ mutable struct DesignState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     A2    ::T   # fan-face area at station 2
     A25   ::T   # HPC-inlet area at station 25 (after intercooler)
-    A5    ::T   # core nozzle throat area at station 5
-    A7    ::T   # fan nozzle throat area at station 7
+    A8    ::T   # core nozzle throat area at station 8 (ARP755)
+    A18   ::T   # fan nozzle throat area at station 18 (ARP755)
 
     # -----------------------------------------------------------------------
     # Cooling (ncrowx = 4 blade rows — fixed compile-time dimension)
@@ -172,7 +172,7 @@ function DesignState{T}() where {T<:AbstractFloat}
         z, z, z, z, z,   # pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des
         z, z, z, z, z,   # mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des
         z, z, z, z, z,   # Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des
-        z, z, z, z,      # A2, A25, A5, A7
+        z, z, z, z,      # A2, A25, A8, A18
         zv, zv,          # epsrow, Tmrow
         z,               # fc
         z, z,            # ruc, M4a
