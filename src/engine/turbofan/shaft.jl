@@ -127,7 +127,7 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    lp_shaft_work(shaft, fo, ff, BPR, ht2_5, ht1_9c, ht2_1, ht2, Pom)
+    lp_shaft_work(shaft, fo, ff, BPR, ht2_5, ht2ac, ht13, ht2, Pom)
       -> (dhlt, dlfac, dlfac_fo, dlfac_ff)
 
 Compute the LPT specific work required to drive the fan, LPC, and power
@@ -139,10 +139,10 @@ needed to assemble the Newton Jacobian by chain rule in the calling solver.
 The LP shaft power balance imposes:
 
     dlfac  = −1 / (1 − fo + ff) / (1 − shaft.eps)
-    demand = ht2_5 − ht1_9c + BPR · (ht2_1 − ht2) + Pom
+    demand = ht2_5 − ht2ac + BPR · (ht13 − ht2) + Pom
     dhlt   = demand · dlfac
 
-where `ht2_5` and `ht1_9c` are the LPC exit and inlet enthalpies, `ht2_1` and
+where `ht2_5` and `ht2ac` are the LPC exit and inlet enthalpies, `ht13` and
 `ht2` are the fan exit and inlet enthalpies, and `Pom` is the normalised
 power offtake per unit core mass flow.
 
@@ -155,8 +155,8 @@ power offtake per unit core mass flow.
 | `ff`     | —     | Fuel/air ratio                                       |
 | `BPR`    | —     | Bypass ratio  mf / mcore                             |
 | `ht2_5`   | J/kg  | LPC exit total enthalpy                              |
-| `ht1_9c`  | J/kg  | LPC inlet (post-precooler) total enthalpy            |
-| `ht2_1`   | J/kg  | Fan exit total enthalpy                              |
+| `ht2ac`  | J/kg  | LPC inlet (post-precooler) total enthalpy            |
+| `ht13`   | J/kg  | Fan exit total enthalpy                              |
 | `ht2`    | J/kg  | Fan inlet (engine face) total enthalpy               |
 | `Pom`    | J/kg  | Normalised power offtake per unit core mass flow     |
 
@@ -180,8 +180,8 @@ function lp_shaft_work(
     ff    ::T,
     BPR   ::T,
     ht2_5  ::T,
-    ht1_9c ::T,
-    ht2_1  ::T,
+    ht2ac ::T,
+    ht13  ::T,
     ht2   ::T,
     Pom   ::T,
 ) where {T<:AbstractFloat}
@@ -190,7 +190,7 @@ function lp_shaft_work(
     dlfac_fo =  dlfac / fac
     dlfac_ff = -dlfac / fac
 
-    demand = ht2_5 - ht1_9c + BPR * (ht2_1 - ht2) + Pom
+    demand = ht2_5 - ht2ac + BPR * (ht13 - ht2) + Pom
     dhlt   = demand * dlfac
 
     return dhlt, dlfac, dlfac_fo, dlfac_ff
@@ -213,7 +213,7 @@ The gear ratio fixes the ratio of LPC-spool speed to fan speed:
 
     r = shaft.Gearf · trf · Nf − trl · Nl = 0
 
-where `trf = √(Tt2 / Tref)` and `trl = √(Tt1_9c / Tref)` are the temperature
+where `trf = √(Tt2 / Tref)` and `trl = √(Tt2ac / Tref)` are the temperature
 correction factors for the fan and LPC inlet stations respectively.
 
 ## Arguments
@@ -224,7 +224,7 @@ correction factors for the fan and LPC inlet stations respectively.
 | `Nf`     | —    | Fan corrected spool speed                         |
 | `Nl`     | —    | LPC corrected spool speed                         |
 | `trf`    | —    | Fan inlet temperature correction √(Tt2/Tref)      |
-| `trl`    | —    | LPC inlet temperature correction √(Tt1_9c/Tref)    |
+| `trl`    | —    | LPC inlet temperature correction √(Tt2ac/Tref)    |
 
 ## Returns
 
@@ -285,7 +285,7 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    lp_shaft_workd(shaft, fo, ff, BPR, ht2_5, ht1_9c, ht2_1, ht2, Pom)
+    lp_shaft_workd(shaft, fo, ff, BPR, ht2_5, ht2ac, ht13, ht2, Pom)
         -> (dhlt, dhlt_fo, dhlt_ff, dhlt_BPR, dhlt_ht2_5, dhlt_ht1_9c,
             dhlt_ht2_1, dhlt_ht2, dhlt_Pom)
 
@@ -294,7 +294,7 @@ the nine natural inputs.
 
 Wraps `lp_shaft_work` and applies the product rule for
 `dhlt = demand · dlfac(fo, ff)` where
-`demand = (ht2_5 − ht1_9c) + BPR · (ht2_1 − ht2) + Pom`,
+`demand = (ht2_5 − ht2ac) + BPR · (ht13 − ht2) + Pom`,
 so the caller assembles Newton entries by chain rule:
 
     dhlt_x = dhlt_fo · fo_x  +  dhlt_ff · ff_x  +  dhlt_BPR · BPR_x
@@ -308,10 +308,10 @@ so the caller assembles Newton entries by chain rule:
 | `dhlt`       | LPT specific work  (< 0)                       |
 | `dhlt_fo`    | ∂dhlt/∂fo   = demand · dlfac_fo                 |
 | `dhlt_ff`    | ∂dhlt/∂ff   = demand · dlfac_ff                 |
-| `dhlt_BPR`   | ∂dhlt/∂BPR  = (ht2_1 − ht2) · dlfac             |
+| `dhlt_BPR`   | ∂dhlt/∂BPR  = (ht13 − ht2) · dlfac             |
 | `dhlt_ht2_5`  | ∂dhlt/∂ht2_5 = dlfac                             |
-| `dhlt_ht1_9c` | ∂dhlt/∂ht1_9c = −dlfac                           |
-| `dhlt_ht2_1`  | ∂dhlt/∂ht2_1 = BPR · dlfac                       |
+| `dhlt_ht1_9c` | ∂dhlt/∂ht2ac = −dlfac                           |
+| `dhlt_ht2_1`  | ∂dhlt/∂ht13 = BPR · dlfac                       |
 | `dhlt_ht2`   | ∂dhlt/∂ht2  = −BPR · dlfac                      |
 | `dhlt_Pom`   | ∂dhlt/∂Pom  = dlfac                             |
 """
@@ -321,18 +321,18 @@ function lp_shaft_workd(
     ff    ::T,
     BPR   ::T,
     ht2_5  ::T,
-    ht1_9c ::T,
-    ht2_1  ::T,
+    ht2ac ::T,
+    ht13  ::T,
     ht2   ::T,
     Pom   ::T,
 ) where {T<:AbstractFloat}
     dhlt, dlfac, dlfac_fo, dlfac_ff = lp_shaft_work(
-        shaft, fo, ff, BPR, ht2_5, ht1_9c, ht2_1, ht2, Pom)
+        shaft, fo, ff, BPR, ht2_5, ht2ac, ht13, ht2, Pom)
 
-    demand     = ht2_5 - ht1_9c + BPR * (ht2_1 - ht2) + Pom
+    demand     = ht2_5 - ht2ac + BPR * (ht13 - ht2) + Pom
     dhlt_fo    = demand * dlfac_fo
     dhlt_ff    = demand * dlfac_ff
-    dhlt_BPR   = (ht2_1 - ht2) * dlfac
+    dhlt_BPR   = (ht13 - ht2) * dlfac
     dhlt_ht2_5  = dlfac
     dhlt_ht1_9c = -dlfac
     dhlt_ht2_1  = BPR * dlfac

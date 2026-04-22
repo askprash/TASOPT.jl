@@ -58,7 +58,7 @@ using StaticArrays
         Tt18, ht18, pt18, cpt18, Rt18,
         Tt2, ht2, pt2, cpt2, Rt2,
         Tt21, ht21, pt21, cpt21, Rt21,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, A2,
         T7, u7, p7, cp7, R7, A7,
@@ -339,13 +339,13 @@ using StaticArrays
         @test df.st2.mdot > 0.0
 
         # Thermodynamic invariant: fan adds enthalpy → Tt rises
-        @test df.st21.Tt > df.st2.Tt    # fan exit hotter than inlet
+        @test df.st13.Tt > df.st2.Tt    # fan exit hotter than inlet
 
-        # Fan nozzle is adiabatic: Tt7 ≈ Tt21
-        @test df.st7.Tt ≈ df.st21.Tt rtol=1e-8
+        # Fan nozzle is adiabatic: Tt18 ≈ Tt21
+        @test df.st18.Tt ≈ df.st13.Tt rtol=1e-8
 
         # Nozzle ideally expanded at design point: p_exit ≈ p0
-        @test df.st8.ps ≈ df.p0 rtol=1e-6
+        @test df.st19.ps ≈ df.p0 rtol=1e-6
 
         # Round-trip consistency: DuctedFanState values match typed EngineState
         let eng = ac_h.missions[1].points[ipcruise1].engine
@@ -366,7 +366,7 @@ using StaticArrays
         @test df2.Fe   ≈ df.Fe   rtol=1e-12
         @test df2.pif  ≈ df.pif  rtol=1e-12
         @test df2.A2   ≈ df.A2   rtol=1e-12
-        @test df2.st21.Tt ≈ df.st21.Tt rtol=1e-12
+        @test df2.st13.Tt ≈ df.st13.Tt rtol=1e-12
 
         # ------------------------------------------------------------------
         # run_ducted_fan_sweep — single-point off-design at design conditions.
@@ -397,9 +397,9 @@ using StaticArrays
         # Station subtables present
         @test haskey(pt, "stations")
         @test haskey(pt["stations"], "st2")
-        @test haskey(pt["stations"], "st7")
+        @test haskey(pt["stations"], "st18")
         @test pt["stations"]["st2"]["Tt"] ≈ df.st2.Tt rtol=1e-10
-        @test pt["stations"]["st7"]["Tt"] ≈ df.st7.Tt rtol=1e-10
+        @test pt["stations"]["st18"]["Tt"] ≈ df.st18.Tt rtol=1e-10
 
         # ------------------------------------------------------------------
         # Regression baseline: compare against pinned fixture.
@@ -422,9 +422,9 @@ using StaticArrays
             @test bl_st2["Tt"] ≈ df.st2.Tt rtol=1e-10
             @test bl_st2["pt"] ≈ df.st2.pt rtol=1e-10
 
-            bl_st7 = bl_pt["stations"]["st7"]
-            @test bl_st7["Tt"] ≈ df.st7.Tt rtol=1e-10
-            @test bl_st7["u"]  ≈ df.st7.u  rtol=1e-10
+            bl_st7 = bl_pt["stations"]["st18"]
+            @test bl_st7["Tt"] ≈ df.st18.Tt rtol=1e-10
+            @test bl_st7["u"]  ≈ df.st18.u  rtol=1e-10
         end
     end  # Ducted fan harness
 end

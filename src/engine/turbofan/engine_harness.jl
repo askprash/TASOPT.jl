@@ -238,9 +238,9 @@ end
 # ---------------------------------------------------------------------------
 
 const _SWEEP_CSV_STATIONS = (
-    ("0",   :st0),  ("2",   :st2),  ("3",   :st3),
-    ("4",   :st4),  ("4.1", :st41), ("4.5", :st45),
-    ("4.9", :st49), ("5",   :st5),  ("7",   :st7))
+    ("0",  :st0),  ("2",  :st2),  ("3",   :st3),
+    ("4",  :st4),  ("41", :st41), ("45",  :st45),
+    ("5",  :st5),  ("8",  :st8),  ("18",  :st18))
 
 """
     write_sweep_csv(io::IO, mission::Mission, ip_range, ac; imission=1)
@@ -251,10 +251,10 @@ Write a [`Mission`](@ref) sweep to CSV format for the mission points in `ip_rang
 Each row corresponds to one mission point.  Columns:
 - Metadata: `ip`, `label`, `alt_m`, `Mach`
 - Engine performance: `Fe_N`, `TSFC_kg_Ns`, `BPR`, `mcore_kg_s`, `mfuel_kg_s`
-- Station totals at key stations (0, 2, 3, 4, 41, 45, 49, 5, 7):
+- Station totals at key stations (0, 2, 3, 4, 41, 45, 5, 8, 18):
   `Tt<N>_K`, `pt<N>_Pa`, `ht<N>_J_kg`
-- Station exit velocities at nozzle stations 5 and 7:
-  `u5_m_s`, `u7_m_s`
+- Station exit velocities at nozzle stations 8 and 18:
+  `u8_m_s`, `u18_m_s`
 
 The `path` overload opens the file, writes, and closes it.
 """
@@ -267,7 +267,7 @@ function write_sweep_csv(io::IO, mission, ip_range, ac; imission::Int=1)
     for (sname, _) in _SWEEP_CSV_STATIONS
         push!(header_parts, "Tt$(sname)_K", "pt$(sname)_Pa", "ht$(sname)_J_kg")
     end
-    push!(header_parts, "u5_m_s", "u7_m_s")
+    push!(header_parts, "u8_m_s", "u18_m_s")
     println(io, join(header_parts, ","))
 
     # ----- Rows -----
@@ -293,8 +293,8 @@ function write_sweep_csv(io::IO, mission, ip_range, ac; imission::Int=1)
                   @sprintf("%.6g", fs.ht))
         end
         push!(row,
-              @sprintf("%.6g", eng.st5.u),
-              @sprintf("%.6g", eng.st7.u))
+              @sprintf("%.6g", eng.st8.u),
+              @sprintf("%.6g", eng.st18.u))
         println(io, join(row, ","))
     end
     return nothing
@@ -326,7 +326,7 @@ function write_sweep_csv(io::IO, result::SweepResult)
     for (sname, _) in _SWEEP_CSV_STATIONS
         push!(header_parts, "Tt$(sname)_K", "pt$(sname)_Pa", "ht$(sname)_J_kg")
     end
-    push!(header_parts, "u5_m_s", "u7_m_s")
+    push!(header_parts, "u8_m_s", "u18_m_s")
     println(io, join(header_parts, ","))
 
     # ----- Rows -----
@@ -352,8 +352,8 @@ function write_sweep_csv(io::IO, result::SweepResult)
                   @sprintf("%.6g", fs.ht))
         end
         push!(row,
-              @sprintf("%.6g", eng.st5.u),
-              @sprintf("%.6g", eng.st7.u))
+              @sprintf("%.6g", eng.st8.u),
+              @sprintf("%.6g", eng.st18.u))
         println(io, join(row, ","))
     end
     return nothing
@@ -376,24 +376,24 @@ import TOML
 const _TOML_STATION_ORDER = (
     ("0",    "Freestream",     :st0),
     ("2",    "FanFaceFan",     :st2),
-    ("1.8",  "FanFaceOuter",   :st18),
-    ("1.9",  "FanFaceLPC",     :st19),
-    ("1.9c", "PreCoolerOut",   :st19c),
-    ("2.1",  "FanExit",        :st21),
-    ("2.5",  "LPCExit",        :st25),
-    ("2.5c", "InterCoolerOut", :st25c),
+    ("12",   "FanFaceOuter",   :st12),
+    ("2a",   "FanFaceLPC",     :st2a),
+    ("2ac",  "PreCoolerOut",   :st2ac),
+    ("13",   "FanExit",        :st13),
+    ("25",   "LPCExit",        :st25),
+    ("25c",  "InterCoolerOut", :st25c),
     ("3",    "HPCExit",        :st3),
     ("4",    "CombustorExit",  :st4),
     ("4a",   "CoolMixInlet",   :st4a),
-    ("4.1",  "TurbineInlet",   :st41),
-    ("4.5",  "HPTExit",        :st45),
-    ("4.9",  "LPTExit",        :st49),
-    ("4.9c", "RegenCoolerOut", :st49c),
-    ("5",    "CoreNozzle",     :st5),
-    ("6",    "CoreNozzleExit", :st6),
-    ("7",    "FanNozzle",      :st7),
-    ("8",    "FanNozzleExit",  :st8),
-    ("9",    "OfftakeDisch",   :st9),
+    ("41",   "TurbineInlet",   :st41),
+    ("45",   "HPTExit",        :st45),
+    ("5",    "LPTExit",        :st5),
+    ("5c",   "RegenCoolerOut", :st5c),
+    ("8",    "CoreNozzle",     :st8),
+    ("9",    "CoreNozzleExit", :st9),
+    ("18",   "FanNozzle",      :st18),
+    ("19",   "FanNozzleExit",  :st19),
+    ("25off","OfftakeDisch",   :st25off),
 )
 
 """

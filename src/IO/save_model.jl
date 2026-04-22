@@ -38,7 +38,7 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     # Alias for typed engine state at the design cruise point (ip=1, tasopt-sxv).
     # read_input.jl populates all fields read below directly into typed state
-    # (BPR/pif/pilc/pihc, design.*, Tfuel, st4.Tt, st9.Tt/pt, A5fac/A7fac);
+    # (BPR/pif/pilc/pihc, design.*, Tfuel, st4.Tt, st25off.Tt/pt, A5fac/A7fac);
     # size_aircraft!/fly_mission! keep typed state current thereafter.
     # No bare-pare sync needed (tasopt-j9l.45.14.5).
     eng = ac.missions[imission].points[1].engine
@@ -483,8 +483,8 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_offt["Low_spool_power_offtake_per_pax"] = parg[igPofWpay]*parm[imWperpax, 1]
         d_prop_offt["Low_spool_power_offtake_per_max_mass"] = parg[igPofWMTO]*gee
 
-        d_prop_offt["Tt_offtake_air"] = eng.st9.Tt
-        d_prop_offt["Pt_offtake_air"] = eng.st9.pt
+        d_prop_offt["Tt_offtake_air"] = eng.st25off.Tt
+        d_prop_offt["Pt_offtake_air"] = eng.st25off.pt
     d_prop["Offtakes"] = d_prop_offt
 
     #Nozzles

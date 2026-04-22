@@ -17,8 +17,8 @@ turbofan at a single operating point.  It holds:
 
 - **One `FlowStation{T}` per enumerated `EngineStation`**, named by the
   TASOPT station number with an `st` prefix: `st0`, `st2`, `st3`, …,
-  `st49c`, etc.  Stations with fractional or suffixed numbers use the
-  same string — `st19c`, `st4a`, `st49c` — which are all valid Julia
+  `st5c`, etc.  Stations with fractional or suffixed numbers use the
+  same string — `st2ac`, `st4a`, `st5c` — which are all valid Julia
   identifiers.
 
 - **Ambient / flight-condition scalars** that describe the far-field
@@ -37,28 +37,28 @@ turbofan at a single operating point.  It holds:
 
 ## Station fields
 
-| Field    | `EngineStation` member | TASOPT # | Description                        |
-|:---------|:-----------------------|:--------:|:-----------------------------------|
-| `st0`    | `Freestream`           | 0        | Far-field ambient                  |
-| `st18`   | `FanFaceOuter`         | 18       | Fan face, outside casing BL        |
-| `st19`   | `FanFaceLPC`           | 19       | Fan face, LPC stream               |
-| `st19c`  | `PreCoolerOut`         | 19c      | Pre-cooler outlet / LPC inlet      |
-| `st2`    | `FanFaceFan`           | 2        | Fan face, fan stream               |
-| `st21`   | `FanExit`              | 21       | Fan exit / pre-cooler inlet        |
-| `st25`   | `LPCExit`              | 25       | LPC exit / inter-cooler inlet      |
-| `st25c`  | `InterCoolerOut`       | 25c      | Inter-cooler outlet / HPC inlet    |
-| `st3`    | `HPCExit`              | 3        | HPC exit / combustor inlet         |
-| `st4`    | `CombustorExit`        | 4        | Combustor exit (before cooling)    |
-| `st4a`   | `CoolMixInlet`         | 4a       | Cooling-flow outlet / mix inlet    |
-| `st41`   | `TurbineInlet`         | 41       | Turbine inlet (after cooling mix)  |
-| `st45`   | `HPTExit`              | 45       | HPT exit / LPT inlet               |
-| `st49`   | `LPTExit`              | 49       | LPT exit / regen-cooler inlet      |
-| `st49c`  | `RegenCoolerOut`       | 49c      | Regenerative cooler outlet         |
-| `st5`    | `CoreNozzle`           | 5        | Core nozzle throat                 |
-| `st6`    | `CoreNozzleExit`       | 6        | Core nozzle exit / downstream      |
-| `st7`    | `FanNozzle`            | 7        | Fan nozzle throat                  |
-| `st8`    | `FanNozzleExit`        | 8        | Fan nozzle exit / downstream       |
-| `st9`    | `OfftakeDisch`         | 9        | Offtake air discharge              |
+| Field      | `EngineStation` member | ARP755 # | Description                        |
+|:-----------|:-----------------------|:--------:|:-----------------------------------|
+| `st0`      | `Freestream`           | 0        | Far-field ambient                  |
+| `st12`     | `FanFaceOuter`         | 12       | Fan face, outside casing BL        |
+| `st2a`     | `FanFaceLPC`           | 2a       | Fan face, LPC stream               |
+| `st2ac`    | `PreCoolerOut`         | 2ac      | Pre-cooler outlet / LPC inlet      |
+| `st2`      | `FanFaceFan`           | 2        | Fan face, fan stream               |
+| `st13`     | `FanExit`              | 13       | Fan exit / pre-cooler inlet        |
+| `st25`     | `LPCExit`              | 25       | LPC exit / inter-cooler inlet      |
+| `st25c`    | `InterCoolerOut`       | 25c      | Inter-cooler outlet / HPC inlet    |
+| `st3`      | `HPCExit`              | 3        | HPC exit / combustor inlet         |
+| `st4`      | `CombustorExit`        | 4        | Combustor exit (before cooling)    |
+| `st4a`     | `CoolMixInlet`         | 4a       | Cooling-flow outlet / mix inlet    |
+| `st41`     | `TurbineInlet`         | 41       | Turbine inlet (after cooling mix)  |
+| `st45`     | `HPTExit`              | 45       | HPT exit / LPT inlet               |
+| `st5`      | `LPTExit`              | 5        | LPT exit / regen-cooler inlet      |
+| `st5c`     | `RegenCoolerOut`       | 5c       | Regenerative cooler outlet         |
+| `st8`      | `CoreNozzle`           | 8        | Core nozzle throat                 |
+| `st9`      | `CoreNozzleExit`       | 9        | Core nozzle exit / downstream      |
+| `st18`     | `FanNozzle`            | 18       | Fan nozzle throat                  |
+| `st19`     | `FanNozzleExit`        | 19       | Fan nozzle exit / downstream       |
+| `st25off`  | `OfftakeDisch`         | 25off    | Offtake air discharge              |
 
 ## Station-shortcut access
 
@@ -67,10 +67,10 @@ thermodynamic quantity can be accessed via a `quantity + station_number`
 shortcut:
 
 ```julia
-eng.Tt4    # ≡ eng.st4.Tt  (total temperature at combustor exit)
-eng.pt25c  # ≡ eng.st25c.pt (total pressure after inter-cooler)
-eng.A9     # ≡ eng.st9.A   (area at offtake discharge)
-eng.mdot2  # ≡ eng.st2.mdot
+eng.Tt4      # ≡ eng.st4.Tt    (total temperature at combustor exit)
+eng.pt25c    # ≡ eng.st25c.pt  (total pressure after inter-cooler)
+eng.A25off   # ≡ eng.st25off.A (area at offtake discharge)
+eng.mdot2    # ≡ eng.st2.mdot
 ```
 
 Shortcut reads and writes resolve to the same machine code as the
@@ -87,29 +87,29 @@ EngineState()      # Float64 default
 mutable struct EngineState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Flow stations — one FlowStation per EngineStation member
-    # Named by TASOPT station number with "st" prefix (alphabetical order
+    # Named by ARP755 station number with "st" prefix (alphabetical order
     # matches the EngineStation enumeration order for readability).
     # -----------------------------------------------------------------------
-    st0   ::FlowStation{T}   # Freestream           — station 0
-    st18  ::FlowStation{T}   # FanFaceOuter         — station 18
-    st19  ::FlowStation{T}   # FanFaceLPC           — station 19
-    st19c ::FlowStation{T}   # PreCoolerOut         — station 19c
-    st2   ::FlowStation{T}   # FanFaceFan           — station 2
-    st21  ::FlowStation{T}   # FanExit              — station 21
-    st25  ::FlowStation{T}   # LPCExit              — station 25
-    st25c ::FlowStation{T}   # InterCoolerOut       — station 25c
-    st3   ::FlowStation{T}   # HPCExit              — station 3
-    st4   ::FlowStation{T}   # CombustorExit        — station 4
-    st4a  ::FlowStation{T}   # CoolMixInlet         — station 4a
-    st41  ::FlowStation{T}   # TurbineInlet         — station 41
-    st45  ::FlowStation{T}   # HPTExit              — station 45
-    st49  ::FlowStation{T}   # LPTExit              — station 49
-    st49c ::FlowStation{T}   # RegenCoolerOut       — station 49c
-    st5   ::FlowStation{T}   # CoreNozzle           — station 5
-    st6   ::FlowStation{T}   # CoreNozzleExit       — station 6
-    st7   ::FlowStation{T}   # FanNozzle            — station 7
-    st8   ::FlowStation{T}   # FanNozzleExit        — station 8
-    st9   ::FlowStation{T}   # OfftakeDisch         — station 9
+    st0      ::FlowStation{T}   # Freestream           — ARP755 station 0
+    st12     ::FlowStation{T}   # FanFaceOuter         — ARP755 station 12
+    st2a     ::FlowStation{T}   # FanFaceLPC           — ARP755 station 2a
+    st2ac    ::FlowStation{T}   # PreCoolerOut         — ARP755 station 2ac
+    st2      ::FlowStation{T}   # FanFaceFan           — ARP755 station 2
+    st13     ::FlowStation{T}   # FanExit              — ARP755 station 13
+    st25     ::FlowStation{T}   # LPCExit              — ARP755 station 25
+    st25c    ::FlowStation{T}   # InterCoolerOut       — ARP755 station 25c
+    st3      ::FlowStation{T}   # HPCExit              — ARP755 station 3
+    st4      ::FlowStation{T}   # CombustorExit        — ARP755 station 4
+    st4a     ::FlowStation{T}   # CoolMixInlet         — ARP755 station 4a
+    st41     ::FlowStation{T}   # TurbineInlet         — ARP755 station 41
+    st45     ::FlowStation{T}   # HPTExit              — ARP755 station 45
+    st5      ::FlowStation{T}   # LPTExit              — ARP755 station 5
+    st5c     ::FlowStation{T}   # RegenCoolerOut       — ARP755 station 5c
+    st8      ::FlowStation{T}   # CoreNozzle           — ARP755 station 8
+    st9      ::FlowStation{T}   # CoreNozzleExit       — ARP755 station 9
+    st18     ::FlowStation{T}   # FanNozzle            — ARP755 station 18
+    st19     ::FlowStation{T}   # FanNozzleExit        — ARP755 station 19
+    st25off  ::FlowStation{T}   # OfftakeDisch         — ARP755 station 25off
 
     # -----------------------------------------------------------------------
     # Ambient / flight-condition scalars
@@ -268,10 +268,10 @@ function EngineState{T}() where {T<:AbstractFloat}
     z  = zero(T)
     fs = FlowStation{T}
     EngineState{T}(
-        fs(), fs(), fs(), fs(), fs(),   # st0, st18, st19, st19c, st2
-        fs(), fs(), fs(), fs(), fs(),   # st21, st25, st25c, st3, st4
-        fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st49, st49c
-        fs(), fs(), fs(), fs(), fs(),   # st5, st6, st7, st8, st9
+        fs(), fs(), fs(), fs(), fs(),   # st0, st12, st2a, st2ac, st2
+        fs(), fs(), fs(), fs(), fs(),   # st13, st25, st25c, st3, st4
+        fs(), fs(), fs(), fs(), fs(),   # st4a, st41, st45, st5, st5c
+        fs(), fs(), fs(), fs(), fs(),   # st8, st9, st18, st19, st25off
         z, z, z, z, z, z, z, z, z,      # M0, T0, p0, a0, rho0, mu0, Tfuel, Tfuel_tank, hvap
         z, z, z,                         # RadCoolantT, RadCoolantP, Qradiator
         z, z, z, z, z, z, z, z,        # HX Δh/Δp: PreC, InterC, Regen, TurbC
@@ -308,9 +308,9 @@ property-access overloads to distinguish direct field access from
 station-shortcut resolution.
 """
 const _ENGINE_OWN_FIELDS = (
-    :st0, :st18, :st19, :st19c, :st2, :st21, :st25, :st25c,
-    :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
-    :st5, :st6, :st7, :st8, :st9,
+    :st0, :st12, :st2a, :st2ac, :st2, :st13, :st25, :st25c,
+    :st3, :st4, :st4a, :st41, :st45, :st5, :st5c,
+    :st8, :st9, :st18, :st19, :st25off,
     :M0, :T0, :p0, :a0, :rho0, :mu0, :Tfuel, :Tfuel_tank, :hvap,
     :RadCoolantT, :RadCoolantP, :Qradiator,
     :PreCDeltah, :PreCDeltap, :InterCDeltah, :InterCDeltap,
@@ -330,7 +330,7 @@ const _ENGINE_OWN_FIELDS = (
 
 # FlowStation fields forwarded as EngineState station-shortcut symbols.
 # NOTE: :st (total entropy complement) is deliberately excluded — the symbol
-# prefix "st" is reserved for station fields (st0, st18, st2, …), so generating
+# prefix "st" is reserved for station fields (st0, st12, st2, …), so generating
 # shortcuts like Symbol(:st, "4") == :st4 would silently shadow the structural
 # station field.  Access station entropy via the explicit path: eng.st4.st
 const _FS_FORWARDED_FIELDS = (
@@ -345,7 +345,7 @@ const _STATION_SHORTCUT_NAMES = let names = Symbol[]
     for stfld in _ENGINE_OWN_FIELDS
         s = String(stfld)
         startswith(s, "st") || continue
-        suffix = s[3:end]   # "st4" → "4", "st19c" → "19c"
+        suffix = s[3:end]   # "st4" → "4", "st2ac" → "2ac", "st25off" → "25off"
         for qty in _FS_FORWARDED_FIELDS
             push!(names, Symbol(qty, suffix))
         end
@@ -447,28 +447,28 @@ Base.propertynames(::EngineState, private::Bool=false) =
 # Station dump utility
 # ---------------------------------------------------------------------------
 
-# Physical flow-path order: (TASOPT#, short name, EngineState field symbol)
+# Physical flow-path order: (ARP755#, short name, EngineState field symbol)
 const _STATION_DUMP_ORDER = (
-    ("0",   "Freestream",    :st0),
-    ("2",   "FanFaceFan",    :st2),
-    ("18",  "FanFaceOuter",  :st18),
-    ("19",  "FanFaceLPC",    :st19),
-    ("19c", "PreCoolerOut",  :st19c),
-    ("21",  "FanExit",       :st21),
-    ("25",  "LPCExit",       :st25),
-    ("25c", "InterCoolerOut",:st25c),
-    ("3",   "HPCExit",       :st3),
-    ("4",   "CombustorExit", :st4),
-    ("4a",  "CoolMixInlet",  :st4a),
-    ("41",  "TurbineInlet",  :st41),
-    ("45",  "HPTExit",       :st45),
-    ("49",  "LPTExit",       :st49),
-    ("49c", "RegenCoolerOut",:st49c),
-    ("5",   "CoreNozzle",    :st5),
-    ("6",   "CoreNozzleExit",:st6),
-    ("7",   "FanNozzle",     :st7),
-    ("8",   "FanNozzleExit", :st8),
-    ("9",   "OfftakeDisch",  :st9),
+    ("0",    "Freestream",    :st0),
+    ("2",    "FanFaceFan",    :st2),
+    ("12",   "FanFaceOuter",  :st12),
+    ("2a",   "FanFaceLPC",    :st2a),
+    ("2ac",  "PreCoolerOut",  :st2ac),
+    ("13",   "FanExit",       :st13),
+    ("25",   "LPCExit",       :st25),
+    ("25c",  "InterCoolerOut",:st25c),
+    ("3",    "HPCExit",       :st3),
+    ("4",    "CombustorExit", :st4),
+    ("4a",   "CoolMixInlet",  :st4a),
+    ("41",   "TurbineInlet",  :st41),
+    ("45",   "HPTExit",       :st45),
+    ("5",    "LPTExit",       :st5),
+    ("5c",   "RegenCoolerOut",:st5c),
+    ("8",    "CoreNozzle",    :st8),
+    ("9",    "CoreNozzleExit",:st9),
+    ("18",   "FanNozzle",     :st18),
+    ("19",   "FanNozzleExit", :st19),
+    ("25off","OfftakeDisch",  :st25off),
 )
 
 """

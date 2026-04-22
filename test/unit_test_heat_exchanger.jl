@@ -347,9 +347,9 @@
             eng.mofft        = _mofft[ip]
             eng.design.fc    = _fc[ip]
             eng.ff           = _ff[ip]
-            eng.st19.Tt      = _Tt19[ip];  eng.st19.pt = _pt19[ip]
+            eng.st2a.Tt      = _Tt19[ip];  eng.st2a.pt = _pt19[ip]
             eng.st25.Tt      = _Tt25[ip];  eng.st25.pt = _pt25[ip]
-            eng.st49.Tt      = _Tt49[ip];  eng.st49.pt = _pt49[ip]
+            eng.st5.Tt      = _Tt49[ip];  eng.st5.pt = _pt49[ip]
             eng.st3.Tt       = _Tt3[ip];   eng.st3.pt  = _pt3[ip]
             eng.st4.Tt       = _Tt4[ip]
         end
@@ -540,8 +540,8 @@
         # Write HX-relevant fields directly to typed EngineState.
         for ip in 1:iptotal
             eng = ac.missions[1].points[ip].engine
-            eng.st21.Tt    = _Tt21[ip]
-            eng.st21.pt    = _pt21[ip]
+            eng.st13.Tt    = _Tt21[ip]
+            eng.st13.pt    = _pt21[ip]
             eng.mfan       = _mfan[ip]
             eng.RadCoolantT = 453.15
             eng.RadCoolantP = 300000.0

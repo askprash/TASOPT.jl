@@ -31,8 +31,8 @@ Ducted fan operation routine
     - `Phiinl`:  inlet ingested dissipation  Phi_inl
     - `iBLIc`:   0=core in clear flow, 1=core sees Phiinl
     - `pid`:     diffuser pressure ratio  ( = pt2/pt0)
-    - `pifn`:    fan     nozzle pressure ratio  ( = pt7/pt6.9)
-    - `pi_fan_des`:    design fan pressure ratio  ( = pt2_1/pt2 )
+    - `pifn`:    fan     nozzle pressure ratio  ( = pt18/pt9.9)
+    - `pi_fan_des`:    design fan pressure ratio  ( = pt13/pt2 )
     - `mb_fan_des`:    design corrected fan mass flow ( = mf*sqrt(Tt2 /Tref)/(pt2 /pref) )
     - `A2`:      fan-face area [m^2]                mf = mc*BPR, mt = mc*(1+ff)
     - `A7`:      fan  nozzle area [m^2]
@@ -142,7 +142,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         inlet_diffuser!(_fs1_8, _fs0, _inl)
         inlet_bli_mixing!(_fs2, _fs1_9, _fs1_8, _fs0, _inl,
                           mf, 0.0, Mi, at0, gam0, Tref, pref)
-        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8 =
+        Tt12, ht12, pt12, cpt12, Rt12 =
             _fs1_8.Tt, _fs1_8.ht, _fs1_8.pt, _fs1_8.cpt, _fs1_8.Rt
         Tt2, ht2, st2, cpt2, Rt2, pt2 =
             _fs2.Tt, _fs2.ht, _fs2.st, _fs2.cpt, _fs2.Rt, _fs2.pt
@@ -158,34 +158,34 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         #     gas_prat preserves exact FP evaluation order of the original off-design code)
         _, epf, _, _, _, _ = compressor_efficiency(_comp_fan, pf, mf)
 
-        pt2_1, Tt2_1, ht2_1, st2_1, cpt2_1, Rt2_1 = gas_prat(alpha, nair,
+        pt13, Tt13, ht13, st13, cpt13, Rt13 = gas_prat(alpha, nair,
                 pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
 
         # ===============================================================
         #---- Radiator heat exchanger
-        pt7 = pt2_1 * pifn - Δp_radiator
-        ht7 = ht2_1 + Δh_radiator
+        pt18 = pt13 * pifn - Δp_radiator
+        ht18 = ht13 + Δh_radiator
 
-        Tt7 = gas_tset(alpha, nair, ht7, Tt2_1)
-        st7, _, ht7, _, cpt7, Rt7 = gassum(alpha, nair, Tt7)
+        Tt18 = gas_tset(alpha, nair, ht18, Tt13)
+        st18, _, ht18, _, cpt18, Rt18 = gassum(alpha, nair, Tt18)
 
     # ===============================================================
         #---- fan nozzle flow 7-8, use alpha mass fraction (air)
-        # pt7 already incorporates pifn and radiator Δp; no additional
+        # pt18 already incorporates pifn and radiator Δp; no additional
         # pressure loss applied inside nozzle_exit (pn = 1).
         fan_nozzle = Nozzle(1.0, A7)
         p7, T7, h7, s7, cp7, R7, u7, rho7, M7 = nozzle_exit(
-            fan_nozzle, alpha, nair, pt7, Tt7, ht7, st7, cpt7, Rt7, p0)
+            fan_nozzle, alpha, nair, pt18, Tt18, ht18, st18, cpt18, Rt18, p0)
 
         if (M7 < 1.0)
             #----- subsonic nozzle: plume fully expanded, same state as nozzle exit
             p8, T8, h8, s8, cp8, R8, u8, rho8 = p7, T7, h7, s7, cp7, R7, u7, rho7
         else
-            #----- choked nozzle: expand from pt7 to ambient for fan plume (8)
+            #----- choked nozzle: expand from pt18 to ambient for fan plume (8)
             p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair,
-                pt7, Tt7, ht7, st7, cpt7, Rt7, p0/pt7, 1.0)
-            if (ht7 > h8)
-                u8 = sqrt(2.0 * (ht7 - h8))
+                pt18, Tt18, ht18, st18, cpt18, Rt18, p0/pt18, 1.0)
+            if (ht18 > h8)
+                u8 = sqrt(2.0 * (ht18 - h8))
             else
                 u8 = 0.0
             end
@@ -201,7 +201,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         end
         mfan = mf * sqrt(Tref / Tt2) * pt2 / pref #Fan mass flow rate
         F = mfan * (u7 - u0) + A7 * (p7 - p0) + Finl #Total thrust
-        P = mfan * (ht2_1 - ht2) #Fan power
+        P = mfan * (ht13 - ht2) #Fan power
 
         A8 = mfan / (rho8 * u8) #Plume area
 
@@ -229,7 +229,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
             #---- fan isentropic efficiency
             pt2_1i, Tt2_1i, ht2_1i, st2_1i, cpt2_1i, Rt2_1i = gas_prat(alpha, nair,
             pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
-            etaf = (ht2_1i - ht2) / (ht2_1 - ht2)
+            etaf = (ht2_1i - ht2) / (ht13 - ht2)
 
             Nbf, _, _ = Ncmap(pf, mf, pi_fan_des, mb_fan_des, Nb_fan_des, Cmapf)
 
@@ -246,10 +246,10 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
             outputs = (res, TSEC, Fsp, F, P, mfan, 
                         pif, mbf, Nbf, 
                         Tt0, ht0, pt0, cpt0, Rt0,
-                        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+                        Tt12, ht12, pt12, cpt12, Rt12,
                         Tt2, ht2, pt2, cpt2, Rt2,
-                        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
-                        Tt7, ht7, pt7, cpt7, Rt7,
+                        Tt13, ht13, pt13, cpt13, Rt13,
+                        Tt18, ht18, pt18, cpt18, Rt18,
                         u0, T2, u2, p2, cp2, R2, M2,
                         T7, u7, p7, cp7, R7, M7,
                         T8, u8, p8, cp8, R8, M8, A8,

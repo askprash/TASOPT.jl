@@ -84,8 +84,8 @@
             @test turb["OPR"]     ≈ eng.pilc * eng.pihc
             @test cool["M41"]               ≈ eng.design.M4a
             @test cool["cooling_air_V_ratio"] ≈ eng.design.ruc
-            @test offt["Tt_offtake_air"]    ≈ eng.st9.Tt
-            @test offt["Pt_offtake_air"]    ≈ eng.st9.pt
+            @test offt["Tt_offtake_air"]    ≈ eng.st25off.Tt
+            @test offt["Pt_offtake_air"]    ≈ eng.st25off.pt
         end
         rm(filepath_sxv)
     end
@@ -209,8 +209,8 @@
         @test eng_d.dehtdfc ≈ 0.0
 
         # Offtake discharge conditions (typed-only; values from default_input.toml)
-        @test ac_50r.missions[im].points[ipcruise1].engine.st9.Tt ≈ 300.0
-        @test ac_50r.missions[im].points[ipcruise1].engine.st9.pt ≈ 30e3
+        @test ac_50r.missions[im].points[ipcruise1].engine.st25off.Tt ≈ 300.0
+        @test ac_50r.missions[im].points[ipcruise1].engine.st25off.pt ≈ 30e3
     end
 
     # tasopt-j9l.43: verify that read_input directly populates typed design-point engine
@@ -252,10 +252,10 @@
         @test eng_d.fc0     ≈ 0.0
         @test eng_d.dehtdfc ≈ 0.0
 
-        # Offtake discharge conditions (typed st9)
+        # Offtake discharge conditions (typed st25off)
         eng_pt = ac_j43.missions[im].points[ipcruise1].engine
-        @test eng_pt.st9.Tt ≈ 300.0
-        @test eng_pt.st9.pt ≈ 30e3
+        @test eng_pt.st25off.Tt ≈ 300.0
+        @test eng_pt.st25off.pt ≈ 30e3
     end
 
     # tasopt-3ua: verify that read_aircraft_model mirrors fuel temperature to typed

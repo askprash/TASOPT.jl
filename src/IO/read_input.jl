@@ -1024,8 +1024,8 @@ readoff(x) = read_input(x, off, doff)
     for im in 1:nmisx
         for ip in 1:iptotal
             eng = missions_vec[im].points[ip].engine
-            eng.st9.Tt = Ttdischarge
-            eng.st9.pt = Ptdischarge
+            eng.st25off.Tt = Ttdischarge
+            eng.st25off.pt = Ptdischarge
         end
     end
 

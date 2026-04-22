@@ -69,11 +69,11 @@ ducted-fan (electric or fuel-cell driven) at a single operating point.
 | Field  | ARP755 # | Description                             |
 |:-------|:--------:|:----------------------------------------|
 | `st0`  | 0        | Freestream (total + u)                  |
-| `st18` | 1.8      | Fan face, outer (total)                 |
+| `st12` | 12       | Fan face, outer (total)                 |
 | `st2`  | 2        | Fan face (total + static + A2 + mfan)  |
-| `st21` | 2.1      | Fan exit (total)                        |
-| `st7`  | 7        | Fan nozzle throat (total + static + A7) |
-| `st8`  | 8        | Fan nozzle exit (static + A8 only)      |
+| `st13` | 13       | Fan exit (total)                        |
+| `st18` | 18       | Fan nozzle throat (total + static + A7) |
+| `st19` | 19       | Fan nozzle exit (static + A8 only)      |
 
 ## Constructors
 
@@ -124,11 +124,11 @@ mutable struct DuctedFanState{T<:AbstractFloat}
     # Flow stations
     # -----------------------------------------------------------------------
     st0  ::FlowStation{T}   # Freestream (total + u)
-    st18  ::FlowStation{T}   # FanFaceOuter (total)
+    st12  ::FlowStation{T}   # FanFaceOuter (total)
     st2  ::FlowStation{T}   # FanFace (total + static + A2 + mfan)
-    st21  ::FlowStation{T}   # FanExit (total)
-    st7  ::FlowStation{T}   # FanNozzle (total + static + A7)
-    st8  ::FlowStation{T}   # FanNozzleExit (static + A8 only)
+    st13  ::FlowStation{T}   # FanExit (total)
+    st18  ::FlowStation{T}   # FanNozzle (total + static + A7)
+    st19  ::FlowStation{T}   # FanNozzleExit (static + A8 only)
 end
 
 function DuctedFanState{T}() where {T<:AbstractFloat}
@@ -215,12 +215,12 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     # -----------------------------------------------------------------------
     # Station 1.8 — FanFaceOuter (total only)
     # -----------------------------------------------------------------------
-    let st = eng_ip.st18
-        state.st18.Tt  = st.Tt
-        state.st18.ht  = st.ht
-        state.st18.pt  = st.pt
-        state.st18.cpt = st.cpt
-        state.st18.Rt  = st.Rt
+    let st = eng_ip.st12
+        state.st12.Tt  = st.Tt
+        state.st12.ht  = st.ht
+        state.st12.pt  = st.pt
+        state.st12.cpt = st.cpt
+        state.st12.Rt  = st.Rt
     end
 
     # -----------------------------------------------------------------------
@@ -244,41 +244,41 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     # -----------------------------------------------------------------------
     # Station 2.1 — FanExit (total only)
     # -----------------------------------------------------------------------
-    let st = eng_ip.st21
-        state.st21.Tt  = st.Tt
-        state.st21.ht  = st.ht
-        state.st21.pt  = st.pt
-        state.st21.cpt = st.cpt
-        state.st21.Rt  = st.Rt
+    let st = eng_ip.st13
+        state.st13.Tt  = st.Tt
+        state.st13.ht  = st.ht
+        state.st13.pt  = st.pt
+        state.st13.cpt = st.cpt
+        state.st13.Rt  = st.Rt
     end
 
     # -----------------------------------------------------------------------
     # Station 7 — FanNozzle (total + static + A7)
     # -----------------------------------------------------------------------
-    let st = eng_ip.st7
-        state.st7.Tt  = st.Tt
-        state.st7.ht  = st.ht
-        state.st7.pt  = st.pt
-        state.st7.cpt = st.cpt
-        state.st7.Rt  = st.Rt
-        state.st7.ps  = st.ps
-        state.st7.Ts  = st.Ts
-        state.st7.Rs  = st.Rs
-        state.st7.cps = st.cps
-        state.st7.u   = st.u
+    let st = eng_ip.st18
+        state.st18.Tt  = st.Tt
+        state.st18.ht  = st.ht
+        state.st18.pt  = st.pt
+        state.st18.cpt = st.cpt
+        state.st18.Rt  = st.Rt
+        state.st18.ps  = st.ps
+        state.st18.Ts  = st.Ts
+        state.st18.Rs  = st.Rs
+        state.st18.cps = st.cps
+        state.st18.u   = st.u
     end
-    state.st7.A = eng_ip.design.A7
+    state.st18.A = eng_ip.design.A7
 
     # -----------------------------------------------------------------------
     # Station 8 — FanNozzleExit (static + A8 only; no total in EngineState)
     # -----------------------------------------------------------------------
-    let st = eng_ip.st8
-        state.st8.ps  = st.ps
-        state.st8.Ts  = st.Ts
-        state.st8.Rs  = st.Rs
-        state.st8.cps = st.cps
-        state.st8.u   = st.u
-        state.st8.A   = st.A
+    let st = eng_ip.st19
+        state.st19.ps  = st.ps
+        state.st19.Ts  = st.Ts
+        state.st19.Rs  = st.Rs
+        state.st19.cps = st.cps
+        state.st19.u   = st.u
+        state.st19.A   = st.A
     end
 
     return state
@@ -423,12 +423,12 @@ end
 
 # Stations serialised in flow-path order.
 const _DF_TOML_STATION_ORDER = (
-    ("0",   "Freestream",    :st0),
-    ("1.8", "FanFaceOuter",  :st18),
-    ("2",   "FanFace",       :st2),
-    ("2.1", "FanExit",       :st21),
-    ("7",   "FanNozzle",     :st7),
-    ("8",   "FanNozzleExit", :st8),
+    ("0",  "Freestream",    :st0),
+    ("12", "FanFaceOuter",  :st12),
+    ("2",  "FanFace",       :st2),
+    ("13", "FanExit",       :st13),
+    ("18", "FanNozzle",     :st18),
+    ("19", "FanNozzleExit", :st19),
 )
 
 """

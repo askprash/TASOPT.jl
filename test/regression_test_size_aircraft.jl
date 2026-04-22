@@ -109,10 +109,10 @@ end
                        :mbf, :mblc, :mbhc, :pif, :pilc, :pihc,
                        :etaf, :etalc, :etahc, :etaht, :etalt,
                        :eta_thermal, :eta_prop, :eta_overall)
-        # Station symbols in TOML_STATION_ORDER order
-        _stations = (:st0, :st2, :st18, :st19, :st19c, :st21, :st25, :st25c,
-                     :st3, :st4, :st4a, :st41, :st45, :st49, :st49c,
-                     :st5, :st6, :st7, :st8, :st9)
+        # Station symbols in TOML_STATION_ORDER order (ARP755 field names)
+        _stations = (:st0, :st2, :st12, :st2a, :st2ac, :st13, :st25, :st25c,
+                     :st3, :st4, :st4a, :st41, :st45, :st5, :st5c,
+                     :st8, :st9, :st18, :st19, :st25off)
 
         for _bl_pt in _bl["points"]
             _ip  = _bl_pt["ip"]

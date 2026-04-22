@@ -16,22 +16,22 @@ and return a `Plots.Plot` object that can be displayed or saved with `savefig`.
 
 # Gas-path station ordering for station-profile plots.
 # Only stations that have a total-temperature entry in `pare` are included;
-# HX intermediates (19c, 25c, 4a, 49c) and static-only stations (6, 8) are
+# HX intermediates (2ac, 25c, 4a, 5c) and static-only stations (9, 19) are
 # omitted because they are zero for the default turbofan.
 const _PROFILE_STATIONS = (
-    ("0",   :st0),   # Freestream
-    ("1.8", :st18),  # FanFaceOuter
-    ("1.9", :st19),  # FanFaceLPC
-    ("2",   :st2),   # FanFaceFan / LPC inlet
-    ("2.1", :st21),  # FanExit
-    ("2.5", :st25),  # LPCExit / HPC inlet
-    ("3",   :st3),   # HPCExit / Combustor inlet
-    ("4",   :st4),   # CombustorExit / HPT inlet (Tt4 target)
-    ("4.1", :st41),  # TurbineInlet (post-cooling mix)
-    ("4.5", :st45),  # HPTExit / LPT inlet
-    ("4.9", :st49),  # LPTExit / Nozzle inlet
-    ("5",   :st5),   # CoreNozzle throat
-    ("7",   :st7),   # FanNozzle throat
+    ("0",   :st0),    # Freestream
+    ("12",  :st12),   # FanFaceOuter
+    ("2a",  :st2a),   # FanFaceLPC
+    ("2",   :st2),    # FanFaceFan / LPC inlet
+    ("13",  :st13),   # FanExit
+    ("25",  :st25),   # LPCExit / HPC inlet
+    ("3",   :st3),    # HPCExit / Combustor inlet
+    ("4",   :st4),    # CombustorExit / HPT inlet (Tt4 target)
+    ("41",  :st41),   # TurbineInlet (post-cooling mix)
+    ("45",  :st45),   # HPTExit / LPT inlet
+    ("5",   :st5),    # LPTExit / Nozzle inlet
+    ("8",   :st8),    # CoreNozzle throat
+    ("18",  :st18),   # FanNozzle throat
 )
 
 """

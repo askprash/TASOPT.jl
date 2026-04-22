@@ -702,8 +702,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   cur_eng.st4.Tt  = Tt4_init
 
                   # make better estimate for new pt5, adjusted for new ambient p0
-                  pt5_init       = prev_eng.st5.pt * cur_eng.p0 / prev_eng.p0
-                  cur_eng.st5.pt = pt5_init
+                  pt5_init       = prev_eng.st8.pt * cur_eng.p0 / prev_eng.p0
+                  cur_eng.st8.pt = pt5_init
 
             end
 

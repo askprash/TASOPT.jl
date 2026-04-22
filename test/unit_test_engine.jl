@@ -592,8 +592,8 @@ isGradient = false
         eplt0 = 0.89900000000000002
         mofft = 0.56969999999999998
         Pofft = 89407.867373646965
-        Tt9 = 300.00000000000000
-        pt9 = 30000.000000000000
+        Tt25off = 300.00000000000000
+        pt25off = 30000.000000000000
         epsl = 1.0000000000000000E-002
         epsh = 2.1999999999999999E-002
         opt_cooling = TASOPT.engine.CoolingOpt.FixedCoolingFlowRatio
@@ -639,8 +639,8 @@ isGradient = false
         Tt41, ht41, pt41, cpt41, Rt41,
         Tt45, ht45, pt45, cpt45, Rt45,
         Tt49, ht49, pt49, cpt49, Rt49,
-        Tt5, ht5, pt5, cpt5, Rt5,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt8, ht8, pt8, cpt8, Rt8,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, A2,
         T25c, u25c, p25c, cp25c, R25c, A25,
@@ -658,7 +658,7 @@ isGradient = false
             Ttf, ifuel, hvap, etab,
             epf0, eplc0, ephc0, epht0, eplt0,
             mofft, Pofft,
-            Tt9, pt9, Tt4,
+            Tt25off, pt25off, Tt4,
             epsl, epsh,
             opt_cooling,
             Mtexit, dTstrk, StA, efilm, tfilm,
@@ -687,7 +687,7 @@ isGradient = false
                     Ttf, ifuel, hvap, etab,
                     epf0, eplc0, ephc0, epht0, eplt0,
                     mofft, Pofft,
-                    Tt9, pt9, Tt4,
+                    Tt25off, pt25off, Tt4,
                     epsl, epsh,
                     opt_cooling,
                     Mtexit, dTstrk, StA, efilm, tfilm,
@@ -705,7 +705,7 @@ isGradient = false
                 Ttf, ifuel, hvap, etab,
                 epf0, eplc0, ephc0, epht0, eplt0,
                 mofft, Pofft,
-                Tt9, pt9, Tt4,
+                Tt25off, pt25off, Tt4,
                 epsl, epsh,
                 opt_cooling,
                 Mtexit, dTstrk, StA, efilm, tfilm,
@@ -750,8 +750,8 @@ isGradient = false
         eplt0 = 0.89900000000000002
         mofft = 0.56969999999999998
         Pofft = 89407.867373646965
-        Tt9 = 300.00000000000000
-        pt9 = 30000.000000000000
+        Tt25off = 300.00000000000000
+        pt25off = 30000.000000000000
         epsl = 1.0000000000000000E-002
         epsh = 2.1999999999999999E-002
         opt_cooling = TASOPT.engine.CoolingOpt.FixedTmetal
@@ -784,8 +784,8 @@ isGradient = false
         Tt41, ht41, pt41, cpt41, Rt41,
         Tt45, ht45, pt45, cpt45, Rt45,
         Tt49, ht49, pt49, cpt49, Rt49,
-        Tt5, ht5, pt5, cpt5, Rt5,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt8, ht8, pt8, cpt8, Rt8,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, A2,
         T25c, u25c, p25c, cp25c, R25c, A25,
@@ -803,7 +803,7 @@ isGradient = false
             Ttf, ifuel, hvap, etab,
             epf0, eplc0, ephc0, epht0, eplt0,
             mofft, Pofft,
-            Tt9, pt9, Tt4,
+            Tt25off, pt25off, Tt4,
             epsl, epsh,
             opt_cooling,
             Mtexit, dTstrk, StA, efilm, tfilm,
@@ -895,8 +895,8 @@ isGradient = false
         eplt0 = 0.89900000000000002
         mofft = 0.56969999999999998
         Pofft = 77800.595231538944
-        Tt9 = 300.00000000000000
-        pt9 = 30000.000000000000
+        Tt25off = 300.00000000000000
+        pt25off = 30000.000000000000
         epsl = 1.0000000000000000E-002
         epsh = 2.1999999999999999E-002
         opt_cooling = TASOPT.engine.CoolingOpt.FixedCoolingFlowRatio
@@ -922,7 +922,7 @@ isGradient = false
         mblc = 0.0000000000000000
         mbhc = 0.0000000000000000
         Tt4 = 1783.8000000000002
-        pt5 = 0.0000000000000000
+        pt8 = 0.0000000000000000
         mcore = 0.0
         Feng = 0.0
         M25 = 0.0
@@ -954,8 +954,8 @@ isGradient = false
         Tt41, ht41, pt41, cpt41, Rt41,
         Tt45, ht45, pt45, cpt45, Rt45,
         Tt49, ht49, pt49, cpt49, Rt49,
-        Tt5, ht5, pt5, cpt5, Rt5,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt8, ht8, pt8, cpt8, Rt8,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, M2,
         T25c, u25c, p25c, cp25c, R25c, M25c,
@@ -978,7 +978,7 @@ isGradient = false
             Ttf, ifuel, hvap, etab,
             epf0, eplc0, ephc0, epht0, eplt0,
             mofft, Pofft,
-            Tt9, pt9,
+            Tt25off, pt25off,
             epsl, epsh,
             opt_cooling,
             Mtexit, dTstrk, StA, efilm, tfilm,
@@ -987,7 +987,7 @@ isGradient = false
             ncrowx, ncrow,
             epsrow3, Tmrow3,
             Feng,
-            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25, 
+            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt8, mcore, M25, 
             Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
@@ -1060,8 +1060,8 @@ isGradient = false
         eplt0 = 0.89900000000000002
         mofft = 0.56969999999999998
         Pofft = 77800.595231538944
-        Tt9 = 300.00000000000000
-        pt9 = 30000.000000000000
+        Tt25off = 300.00000000000000
+        pt25off = 30000.000000000000
         epsl = 1.0000000000000000E-002
         epsh = 2.1999999999999999E-002
         opt_cooling = TASOPT.engine.CoolingOpt.FixedCoolingFlowRatio
@@ -1087,7 +1087,7 @@ isGradient = false
         mblc = 0.0000000000000000
         mbhc = 0.0000000000000000
         Tt4 = 1783.8000000000002
-        pt5 = 0.0000000000000000
+        pt8 = 0.0000000000000000
         mcore = 0.0
         M25 = 0.0
         hvap = 0.0
@@ -1120,8 +1120,8 @@ isGradient = false
         Tt41, ht41, pt41, cpt41, Rt41,
         Tt45, ht45, pt45, cpt45, Rt45,
         Tt49, ht49, pt49, cpt49, Rt49,
-        Tt5, ht5, pt5, cpt5, Rt5,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt8, ht8, pt8, cpt8, Rt8,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, M2,
         T25c, u25c, p25c, cp25c, R25c, M25c,
@@ -1144,7 +1144,7 @@ isGradient = false
             Ttf, ifuel, hvap, etab,
             epf0, eplc0, ephc0, epht0, eplt0,
             mofft, Pofft,
-            Tt9, pt9,
+            Tt25off, pt25off,
             epsl, epsh,
             opt_cooling,
             Mtexit, dTstrk, StA, efilm, tfilm,
@@ -1153,7 +1153,7 @@ isGradient = false
             ncrowx, ncrow,
             epsrow3, Tmrow3,
             Feng,
-            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25, 
+            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt8, mcore, M25, 
             Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
@@ -1259,25 +1259,25 @@ isGradient = false
 
         # Spot-check ARP755 numbering for all stations
         @test snum(ES.Freestream)     == "0"
-        @test snum(ES.FanFaceOuter)   == "1.8"
-        @test snum(ES.FanFaceLPC)     == "1.9"
-        @test snum(ES.PreCoolerOut)   == "1.9c"
+        @test snum(ES.FanFaceOuter)   == "12"
+        @test snum(ES.FanFaceLPC)     == "2a"
+        @test snum(ES.PreCoolerOut)   == "2ac"
         @test snum(ES.FanFaceFan)     == "2"
-        @test snum(ES.FanExit)        == "2.1"
-        @test snum(ES.LPCExit)        == "2.5"
-        @test snum(ES.InterCoolerOut) == "2.5c"
+        @test snum(ES.FanExit)        == "13"
+        @test snum(ES.LPCExit)        == "25"
+        @test snum(ES.InterCoolerOut) == "25c"
         @test snum(ES.HPCExit)        == "3"
         @test snum(ES.CombustorExit)  == "4"
         @test snum(ES.CoolMixInlet)   == "4a"
-        @test snum(ES.TurbineInlet)   == "4.1"
-        @test snum(ES.HPTExit)        == "4.5"
-        @test snum(ES.LPTExit)        == "4.9"
-        @test snum(ES.RegenCoolerOut) == "4.9c"
-        @test snum(ES.CoreNozzle)     == "5"
-        @test snum(ES.CoreNozzleExit) == "6"
-        @test snum(ES.FanNozzle)      == "7"
-        @test snum(ES.FanNozzleExit)  == "8"
-        @test snum(ES.OfftakeDisch)   == "9"
+        @test snum(ES.TurbineInlet)   == "41"
+        @test snum(ES.HPTExit)        == "45"
+        @test snum(ES.LPTExit)        == "5"
+        @test snum(ES.RegenCoolerOut) == "5c"
+        @test snum(ES.CoreNozzle)     == "8"
+        @test snum(ES.CoreNozzleExit) == "9"
+        @test snum(ES.FanNozzle)      == "18"
+        @test snum(ES.FanNozzleExit)  == "19"
+        @test snum(ES.OfftakeDisch)   == "25off"
 
         # station_number values are all distinct
         nums = [snum(s) for s in all_stations]
@@ -1293,15 +1293,15 @@ isGradient = false
         # Enum members are usable as Dict keys (field-access sentinel use-case)
         d = Dict(s => snum(s) for s in all_stations)
         @test d[ES.HPCExit]      == "3"
-        @test d[ES.TurbineInlet] == "4.1"
+        @test d[ES.TurbineInlet] == "41"
 
         # Coverage: every station cited in tfsize! and tfoper! docs is present.
-        # ARP755 stations: 0, 1.8, 1.9, 1.9c, 2, 2.1, 2.5, 2.5c, 3, 4, 4a,
-        #                  4.1, 4.5, 4.9, 4.9c, 5, 6, 7, 8, 9
+        # ARP755 stations: 0, 12, 2a, 2ac, 2, 13, 25, 25c, 3, 4, 4a,
+        #                  41, 45, 5, 5c, 8, 9, 18, 19, 25off
         documented = Set([
-            "0", "1.8", "1.9", "1.9c", "2", "2.1", "2.5", "2.5c",
-            "3", "4", "4a", "4.1", "4.5", "4.9", "4.9c",
-            "5", "6", "7", "8", "9"
+            "0", "12", "2a", "2ac", "2", "13", "25", "25c",
+            "3", "4", "4a", "41", "45", "5", "5c",
+            "8", "9", "18", "19", "25off"
         ])
         enum_nums = Set(snum(s) for s in all_stations)
         @test documented == enum_nums
@@ -2060,10 +2060,10 @@ isGradient = false
         # ------------------------------------------------------------------
         # All 20 station fields are FlowStation{Float64} and fully zeroed
         # ------------------------------------------------------------------
-        station_fields = (:st0, :st18, :st19, :st19c, :st2, :st21,
+        station_fields = (:st0, :st12, :st2a, :st2ac, :st2, :st13,
                           :st25, :st25c, :st3, :st4, :st4a, :st41,
-                          :st45, :st49, :st49c, :st5, :st6, :st7,
-                          :st8, :st9)
+                          :st45, :st5, :st5c, :st8, :st9, :st18,
+                          :st19, :st25off)
         @test length(station_fields) == 20
         for fname in station_fields
             fs = getproperty(eng, fname)
@@ -2163,26 +2163,26 @@ isGradient = false
             eng_sc = ES()
 
             # Shortcut reads agree with direct nested access (zero state)
-            @test eng_sc.Tt4   === eng_sc.st4.Tt
-            @test eng_sc.pt25  === eng_sc.st25.pt
-            @test eng_sc.A9    === eng_sc.st9.A
-            @test eng_sc.mdot0 === eng_sc.st0.mdot
+            @test eng_sc.Tt4     === eng_sc.st4.Tt
+            @test eng_sc.pt25    === eng_sc.st25.pt
+            @test eng_sc.A25off  === eng_sc.st25off.A
+            @test eng_sc.mdot0   === eng_sc.st0.mdot
 
-            # Fractional-suffix stations work correctly
-            @test eng_sc.Tt19c  === eng_sc.st19c.Tt
-            @test eng_sc.pt4a   === eng_sc.st4a.pt
-            @test eng_sc.ht49c  === eng_sc.st49c.ht
-            @test eng_sc.A25c   === eng_sc.st25c.A
+            # Non-integer-suffix stations work correctly
+            @test eng_sc.Tt2ac   === eng_sc.st2ac.Tt
+            @test eng_sc.pt4a    === eng_sc.st4a.pt
+            @test eng_sc.ht5c    === eng_sc.st5c.ht
+            @test eng_sc.A25c    === eng_sc.st25c.A
 
             # Shortcut write then direct read
-            eng_sc.Tt4   = 1600.0
-            eng_sc.pt25  = 4.5e5
-            eng_sc.A9    = 0.18
-            eng_sc.mdot2 = 120.0
-            @test eng_sc.st4.Tt   ≈ 1600.0
-            @test eng_sc.st25.pt  ≈ 4.5e5
-            @test eng_sc.st9.A    ≈ 0.18
-            @test eng_sc.st2.mdot ≈ 120.0
+            eng_sc.Tt4     = 1600.0
+            eng_sc.pt25    = 4.5e5
+            eng_sc.A25off  = 0.18
+            eng_sc.mdot2   = 120.0
+            @test eng_sc.st4.Tt      ≈ 1600.0
+            @test eng_sc.st25.pt     ≈ 4.5e5
+            @test eng_sc.st25off.A   ≈ 0.18
+            @test eng_sc.st2.mdot    ≈ 120.0
 
             # Direct write then shortcut read
             eng_sc.st41.Tt = 1500.0
@@ -2191,8 +2191,8 @@ isGradient = false
             @test eng_sc.pt45 ≈ 3.0e5
 
             # Shortcut write/read consistency (round-trip)
-            eng_sc.Tt49c = 900.0
-            @test eng_sc.Tt49c ≈ eng_sc.st49c.Tt ≈ 900.0
+            eng_sc.Tt5c = 900.0
+            @test eng_sc.Tt5c ≈ eng_sc.st5c.Tt ≈ 900.0
 
             # Non-shortcut own fields still resolve correctly after override
             eng_sc.M0 = 0.85
@@ -2203,20 +2203,20 @@ isGradient = false
             # Type stability: @inferred verifies no type info is lost through shortcut.
             # Note: @inferred requires a call expression, so we use getproperty()
             # explicitly rather than dot-access syntax.
-            @test @inferred(Float64, getproperty(eng_sc, :Tt4))  == eng_sc.st4.Tt
-            @test @inferred(Float64, getproperty(eng_sc, :pt25)) == eng_sc.st25.pt
-            @test @inferred(Float64, getproperty(eng_sc, :A9))   == eng_sc.st9.A
+            @test @inferred(Float64, getproperty(eng_sc, :Tt4))    == eng_sc.st4.Tt
+            @test @inferred(Float64, getproperty(eng_sc, :pt25))   == eng_sc.st25.pt
+            @test @inferred(Float64, getproperty(eng_sc, :A25off)) == eng_sc.st25off.A
 
             # propertynames includes shortcut symbols
             pnames = propertynames(eng_sc)
-            @test :Tt4   in pnames
-            @test :pt25c in pnames
-            @test :A9    in pnames
-            @test :mdot0 in pnames
-            @test :Tt49c in pnames
+            @test :Tt4    in pnames
+            @test :pt25c  in pnames
+            @test :A25off in pnames
+            @test :mdot0  in pnames
+            @test :Tt5c   in pnames
             # own fields are also listed
-            @test :st4   in pnames
-            @test :M0    in pnames
+            @test :st4    in pnames
+            @test :M0     in pnames
             @test :design in pnames
 
             # Unknown shortcut raises an error
@@ -2270,17 +2270,17 @@ isGradient = false
         @test occursin("mdot[kg/s]", out)
 
         # Every station number appears as a row prefix
-        for stnum in ("0", "2", "18", "19", "19c", "21",
+        for stnum in ("0", "2", "12", "2a", "2ac", "13",
                       "25", "25c", "3", "4", "4a",
-                      "41", "45", "49", "49c",
-                      "5", "6", "7", "8", "9")
+                      "41", "45", "5", "5c",
+                      "8", "9", "18", "19", "25off")
             @test occursin(stnum, out)
         end
 
         # Verify the values we set appear in the output
         @test occursin("1500", out)   # Tt4
         @test occursin("320", out)    # mdot2
-        @test occursin("0.42", out)   # A9
+        @test occursin("0.42", out)   # A (at CoreNozzleExit = station 9)
 
         # ------------------------------------------------------------------
         # No-argument form writes to stdout (just check it doesn't throw)
@@ -2338,55 +2338,57 @@ isGradient = false
 
         # ---- Total temperature rises through compression / combustor ----
         # Tt2 ≈ Tt0: adiabatic inlet preserves stagnation temperature.
-        # Tt25 > Tt2 (or Tt19): LPC adds work.
+        # Tt25 > Tt2a (FanFaceLPC, ARP755 2a): LPC adds work.
         @test eng.Tt2  ≈ eng.Tt0  rtol = 1e-6   # isentropic inlet
-        @test eng.Tt25 > eng.Tt19   # LPC heating
+        @test eng.Tt25 > eng.Tt2a   # LPC heating (2a = FanFaceLPC, ARP755 station 2a)
         @test eng.Tt3  > eng.Tt25   # HPC heating
         @test eng.Tt4  > eng.Tt3    # combustor
 
         # ---- Total temperature falls monotonically through expansion ----
         @test eng.Tt41 < eng.Tt4    # turbine inlet (after cooling dilution)
         @test eng.Tt45 < eng.Tt41   # HPT exit
-        @test eng.Tt49 < eng.Tt45   # LPT exit
+        @test eng.Tt5  < eng.Tt45   # LPT exit (ARP755 station 5)
 
         # ---- Total pressure: compressor side rises, turbine side falls ----
         @test eng.Tt3 > eng.Tt2     # same as temperature but pressure check
         @test eng.pt3 > eng.pt2     # HPC raises pressure
         @test eng.pt45 < eng.pt41   # HPT drops pressure
-        @test eng.pt49 < eng.pt45   # LPT drops pressure
+        @test eng.pt5  < eng.pt45   # LPT drops pressure (ARP755 station 5)
 
         # ---- Nozzle: static pressure equals ambient at design ----
         #  (ps_exit >= p0 for under-expanded or ideally expanded nozzles)
-        @test eng.ps5 >= 0.9 * eng.p0
-        @test eng.ps7 >= 0.9 * eng.p0
+        @test eng.ps8 >= 0.9 * eng.p0   # CoreNozzle (ARP755 station 8)
+        @test eng.ps18 >= 0.9 * eng.p0  # FanNozzle (ARP755 station 18)
 
         # ---- Station areas and mass flow are positive ----
         @test eng.A2    > 0.0
         @test eng.A25   > 0.0
-        @test eng.A5    > 0.0
-        @test eng.A7    > 0.0
+        @test eng.A8    > 0.0   # CoreNozzle (ARP755 station 8)
+        @test eng.A18   > 0.0   # FanNozzle (ARP755 station 18)
         @test eng.st2.mdot > 0.0    # core mass flow
 
         # ------------------------------------------------------------------
-        # Station 6 and 8 (nozzle exits): tfcalc! writes only static fields;
+        # Station 9 and 19 (nozzle exits): tfcalc! writes only static fields;
         # total temperature is never assigned → remains zero in typed state.
+        # ARP755: station 9 = CoreNozzleExit (old 6), station 19 = FanNozzleExit (old 8).
         # ------------------------------------------------------------------
-        @test eng.ps6  > 0.0
-        @test eng.Ts6  > 0.0
-        @test eng.Tt6  == 0.0    # total not written by tfcalc! → zero
-        @test eng.ps8  > 0.0
-        @test eng.Ts8  > 0.0
-        @test eng.Tt8  == 0.0    # total not written by tfcalc! → zero
+        @test eng.ps9   > 0.0
+        @test eng.Ts9   > 0.0
+        @test eng.Tt25off  > 0.0    # OfftakeDisch Tt set from input (Tt_offtake_air = 300 K)
+        @test eng.ps19  > 0.0
+        @test eng.Ts19  > 0.0
+        @test eng.Tt19  == 0.0    # FanNozzleExit total not written by tfcalc! → zero
 
         # ------------------------------------------------------------------
-        # Stations 19c and 25c are cooling bleeds — tfcalc! writes total
+        # Stations 2ac and 25c are cooling bleeds — tfcalc! writes total
         # temperature directly into typed state (above ambient, physically
-        # ordered LPC bleed < HPC bleed).  Station 49c has no typed-state
+        # ordered LPC bleed < HPC bleed).  Station 5c has no typed-state
         # write in tfcalc! → remains zero.
+        # ARP755: 2ac = PreCoolerOut (old 19c), 5c = RegenCoolerOut (old 49c).
         # ------------------------------------------------------------------
-        @test eng.Tt19c > eng.T0    # LPC cooling bleed is compressed above freestream
-        @test eng.Tt25c > eng.Tt19c # HPC exit bleed is hotter than LPC exit bleed
-        @test eng.Tt49c == 0.0      # not written by tfcalc! → zero
+        @test eng.Tt2ac  > eng.T0     # LPC cooling bleed is compressed above freestream
+        @test eng.Tt25c  > eng.Tt2ac  # HPC exit bleed is hotter than LPC exit bleed
+        @test eng.Tt5c   == 0.0       # not written by tfcalc! → zero
 
         # ------------------------------------------------------------------
         # Cooling mixing constants (tasopt-j9l.54): ruc and M4a are frozen
@@ -2494,7 +2496,7 @@ isGradient = false
         @test eng_cr.Tt4  > eng_cr.Tt3    # combustor
         @test eng_cr.Tt41 < eng_cr.Tt4    # turbine inlet (cooling dilution)
         @test eng_cr.Tt45 < eng_cr.Tt41   # HPT
-        @test eng_cr.Tt49 < eng_cr.Tt45   # LPT
+        @test eng_cr.Tt5  < eng_cr.Tt45   # LPT (ARP755 station 5 = old 49)
 
         # ---- Custom ip_range: only the two cruise points ----
         mission_cr2 = TASOPT.engine.run_engine_sweep(ac;
@@ -2574,10 +2576,10 @@ isGradient = false
         # Station subtables present for all 20 named stations
         @test haskey(p1, "stations")
         stations_p1 = p1["stations"]
-        for stname in ("st0", "st2", "st18", "st19", "st19c",
-                        "st21", "st25", "st25c", "st3", "st4", "st4a",
-                        "st41", "st45", "st49", "st49c",
-                        "st5", "st6", "st7", "st8", "st9")
+        for stname in ("st0", "st2", "st12", "st2a", "st2ac",
+                        "st13", "st25", "st25c", "st3", "st4", "st4a",
+                        "st41", "st45", "st5", "st5c",
+                        "st8", "st9", "st18", "st19", "st25off")
             @test haskey(stations_p1, stname)
         end
 
@@ -2595,13 +2597,13 @@ isGradient = false
         @test stations_p1["st3"]["pt"]  > 0.0   # HPC exit total pressure
         @test stations_p1["st2"]["mdot"] > 0.0  # core mass flow
 
-        # st19c/st25c are now written by tfcalc! into the per-point EngineState
+        # st2ac/st25c are now written by tfcalc! into the per-point EngineState
         # (tasopt-j9l.45.16): pare_to_engine_state! moved to tfwrap callers so
-        # computed values accumulate.  st4a/st49c remain zero (not written).
-        @test stations_p1["st19c"]["Tt"] > 0.0   # pre-cooler outlet, populated by tfcalc!
+        # computed values accumulate.  st4a/st5c remain zero (not written).
+        @test stations_p1["st2ac"]["Tt"] > 0.0   # pre-cooler outlet, populated by tfcalc!
         @test stations_p1["st25c"]["Tt"] > 0.0   # inter-cooler outlet, populated by tfcalc!
         @test stations_p1["st4a"]["Tt"]  == 0.0  # still not populated from computation
-        @test stations_p1["st49c"]["Tt"] == 0.0  # still not populated from computation
+        @test stations_p1["st5c"]["Tt"] == 0.0  # still not populated from computation
 
         # ------------------------------------------------------------------
         # Baseline fixture exists and has the right structure.
@@ -2675,13 +2677,13 @@ isGradient = false
         # Station field name → FlowStation property symbol mapping.
         # Must mirror _TOML_STATION_ORDER in engine_harness.jl.
         station_map = (
-            ("st0",   :st0),  ("st2",   :st2),  ("st18",  :st18),
-            ("st19",  :st19), ("st19c", :st19c), ("st21",  :st21),
+            ("st0",   :st0),  ("st2",   :st2),  ("st12",  :st12),
+            ("st2a",  :st2a), ("st2ac", :st2ac), ("st13",  :st13),
             ("st25",  :st25), ("st25c", :st25c), ("st3",   :st3),
             ("st4",   :st4),  ("st4a",  :st4a),  ("st41",  :st41),
-            ("st45",  :st45), ("st49",  :st49),  ("st49c", :st49c),
-            ("st5",   :st5),  ("st6",   :st6),   ("st7",   :st7),
-            ("st8",   :st8),  ("st9",   :st9),
+            ("st45",  :st45), ("st5",  :st5),  ("st5c", :st5c),
+            ("st8",   :st8),  ("st9",   :st9),   ("st18",   :st18),
+            ("st19",   :st19),  ("st25off",   :st25off),
         )
         # Fields serialised by _station_to_dict (excludes hs, ss, st, alpha).
         fs_fields = ("Tt", "ht", "pt", "cpt", "Rt", "Ts", "ps", "cps", "Rs", "u", "A", "mdot")
@@ -2801,8 +2803,8 @@ isGradient = false
     # Property-based tests:
     #   - diffuser conserves total enthalpy/temperature; pt18 = pid * pt0
     #   - BLI=0: no pressure loss; Tt unchanged
-    #   - BLI>0 (fan-only): st2.pt < st18.pt; st19.pt = st18.pt; adiabatic
-    #   - BLI>0 (all cores): st2.pt == st19.pt; both reduced
+    #   - BLI>0 (fan-only): st2.pt < st12.pt; st2a.pt = st12.pt; adiabatic
+    #   - BLI>0 (all cores): st2.pt == st2a.pt; both reduced
     # Round-trip:
     #   - sbfan from inlet_bli_mixing! agrees with the inlined tfoper.jl formula
     # ======================================================================
@@ -2889,23 +2891,23 @@ isGradient = false
         # ------------------------------------------------------------------
         pid_val = 0.998
         inl_d   = Inl(pid_val)
-        st18    = FS{Float64}()
+        st12    = FS{Float64}()
 
-        ret = inlet_diffuser!(st18, st0, inl_d)
+        ret = inlet_diffuser!(st12, st0, inl_d)
 
         # Returns the mutated station
-        @test ret === st18
+        @test ret === st12
 
         # Adiabatic: all total-state fields (except pt) unchanged
-        @test st18.Tt    === st0.Tt
-        @test st18.ht    === st0.ht
-        @test st18.cpt   === st0.cpt
-        @test st18.Rt    === st0.Rt
-        @test st18.st    === st0.st
-        @test st18.alpha === st0.alpha
+        @test st12.Tt    === st0.Tt
+        @test st12.ht    === st0.ht
+        @test st12.cpt   === st0.cpt
+        @test st12.Rt    === st0.Rt
+        @test st12.st    === st0.st
+        @test st12.alpha === st0.alpha
 
         # Pressure recovery: exact floating-point product
-        @test st18.pt === st0.pt * pid_val
+        @test st12.pt === st0.pt * pid_val
 
         # pid = 1.0: no pressure drop at all
         st18_id = FS{Float64}()
@@ -2932,21 +2934,21 @@ isGradient = false
         M2_val   = 0.6
 
         inl_nobli = Inl(pid_val)   # Kinl = 0 by default
-        TASOPT.engine.inlet_diffuser!(st18, st0, inl_nobli)  # refresh st18
+        TASOPT.engine.inlet_diffuser!(st12, st0, inl_nobli)  # refresh st12
         st2  = FS{Float64}()
-        st19 = FS{Float64}()
+        st2a = FS{Float64}()
 
-        res_nobli = inlet_bli!(st2, st19, st18, st0, inl_nobli,
+        res_nobli = inlet_bli!(st2, st2a, st12, st0, inl_nobli,
                                mf_val, ml_val, M2_val,
                                at0_c, gam0_c, Tref_val, pref_val)
 
         # No BLI: outlets equal inlet face
-        @test st2.pt  === st18.pt
-        @test st19.pt === st18.pt
+        @test st2.pt  === st12.pt
+        @test st2a.pt === st12.pt
 
         # Adiabatic: temperatures unchanged
-        @test st2.Tt  === st18.Tt
-        @test st19.Tt === st18.Tt
+        @test st2.Tt  === st12.Tt
+        @test st2a.Tt === st12.Tt
 
         # Entropy boosts are zero
         @test res_nobli.sbfan  === 0.0
@@ -2957,40 +2959,40 @@ isGradient = false
         # ------------------------------------------------------------------
         Kinl_val = 50_000.0   # [W] representative cruise BLI power
         inl_bli2 = Inl(pid_val; Kinl=Kinl_val, eng_has_BLI_cores=false)
-        TASOPT.engine.inlet_diffuser!(st18, st0, inl_bli2)
+        TASOPT.engine.inlet_diffuser!(st12, st0, inl_bli2)
         st2_b  = FS{Float64}()
         st19_b = FS{Float64}()
 
-        res_b = inlet_bli!(st2_b, st19_b, st18, st0, inl_bli2,
+        res_b = inlet_bli!(st2_b, st19_b, st12, st0, inl_bli2,
                            mf_val, ml_val, M2_val,
                            at0_c, gam0_c, Tref_val, pref_val)
 
         # Fan face pressure drops
-        @test st2_b.pt < st18.pt
+        @test st2_b.pt < st12.pt
 
         # Core stream unaffected (eng_has_BLI_cores = false)
-        @test st19_b.pt === st18.pt
+        @test st19_b.pt === st12.pt
 
         # Adiabatic: temperatures unchanged
-        @test st2_b.Tt  === st18.Tt
-        @test st19_b.Tt === st18.Tt
+        @test st2_b.Tt  === st12.Tt
+        @test st19_b.Tt === st12.Tt
 
         # Entropy boost signs
         @test res_b.sbfan  > 0.0
         @test res_b.sbcore === 0.0
 
         # Pressure consistent with returned entropy boost
-        @test st2_b.pt ≈ st18.pt * exp(-res_b.sbfan)   rtol=1e-15
+        @test st2_b.pt ≈ st12.pt * exp(-res_b.sbfan)   rtol=1e-15
 
         # ------------------------------------------------------------------
         # 5. inlet_bli_mixing! — BLI all streams (eng_has_BLI_cores = true)
         # ------------------------------------------------------------------
         inl_blic = Inl(pid_val; Kinl=Kinl_val, eng_has_BLI_cores=true)
-        TASOPT.engine.inlet_diffuser!(st18, st0, inl_blic)
+        TASOPT.engine.inlet_diffuser!(st12, st0, inl_blic)
         st2_c  = FS{Float64}()
         st19_c = FS{Float64}()
 
-        res_c = inlet_bli!(st2_c, st19_c, st18, st0, inl_blic,
+        res_c = inlet_bli!(st2_c, st19_c, st12, st0, inl_blic,
                            mf_val, ml_val, M2_val,
                            at0_c, gam0_c, Tref_val, pref_val)
 
@@ -2999,8 +3001,8 @@ isGradient = false
         @test res_c.sbfan   > 0.0
 
         # Pressures consistent with entropy boosts
-        @test st2_c.pt  ≈ st18.pt * exp(-res_c.sbfan)   rtol=1e-15
-        @test st19_c.pt ≈ st18.pt * exp(-res_c.sbcore)  rtol=1e-15
+        @test st2_c.pt  ≈ st12.pt * exp(-res_c.sbfan)   rtol=1e-15
+        @test st19_c.pt ≈ st12.pt * exp(-res_c.sbcore)  rtol=1e-15
         @test st2_c.pt  ≈ st19_c.pt                     rtol=1e-15
 
         # ------------------------------------------------------------------
@@ -3031,11 +3033,11 @@ isGradient = false
         #   sbfan_ref = Kinl * gam0 / (mmix * a2sq)
         #   pt2_ref   = pt18 * exp(-sbfan_ref)
         # ------------------------------------------------------------------
-        TASOPT.engine.inlet_diffuser!(st18, st0, Inl(pid_val; Kinl=Kinl_val))
+        TASOPT.engine.inlet_diffuser!(st12, st0, Inl(pid_val; Kinl=Kinl_val))
         a2sq_ref  = at0_c^2 / (1.0 + 0.5 * (gam0_c - 1.0) * M2_val^2)
         mmix_ref  = mf_val * sqrt(Tref_val / st0.Tt) * (st0.pt / pref_val)
         sbfan_ref = Kinl_val * gam0_c / (mmix_ref * a2sq_ref)
-        pt2_ref   = st18.pt * exp(-sbfan_ref)
+        pt2_ref   = st12.pt * exp(-sbfan_ref)
 
         @test res_b.sbfan ≈ sbfan_ref  rtol=1e-14
         @test st2_b.pt    ≈ pt2_ref    rtol=1e-14
@@ -3677,23 +3679,23 @@ isGradient = false
         epol_test = epf0   # use design-point efficiency
         pi_exit   = pi_fan_des
 
-        st21 = FS{Float64}()
-        comp_exit!(st21, st2, pi_exit, epol_test)
+        st13 = FS{Float64}()
+        comp_exit!(st13, st2, pi_exit, epol_test)
 
         # Temperature rises through compression
-        @test st21.Tt > st2.Tt
+        @test st13.Tt > st2.Tt
 
         # Pressure ratio applied: pt_out ≈ pi × pt_in
-        @test st21.pt ≈ pi_exit * st2.pt  rtol=1e-12
+        @test st13.pt ≈ pi_exit * st2.pt  rtol=1e-12
 
         # Composition unchanged through compressor
-        @test all(st21.alpha .≈ st2.alpha)
+        @test all(st13.alpha .≈ st2.alpha)
 
         # Entropy increases (irreversible compression, epol < 1)
-        @test st21.st > st2.st
+        @test st13.st > st2.st
 
         # Enthalpy increases (work added)
-        @test st21.ht > st2.ht
+        @test st13.ht > st2.ht
 
         # ------------------------------------------------------------------
         # 9. compressor_exit! round-trip: matches direct gas_pratd call
@@ -3710,12 +3712,12 @@ isGradient = false
         cpt21_ref = res_ref[5]
         Rt21_ref  = res_ref[6]
 
-        @test st21.pt  ≈ pt21_ref  rtol=1e-14
-        @test st21.Tt  ≈ Tt21_ref  rtol=1e-14
-        @test st21.ht  ≈ ht21_ref  rtol=1e-14
-        @test st21.st  ≈ st21_ref  rtol=1e-14
-        @test st21.cpt ≈ cpt21_ref rtol=1e-14
-        @test st21.Rt  ≈ Rt21_ref  rtol=1e-14
+        @test st13.pt  ≈ pt21_ref  rtol=1e-14
+        @test st13.Tt  ≈ Tt21_ref  rtol=1e-14
+        @test st13.ht  ≈ ht21_ref  rtol=1e-14
+        @test st13.st  ≈ st21_ref  rtol=1e-14
+        @test st13.cpt ≈ cpt21_ref rtol=1e-14
+        @test st13.Rt  ≈ Rt21_ref  rtol=1e-14
 
         # ------------------------------------------------------------------
         # 10. compressor_exit! monotonicity: larger pi → higher Tt and pt
@@ -4704,7 +4706,7 @@ isGradient = false
 
         # Compute entropy-complement and ht from Tt21 via gassum
         gassum_t = TASOPT.engine.gassum
-        st21, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
+        st13, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
 
         # Fan nozzle component — design point is choked (M=1)
         fan_nozzle = Nozzle_t(pifn, A7)
@@ -4731,7 +4733,7 @@ isGradient = false
 
         p_e, T_e, h_e, s_e, cp_e, R_e, u_e, rho_e, M_e =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+                          pt21, Tt21, ht21, st13, cpt21, Rt21, p0)
 
         # Choked: M_e = 1
         @test M_e ≈ 1.0 rtol=1e-12
@@ -4762,7 +4764,7 @@ isGradient = false
         p0_unch = pifn * pt21 * 0.90   # 90% of nozzle total pressure → M < 1
         p_e_u, T_e_u, h_e_u, s_e_u, cp_e_u, R_e_u, u_e_u, rho_e_u, M_e_u =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+                          pt21, Tt21, ht21, st13, cpt21, Rt21, p0_unch)
 
         # Unchoked: M_e < 1
         @test M_e_u < 1.0
@@ -4786,7 +4788,7 @@ isGradient = false
         r, r_pt, r_ht, r_st, r_Tt,
         _p_al, _T_al, _h_al, _s_al, _cp_al, _R_al =
             nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                       pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                       pt21, Tt21, ht21, st13, cpt21, Rt21,
                                        p0, mdot_dp)
 
         @test r ≈ 0.0 atol=1e-10
@@ -4794,7 +4796,7 @@ isGradient = false
         # unchoked design-point identity
         mdot_u = rho_e_u * u_e_u * A7
         r_u, = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                          pt21, Tt21, ht21, st13, cpt21, Rt21,
                                           p0_unch, mdot_u)
         @test r_u ≈ 0.0 atol=1e-10
 
@@ -4803,7 +4805,7 @@ isGradient = false
         # ---------------------------------------------------------------------------
 
         _, _, _, _, r_Tt_u = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                                         pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                                         pt21, Tt21, ht21, st13, cpt21, Rt21,
                                                          p0_unch, mdot_u)[1:5]
         @test iszero(r_Tt_u)
 
@@ -4814,30 +4816,30 @@ isGradient = false
         # r_pt: ∂r/∂pt_in
         δ_pt = pt21 * 1e-5
         r_pp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21 + δ_pt, Tt21, ht21, st21, cpt21, Rt21,
+                                          pt21 + δ_pt, Tt21, ht21, st13, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         r_pm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21 - δ_pt, Tt21, ht21, st21, cpt21, Rt21,
+                                          pt21 - δ_pt, Tt21, ht21, st13, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         @test r_pt ≈ (r_pp - r_pm) / (2δ_pt) rtol=1e-3
 
         # r_ht: ∂r/∂ht  (choked; gas_machd Newton tolerance → rtol ≈ 1e-3)
         δ_ht = 1.0    # J/kg absolute step (ht ≈ −36000 J/kg)
         r_hp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21, Tt21, ht21 + δ_ht, st21, cpt21, Rt21,
+                                          pt21, Tt21, ht21 + δ_ht, st13, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         r_hm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21, Tt21, ht21 - δ_ht, st21, cpt21, Rt21,
+                                          pt21, Tt21, ht21 - δ_ht, st13, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         @test r_ht ≈ (r_hp - r_hm) / (2δ_ht) rtol=1e-3
 
         # r_st: ∂r/∂st
         δ_st = 1e-4   # J/(kg·K) absolute step
         r_sp = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21, Tt21, ht21, st21 + δ_st, cpt21, Rt21,
+                                          pt21, Tt21, ht21, st13 + δ_st, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         r_sm = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                          pt21, Tt21, ht21, st21 - δ_st, cpt21, Rt21,
+                                          pt21, Tt21, ht21, st13 - δ_st, cpt21, Rt21,
                                           p0, mdot_dp)[1]
         @test r_st ≈ (r_sp - r_sm) / (2δ_st) rtol=1e-3
 
@@ -4847,25 +4849,25 @@ isGradient = false
 
         r_u2, r_pt_u, r_ht_u, r_st_u, r_Tt_u2 =
             nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                       pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                       pt21, Tt21, ht21, st13, cpt21, Rt21,
                                        p0_unch, mdot_u)[1:5]
 
         δ_pt_u = pt21 * 1e-5
         r_up_pt = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                             pt21 + δ_pt_u, Tt21, ht21, st21, cpt21, Rt21,
+                                             pt21 + δ_pt_u, Tt21, ht21, st13, cpt21, Rt21,
                                              p0_unch, mdot_u)[1]
         r_um_pt = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                             pt21 - δ_pt_u, Tt21, ht21, st21, cpt21, Rt21,
+                                             pt21 - δ_pt_u, Tt21, ht21, st13, cpt21, Rt21,
                                              p0_unch, mdot_u)[1]
         @test r_pt_u ≈ (r_up_pt - r_um_pt) / (2δ_pt_u) rtol=1e-3
 
         # r_ht unchoked: purely from energy equation, exact (no Newton iteration)
         δ_ht_u = 1.0
         r_up_ht = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                             pt21, Tt21, ht21 + δ_ht_u, st21, cpt21, Rt21,
+                                             pt21, Tt21, ht21 + δ_ht_u, st13, cpt21, Rt21,
                                              p0_unch, mdot_u)[1]
         r_um_ht = nozzle_massflow_residual_t(fan_nozzle, alpha_air, nair,
-                                             pt21, Tt21, ht21 - δ_ht_u, st21, cpt21, Rt21,
+                                             pt21, Tt21, ht21 - δ_ht_u, st13, cpt21, Rt21,
                                              p0_unch, mdot_u)[1]
         @test r_ht_u ≈ (r_up_ht - r_um_ht) / (2δ_ht_u) rtol=1e-8
 
@@ -4900,20 +4902,20 @@ isGradient = false
         # Choked monotonicity: mass flux increases with pt_in
         _, _, _, _, _, _, u_e_hi, rho_e_hi, _ =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          1.05 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+                          1.05 * pt21, Tt21, ht21, st13, cpt21, Rt21, p0)
         _, _, _, _, _, _, u_e_lo, rho_e_lo, _ =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          0.95 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0)
+                          0.95 * pt21, Tt21, ht21, st13, cpt21, Rt21, p0)
         @test rho_e_hi * u_e_hi > rho_e * u_e   # higher pt → more mass flux
         @test rho_e_lo * u_e_lo < rho_e * u_e
 
         # Unchoked monotonicity: higher pt_in → more expansion → higher exit velocity
         _, _, _, _, _, _, u_e_hi_u, _, _ =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          1.05 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+                          1.05 * pt21, Tt21, ht21, st13, cpt21, Rt21, p0_unch)
         _, _, _, _, _, _, u_e_lo_u, _, _ =
             nozzle_exit_t(fan_nozzle, alpha_air, nair,
-                          0.95 * pt21, Tt21, ht21, st21, cpt21, Rt21, p0_unch)
+                          0.95 * pt21, Tt21, ht21, st13, cpt21, Rt21, p0_unch)
         @test u_e_hi_u > u_e_u
         @test u_e_lo_u < u_e_u
 
@@ -4926,7 +4928,7 @@ isGradient = false
             nozzle_exit_t(fan_nozzle_32,
                           alpha_air, nair,
                           Float32(pt21), Float32(Tt21), Float32(ht21),
-                          Float32(st21), Float32(cpt21), Float32(Rt21),
+                          Float32(st13), Float32(cpt21), Float32(Rt21),
                           Float32(p0))
         @test u_e32   isa Float32
         @test rho_e32 isa Float32
@@ -4936,7 +4938,7 @@ isGradient = false
         r32 = nozzle_massflow_residual_t(fan_nozzle_32,
                                          alpha_air, nair,
                                          Float32(pt21), Float32(Tt21), Float32(ht21),
-                                         Float32(st21), Float32(cpt21), Float32(Rt21),
+                                         Float32(st13), Float32(cpt21), Float32(Rt21),
                                          Float32(p0), Float32(mdot_dp))[1]
         @test r32 isa Float32
 
@@ -4944,7 +4946,7 @@ isGradient = false
 
     # Newton driver nozzle wiring — tasopt-j9l.31
     # Verify that nozzle_massflow_residual called with pn=1 (total-pressure loss
-    # already folded into pt7/pt5) reproduces the same residual and chain-rule
+    # already folded into pt18/pt8) reproduces the same residual and chain-rule
     # Jacobian as the inlined physics it replaces.
     @testset "Newton driver nozzle wiring" begin
 
@@ -4953,7 +4955,7 @@ isGradient = false
         nozzle_massflow_residual_t = TASOPT.engine.nozzle_massflow_residual
 
         # Re-use fan nozzle state from the parent Nozzle testset conditions
-        # but now wrap with pn=1 to match Newton driver usage (loss already in pt7)
+        # but now wrap with pn=1 to match Newton driver usage (loss already in pt18)
         alpha_air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
         nair  = 5
 
@@ -4964,61 +4966,61 @@ isGradient = false
         p0    = 23922.608843328788
 
         gassum_t = TASOPT.engine.gassum
-        st21, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
+        st13, _, ht21, _, cpt21, Rt21 = gassum_t(alpha_air, nair, Tt21)
 
-        # pt7 has the nozzle loss already applied (as in the Newton driver)
-        pt7  = pt21 * pifn
-        Tt7  = Tt21
-        ht7  = ht21
-        st7  = st21
-        cpt7 = cpt21
-        Rt7  = Rt21
+        # pt18 has the nozzle loss already applied (as in the Newton driver)
+        pt18  = pt21 * pifn
+        Tt18  = Tt21
+        ht18  = ht21
+        st18  = st13
+        cpt18 = cpt21
+        Rt18  = Rt21
 
         # Newton driver constructs: nozzle_fan = Nozzle(one(T), A7)  (pn = 1)
         nozzle_pn1 = Nozzle_t(1.0, A7)
 
         # Design mass flow at the exit
         p_e, T_e, h_e, s_e, cp_e, R_e, u_e, rho_e, M_e =
-            nozzle_exit_t(nozzle_pn1, alpha_air, nair, pt7, Tt7, ht7, st7, cpt7, Rt7, p0)
+            nozzle_exit_t(nozzle_pn1, alpha_air, nair, pt18, Tt18, ht18, st18, cpt18, Rt18, p0)
         mdot_dp = rho_e * u_e * A7
 
         # 1. Residual is exactly zero at design mass flow
         r, r_pt7, r_ht7, r_st7, r_Tt7, _, _, _, _, _, _ =
             nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                       pt7, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)
+                                       pt18, Tt18, ht18, st18, cpt18, Rt18, p0, mdot_dp)
         @test r ≈ 0.0 atol=1e-10
 
         # 2. Chain-rule Jacobian: verify r_pt7 via finite differences
-        δpt = pt7 * 1e-5
+        δpt = pt18 * 1e-5
         r_pp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7 + δpt, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18 + δpt, Tt18, ht18, st18, cpt18, Rt18, p0, mdot_dp)[1]
         r_pm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7 - δpt, Tt7, ht7, st7, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18 - δpt, Tt18, ht18, st18, cpt18, Rt18, p0, mdot_dp)[1]
         @test r_pt7 ≈ (r_pp - r_pm) / (2δpt) rtol=1e-3
 
         # 3. Chain-rule Jacobian: verify r_ht7 via finite differences
         δht = 1.0
         r_hp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7, Tt7, ht7 + δht, st7, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18, Tt18, ht18 + δht, st18, cpt18, Rt18, p0, mdot_dp)[1]
         r_hm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7, Tt7, ht7 - δht, st7, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18, Tt18, ht18 - δht, st18, cpt18, Rt18, p0, mdot_dp)[1]
         @test r_ht7 ≈ (r_hp - r_hm) / (2δht) rtol=1e-3
 
         # 4. Chain-rule Jacobian: verify r_st7 via finite differences
         δst = 1e-4
         r_sp = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7, Tt7, ht7, st7 + δst, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18, Tt18, ht18, st18 + δst, cpt18, Rt18, p0, mdot_dp)[1]
         r_sm = nozzle_massflow_residual_t(nozzle_pn1, alpha_air, nair,
-                                          pt7, Tt7, ht7, st7 - δst, cpt7, Rt7, p0, mdot_dp)[1]
+                                          pt18, Tt18, ht18, st18 - δst, cpt18, Rt18, p0, mdot_dp)[1]
         @test r_st7 ≈ (r_sp - r_sm) / (2δst) rtol=1e-3
 
-        # 5. Nozzle with pn=1 at the same pt7 is equivalent to pn=pifn at pt21
+        # 5. Nozzle with pn=1 at the same pt18 is equivalent to pn=pifn at pt21
         nozzle_original = Nozzle_t(pifn, A7)
         r_orig, r_pt_orig = nozzle_massflow_residual_t(nozzle_original, alpha_air, nair,
-                                                        pt21, Tt21, ht21, st21, cpt21, Rt21,
+                                                        pt21, Tt21, ht21, st13, cpt21, Rt21,
                                                         p0, mdot_dp)[1:2]
         @test r ≈ r_orig atol=1e-10
-        # r_pt of pn=1 nozzle at pt7 ↔ r_pt of pifn nozzle at pt21:
+        # r_pt of pn=1 nozzle at pt18 ↔ r_pt of pifn nozzle at pt21:
         # dr/d(pt_in) = dr/d(pt_nozzle) * pn, so r_pt_orig = r_pt7 * pifn
         @test r_pt7 * pifn ≈ r_pt_orig rtol=1e-8
 

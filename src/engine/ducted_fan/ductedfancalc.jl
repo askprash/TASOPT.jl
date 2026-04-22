@@ -88,10 +88,10 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
 
         TSEC, Fsp, Pfan, mfan,
         Tt0, ht0, pt0, cpt0, Rt0,
-        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+        Tt12, ht12, pt12, cpt12, Rt12,
         Tt2, ht2, pt2, cpt2, Rt2,
-        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
-        Tt7, ht7, pt7, cpt7, Rt7,
+        Tt13, ht13, pt13, cpt13, Rt13,
+        Tt18, ht18, pt18, cpt18, Rt18,
         u0,
         T2, u2, p2, cp2, R2, A2,
         T7, u7, p7, cp7, R7, A7,
@@ -152,10 +152,10 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             TSEC, Fsp, Feng, Pfan, mfan,
             pif, mbf, Nbf,
             Tt0, ht0, pt0, cpt0, Rt0,
-            Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+            Tt12, ht12, pt12, cpt12, Rt12,
             Tt2, ht2, pt2, cpt2, Rt2,
-            Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
-            Tt7, ht7, pt7, cpt7, Rt7,
+            Tt13, ht13, pt13, cpt13, Rt13,
+            Tt18, ht18, pt18, cpt18, Rt18,
             u0, T2, u2, p2, cp2, R2, M2,
             T7, u7, p7, cp7, R7, M7,
             T8, u8, p8, cp8, R8, M8, A8,
@@ -180,10 +180,10 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             TSEC, Fsp, Feng, Pfan, mfan,
             pif, mbf, Nbf,
             Tt0, ht0, pt0, cpt0, Rt0,
-            Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+            Tt12, ht12, pt12, cpt12, Rt12,
             Tt2, ht2, pt2, cpt2, Rt2,
-            Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
-            Tt7, ht7, pt7, cpt7, Rt7,
+            Tt13, ht13, pt13, cpt13, Rt13,
+            Tt18, ht18, pt18, cpt18, Rt18,
             u0, T2, u2, p2, cp2, R2, M2,
             T7, u7, p7, cp7, R7, M7,
             T8, u8, p8, cp8, R8, M8, A8,
@@ -224,11 +224,11 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     eng_ip.st0.cpt = cpt0
     eng_ip.st0.Rt  = Rt0
 
-    eng_ip.st18.Tt  = Tt1_8
-    eng_ip.st18.ht  = ht1_8
-    eng_ip.st18.pt  = pt1_8
-    eng_ip.st18.cpt = cpt1_8
-    eng_ip.st18.Rt  = Rt1_8
+    eng_ip.st12.Tt  = Tt12
+    eng_ip.st12.ht  = ht12
+    eng_ip.st12.pt  = pt12
+    eng_ip.st12.cpt = cpt12
+    eng_ip.st12.Rt  = Rt12
 
     eng_ip.st2.Tt  = Tt2
     eng_ip.st2.ht  = ht2
@@ -236,17 +236,17 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     eng_ip.st2.cpt = cpt2
     eng_ip.st2.Rt  = Rt2
 
-    eng_ip.st21.Tt  = Tt2_1
-    eng_ip.st21.ht  = ht2_1
-    eng_ip.st21.pt  = pt2_1
-    eng_ip.st21.cpt = cpt2_1
-    eng_ip.st21.Rt  = Rt2_1
+    eng_ip.st13.Tt  = Tt13
+    eng_ip.st13.ht  = ht13
+    eng_ip.st13.pt  = pt13
+    eng_ip.st13.cpt = cpt13
+    eng_ip.st13.Rt  = Rt13
 
-    eng_ip.st7.Tt  = Tt7
-    eng_ip.st7.ht  = ht7
-    eng_ip.st7.pt  = pt7
-    eng_ip.st7.cpt = cpt7
-    eng_ip.st7.Rt  = Rt7
+    eng_ip.st18.Tt  = Tt18
+    eng_ip.st18.ht  = ht18
+    eng_ip.st18.pt  = pt18
+    eng_ip.st18.cpt = cpt18
+    eng_ip.st18.Rt  = Rt18
 
     eng_ip.st0.u = u0
 
@@ -256,19 +256,19 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     eng_ip.st2.cps = cp2
     eng_ip.st2.u   = u2
 
-    eng_ip.st7.ps  = p7
-    eng_ip.st7.Ts  = T7
-    eng_ip.st7.Rs  = R7
-    eng_ip.st7.cps = cp7
-    eng_ip.st7.u   = u7
+    eng_ip.st18.ps  = p7
+    eng_ip.st18.Ts  = T7
+    eng_ip.st18.Rs  = R7
+    eng_ip.st18.cps = cp7
+    eng_ip.st18.u   = u7
 
-    eng_ip.st8.ps  = p8
-    eng_ip.st8.Ts  = T8
-    eng_ip.st8.Rs  = R8
-    eng_ip.st8.cps = cp8
-    eng_ip.st8.u   = u8
+    eng_ip.st19.ps  = p8
+    eng_ip.st19.Ts  = T8
+    eng_ip.st19.Rs  = R8
+    eng_ip.st19.cps = cp8
+    eng_ip.st19.u   = u8
 
-    eng_ip.st8.A = A8
+    eng_ip.st19.A = A8
 
     eng_ip.epf  = epf
 

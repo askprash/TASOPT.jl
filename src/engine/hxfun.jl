@@ -1116,19 +1116,19 @@ struct HXPort
     ff     :: Float64   # fuel-to-core mass-flow ratio [—]
     mfan   :: Float64   # fan total mass flow [kg/s]
     # --- station total temperatures [K] ---
-    Tt1_9   :: Float64   # PreCooler process inlet
+    Tt2a   :: Float64   # PreCooler process inlet
     Tt2_5   :: Float64   # InterCooler process inlet
-    Tt4_9   :: Float64   # Regenerator process inlet
+    Tt5   :: Float64   # Regenerator process inlet
     Tt3    :: Float64   # HPCExit / TurbC process inlet
-    Tt2_1   :: Float64   # FanExit / Radiator process inlet
+    Tt13   :: Float64   # FanExit / Radiator process inlet
     Tt4    :: Float64   # Combustor exit (Regen composition)
     Tfuel  :: Float64   # fuel temperature at combustor [K]
     # --- station total pressures [Pa] ---
-    pt1_9   :: Float64   # PreCooler process inlet
+    pt2a   :: Float64   # PreCooler process inlet
     pt2_5   :: Float64   # InterCooler process inlet
-    pt4_9   :: Float64   # Regenerator process inlet
+    pt5   :: Float64   # Regenerator process inlet
     pt3    :: Float64   # also coolant P for PreC/InterC/Regen/TurbC
-    pt2_1   :: Float64   # FanExit / Radiator process inlet
+    pt13   :: Float64   # FanExit / Radiator process inlet
     # --- radiator-specific inputs ---
     RadCoolantT :: Float64   # radiator coolant inlet temperature [K]
     RadCoolantP :: Float64   # radiator coolant pressure [Pa]
@@ -1156,18 +1156,18 @@ function HXPort(eng::EngineState, Di::Real)
         eng.design.fc,
         eng.ff,
         eng.mfan,
-        eng.st19.Tt,
+        eng.st2a.Tt,
         eng.st25.Tt,
-        eng.st49.Tt,
+        eng.st5.Tt,
         eng.st3.Tt,
-        eng.st21.Tt,
+        eng.st13.Tt,
         eng.st4.Tt,
         eng.Tfuel,
-        eng.st19.pt,
+        eng.st2a.pt,
         eng.st25.pt,
-        eng.st49.pt,
+        eng.st5.pt,
         eng.st3.pt,
-        eng.st21.pt,
+        eng.st13.pt,
         eng.RadCoolantT,
         eng.RadCoolantP,
         eng.Qradiator,
@@ -1314,15 +1314,15 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, port::HXPort,
 
       #Resolve station inlet state from the typed port
       Tp_in, pp_in, pc_in = if type == "PreC"
-            port.Tt1_9, port.pt1_9, port.pt3
+            port.Tt2a, port.pt2a, port.pt3
       elseif type == "InterC"
             port.Tt2_5, port.pt2_5, port.pt3
       elseif type == "Regen"
-            port.Tt4_9, port.pt4_9, port.pt3
+            port.Tt5, port.pt5, port.pt3
       elseif type == "TurbC"
             port.Tt3, port.pt3, port.pt3
       else # Radiator
-            port.Tt2_1, port.pt2_1, port.RadCoolantP
+            port.Tt13, port.pt13, port.RadCoolantP
       end
 
       #Store inputs

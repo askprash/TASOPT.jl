@@ -31,7 +31,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
         # Typed EngineState is the single source of truth; tfcalc! reads all
         # inputs from eng and writes all outputs directly back to eng.
         # HX delta fields are set by resetHXs/HXOffDesign! before this call.
-        # Non-pare outputs (st1_9c/st2_5c) accumulate across calls.
+        # Non-pare outputs (st2ac/st2_5c) accumulate across calls.
         eng = eng_hx
 
         Lprint = false
@@ -157,8 +157,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
         mofft = (mofWpay * Wpay + mofWMTO * WMTO) / neng
         Pofft = (PofWpay * Wpay + PofWMTO * WMTO) / neng + Pofft_HX
 
-        Tt9 = eng.st9.Tt
-        pt9 = eng.st9.pt
+        Tt25off = eng.st25off.Tt
+        pt25off = eng.st25off.pt
 
         #--------------------------------------------------------------------------
         #Engine model convergence
@@ -187,20 +187,20 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 epsrow, Tmrow,
                 TSFC, Fsp, hfuel, ff, mcore,
                 Tt0, ht0, pt0, cpt0, Rt0,
-                Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
-                Tt1_9, ht1_9, pt1_9, cpt1_9, Rt1_9,
-                Tt1_9c, ht1_9c, pt1_9c, cpt1_9c, Rt1_9c,
+                Tt12, ht12, pt12, cpt12, Rt12,
+                Tt2a, ht2a, pt2a, cpt2a, Rt2a,
+                Tt2ac, ht2ac, pt2ac, cpt2ac, Rt2ac,
                 Tt2, ht2, pt2, cpt2, Rt2,
-                Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
+                Tt13, ht13, pt13, cpt13, Rt13,
                 Tt2_5, ht2_5, pt2_5, cpt2_5, Rt2_5,
                 Tt2_5c, ht2_5c, pt2_5c, cpt2_5c, Rt2_5c,
                 Tt3, ht3, pt3, cpt3, Rt3,
                 ht4, pt4, cpt4, Rt4,
                 Tt4_1, ht4_1, pt4_1, cpt4_1, Rt4_1,
                 Tt4_5, ht4_5, pt4_5, cpt4_5, Rt4_5,
-                Tt4_9, ht4_9, pt4_9, cpt4_9, Rt4_9,
                 Tt5, ht5, pt5, cpt5, Rt5,
-                Tt7, ht7, pt7, cpt7, Rt7,
+                Tt8, ht8, pt8, cpt8, Rt8,
+                Tt18, ht18, pt18, cpt18, Rt18,
                 u0,
                 T2, u2, p2, cp2, R2, A2,
                 T2_5, u2_5, p2_5, cp2_5, R2_5, A2_5,
@@ -218,7 +218,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         Tfuel, ifuel, hvap, etab,
                         epolf, epollc, epolhc, epolht, epollt,
                         mofft, Pofft,
-                        Tt9, pt9, Tt4,
+                        Tt25off, pt25off, Tt4,
                         epsl, epsh,
                         opt_cooling,
                         Mtexit, dTstrk, StA, efilm, tfilm,
@@ -246,7 +246,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
 
                 #----- corrected mass flows
                 mbf = mcore * sqrt(Tt2 / Tref) / (pt2 / pref) * BPR
-                mblc = mcore * sqrt(Tt1_9c / Tref) / (pt1_9c / pref)
+                mblc = mcore * sqrt(Tt2ac / Tref) / (pt2ac / pref)
                 mbhc = mcore * sqrt(Tt2_5c / Tref) / (pt2_5c / pref) * (1.0 - fo)
                 mbht = mcore * sqrt(Tt4_1 / Tref) / (pt4_1 / pref) * (1.0 - fo + ff)
                 mblt = mcore * sqrt(Tt4_5 / Tref) / (pt4_5 / pref) * (1.0 - fo + ff)
@@ -257,7 +257,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 N2 = 1.0
 
                 Nbf = Nf / sqrt(Tt2 / Tref)
-                Nblc = N1 / sqrt(Tt1_9c / Tref)
+                Nblc = N1 / sqrt(Tt2ac / Tref)
                 Nbhc = N2 / sqrt(Tt2_5c / Tref)
                 Nbht = N2 / sqrt(Tt4_1 / Tref)
                 Nblt = N1 / sqrt(Tt4_5 / Tref)
@@ -273,7 +273,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 pi_lpc_des = pilc
                 pi_hpc_des = pihc
                 pi_hpt_des = pt4_1 / pt4_5
-                pi_lpt_des = pt4_5 / pt4_9
+                pi_lpt_des = pt4_5 / pt5
 
                 Nb_fan_des = Nbf
                 Nb_lpc_des = Nblc
@@ -284,7 +284,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 #----- but recalculate turbine pressure ratios using slightly approximate form,
                 #-      to be fuly consistent with TFOPER's turbine efficiency function
                 Trh = Tt4_1 / (Tt4_1 + (ht4_5 - ht4_1) / cpt4_1)
-                Trl = Tt4_5 / (Tt4_5 + (ht4_9 - ht4_5) / cpt4_5)
+                Trl = Tt4_5 / (Tt4_5 + (ht5 - ht4_5) / cpt4_5)
                 gexh = cpt4_1 / (Rt4_1 * epolht)
                 gexl = cpt4_5 / (Rt4_5 * epollt)
                 pi_hpt_des = Trh^gexh
@@ -296,15 +296,15 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_design.st0.pt  = pt0;  eng_design.st0.cpt = cpt0;  eng_design.st0.Rt = Rt0
                 eng_design.st0.u   = u0
 
-                eng_design.st18.Tt  = Tt1_8; eng_design.st18.ht  = ht1_8
-                eng_design.st18.pt  = pt1_8; eng_design.st18.cpt = cpt1_8; eng_design.st18.Rt = Rt1_8
+                eng_design.st12.Tt  = Tt12; eng_design.st12.ht  = ht12
+                eng_design.st12.pt  = pt12; eng_design.st12.cpt = cpt12; eng_design.st12.Rt = Rt12
 
-                eng_design.st19.Tt  = Tt1_9; eng_design.st19.ht  = ht1_9
-                eng_design.st19.pt  = pt1_9; eng_design.st19.cpt = cpt1_9; eng_design.st19.Rt = Rt1_9
+                eng_design.st2a.Tt  = Tt2a; eng_design.st2a.ht  = ht2a
+                eng_design.st2a.pt  = pt2a; eng_design.st2a.cpt = cpt2a; eng_design.st2a.Rt = Rt2a
 
-                # st1_9c (PreCoolerOut) populated by tfsize! but not in pare — update typed state
-                eng_design.st19c.Tt  = Tt1_9c; eng_design.st19c.ht  = ht1_9c
-                eng_design.st19c.pt  = pt1_9c; eng_design.st19c.cpt = cpt1_9c; eng_design.st19c.Rt = Rt1_9c
+                # st2ac (PreCoolerOut) populated by tfsize! but not in pare — update typed state
+                eng_design.st2ac.Tt  = Tt2ac; eng_design.st2ac.ht  = ht2ac
+                eng_design.st2ac.pt  = pt2ac; eng_design.st2ac.cpt = cpt2ac; eng_design.st2ac.Rt = Rt2ac
 
                 eng_design.st2.Tt  = Tt2;  eng_design.st2.ht  = ht2
                 eng_design.st2.pt  = pt2;  eng_design.st2.cpt = cpt2;  eng_design.st2.Rt = Rt2
@@ -312,8 +312,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_design.st2.Rs  = R2;   eng_design.st2.cps = cp2;   eng_design.st2.u = u2
                 eng_design.st2.A   = A2;   eng_design.st2.mdot = mcore
 
-                eng_design.st21.Tt  = Tt2_1; eng_design.st21.ht  = ht2_1
-                eng_design.st21.pt  = pt2_1; eng_design.st21.cpt = cpt2_1; eng_design.st21.Rt = Rt2_1
+                eng_design.st13.Tt  = Tt13; eng_design.st13.ht  = ht13
+                eng_design.st13.pt  = pt13; eng_design.st13.cpt = cpt13; eng_design.st13.Rt = Rt13
 
                 eng_design.st25.Tt  = Tt2_5; eng_design.st25.ht  = ht2_5
                 eng_design.st25.pt  = pt2_5; eng_design.st25.cpt = cpt2_5; eng_design.st25.Rt = Rt2_5
@@ -338,30 +338,30 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_design.st45.Tt  = Tt4_5; eng_design.st45.ht  = ht4_5
                 eng_design.st45.pt  = pt4_5; eng_design.st45.cpt = cpt4_5; eng_design.st45.Rt = Rt4_5
 
-                eng_design.st49.Tt  = Tt4_9; eng_design.st49.ht  = ht4_9
-                eng_design.st49.pt  = pt4_9; eng_design.st49.cpt = cpt4_9; eng_design.st49.Rt = Rt4_9
+                eng_design.st5.Tt  = Tt5; eng_design.st5.ht  = ht5
+                eng_design.st5.pt  = pt5; eng_design.st5.cpt = cpt5; eng_design.st5.Rt = Rt5
 
-                eng_design.st5.Tt  = Tt5;  eng_design.st5.ht  = ht5
-                eng_design.st5.pt  = pt5;  eng_design.st5.cpt = cpt5;  eng_design.st5.Rt = Rt5
-                eng_design.st5.Ts  = T5;   eng_design.st5.ps  = p5
-                eng_design.st5.Rs  = R5;   eng_design.st5.cps = cp5;   eng_design.st5.u = u5
-                eng_design.st5.A   = A5
+                eng_design.st8.Tt  = Tt8;  eng_design.st8.ht  = ht8
+                eng_design.st8.pt  = pt8;  eng_design.st8.cpt = cpt8;  eng_design.st8.Rt = Rt8
+                eng_design.st8.Ts  = T5;   eng_design.st8.ps  = p5
+                eng_design.st8.Rs  = R5;   eng_design.st8.cps = cp5;   eng_design.st8.u = u5
+                eng_design.st8.A   = A5
 
-                eng_design.st6.Ts  = T6;   eng_design.st6.ps  = p6
-                eng_design.st6.Rs  = R6;   eng_design.st6.cps = cp6;   eng_design.st6.u = u6
-                eng_design.st6.A   = A6
+                eng_design.st9.Ts  = T6;   eng_design.st9.ps  = p6
+                eng_design.st9.Rs  = R6;   eng_design.st9.cps = cp6;   eng_design.st9.u = u6
+                eng_design.st9.A   = A6
 
-                eng_design.st7.Tt  = Tt7;  eng_design.st7.ht  = ht7
-                eng_design.st7.pt  = pt7;  eng_design.st7.cpt = cpt7;  eng_design.st7.Rt = Rt7
-                eng_design.st7.Ts  = T7;   eng_design.st7.ps  = p7
-                eng_design.st7.Rs  = R7;   eng_design.st7.cps = cp7;   eng_design.st7.u = u7
-                eng_design.st7.A   = A7
+                eng_design.st18.Tt  = Tt18;  eng_design.st18.ht  = ht18
+                eng_design.st18.pt  = pt18;  eng_design.st18.cpt = cpt18;  eng_design.st18.Rt = Rt18
+                eng_design.st18.Ts  = T7;   eng_design.st18.ps  = p7
+                eng_design.st18.Rs  = R7;   eng_design.st18.cps = cp7;   eng_design.st18.u = u7
+                eng_design.st18.A   = A7
 
-                eng_design.st8.Ts  = T8;   eng_design.st8.ps  = p8
-                eng_design.st8.Rs  = R8;   eng_design.st8.cps = cp8;   eng_design.st8.u = u8
-                eng_design.st8.A   = A8
+                eng_design.st19.Ts  = T8;   eng_design.st19.ps  = p8
+                eng_design.st19.Rs  = R8;   eng_design.st19.cps = cp8;   eng_design.st19.u = u8
+                eng_design.st19.A   = A8
 
-                eng_design.st9.u   = u9;   eng_design.st9.A   = A9
+                eng_design.st25off.u   = u9;   eng_design.st25off.A   = A9
 
                 # DesignState — frozen scalars needed by every off-design call
                 eng_design.design.pi_fan_des  = pi_fan_des;  eng_design.design.pi_lpc_des = pi_lpc_des
@@ -484,7 +484,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         pif = 0.0
                         pilc = 0.0
                         pihc = 0.0
-                        pt5 = 0.0
+                        pt8 = 0.0
                         M2 = 1.0
                         M2_5 = 1.0
                 else
@@ -495,7 +495,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         pif  = max(eng.pif,  1.1)
                         pilc = max(eng.pilc, 1.1)
                         pihc = max(eng.pihc, 1.1)
-                        pt5  = eng.st5.pt
+                        pt8  = eng.st8.pt
                         M2   = eng.design.M2
                         M2_5  = eng.design.M25
                 end
@@ -527,20 +527,20 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 mbf, mblc, mbhc,
                 Nbf, Nblc, Nbhc,
                 Tt0, ht0, pt0, cpt0, Rt0,
-                Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
-                Tt1_9, ht1_9, pt1_9, cpt1_9, Rt1_9,
-                Tt1_9c, ht1_9c, pt1_9c, cpt1_9c, Rt1_9c,
+                Tt12, ht12, pt12, cpt12, Rt12,
+                Tt2a, ht2a, pt2a, cpt2a, Rt2a,
+                Tt2ac, ht2ac, pt2ac, cpt2ac, Rt2ac,
                 Tt2, ht2, pt2, cpt2, Rt2,
-                Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
+                Tt13, ht13, pt13, cpt13, Rt13,
                 Tt2_5, ht2_5, pt2_5, cpt2_5, Rt2_5,
                 Tt2_5c, ht2_5c, pt2_5c, cpt2_5c, Rt2_5c,
                 Tt3, ht3, pt3, cpt3, Rt3,
                 Tt4, ht4, pt4, cpt4, Rt4,
                 Tt4_1, ht4_1, pt4_1, cpt4_1, Rt4_1,
                 Tt4_5, ht4_5, pt4_5, cpt4_5, Rt4_5,
-                Tt4_9, ht4_9, pt4_9, cpt4_9, Rt4_9,
                 Tt5, ht5, pt5, cpt5, Rt5,
-                Tt7, ht7, pt7, cpt7, Rt7,
+                Tt8, ht8, pt8, cpt8, Rt8,
+                Tt18, ht18, pt18, cpt18, Rt18,
                 u0,
                 T2, u2, p2, cp2, R2, M2,
                 T2_5, u2_5, p2_5, cp2_5, R2_5, M2_5,
@@ -563,7 +563,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         Tfuel, ifuel, hvap, etab,
                         epolf, epollc, epolhc, epolht, epollt,
                         mofft, Pofft,
-                        Tt9, pt9,
+                        Tt25off, pt25off,
                         epsl, epsh,
                         opt_cooling,
                         Mtexit, dTstrk, StA, efilm, tfilm,
@@ -572,7 +572,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         ncrowx, ncrow,
                         epsrow, Tmrow,
                         Fe,
-                        M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M2_5, 
+                        M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt8, mcore, M2_5, 
                         Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
                         Δp_PreC, Δp_InterC, Δp_Regen)
 
@@ -586,15 +586,15 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_offdes.st0.pt  = pt0;   eng_offdes.st0.cpt = cpt0;   eng_offdes.st0.Rt = Rt0
                 eng_offdes.st0.u   = u0
 
-                eng_offdes.st18.Tt  = Tt1_8; eng_offdes.st18.ht  = ht1_8
-                eng_offdes.st18.pt  = pt1_8; eng_offdes.st18.cpt = cpt1_8; eng_offdes.st18.Rt = Rt1_8
+                eng_offdes.st12.Tt  = Tt12; eng_offdes.st12.ht  = ht12
+                eng_offdes.st12.pt  = pt12; eng_offdes.st12.cpt = cpt12; eng_offdes.st12.Rt = Rt12
 
-                eng_offdes.st19.Tt  = Tt1_9; eng_offdes.st19.ht  = ht1_9
-                eng_offdes.st19.pt  = pt1_9; eng_offdes.st19.cpt = cpt1_9; eng_offdes.st19.Rt = Rt1_9
+                eng_offdes.st2a.Tt  = Tt2a; eng_offdes.st2a.ht  = ht2a
+                eng_offdes.st2a.pt  = pt2a; eng_offdes.st2a.cpt = cpt2a; eng_offdes.st2a.Rt = Rt2a
 
-                # st1_9c (PreCoolerOut) — returned by tfoper! but NOT in pare
-                eng_offdes.st19c.Tt  = Tt1_9c; eng_offdes.st19c.ht  = ht1_9c
-                eng_offdes.st19c.pt  = pt1_9c; eng_offdes.st19c.cpt = cpt1_9c; eng_offdes.st19c.Rt = Rt1_9c
+                # st2ac (PreCoolerOut) — returned by tfoper! but NOT in pare
+                eng_offdes.st2ac.Tt  = Tt2ac; eng_offdes.st2ac.ht  = ht2ac
+                eng_offdes.st2ac.pt  = pt2ac; eng_offdes.st2ac.cpt = cpt2ac; eng_offdes.st2ac.Rt = Rt2ac
 
                 eng_offdes.st2.Tt  = Tt2;  eng_offdes.st2.ht  = ht2
                 eng_offdes.st2.pt  = pt2;  eng_offdes.st2.cpt = cpt2;  eng_offdes.st2.Rt = Rt2
@@ -602,8 +602,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_offdes.st2.Rs  = R2;   eng_offdes.st2.cps = cp2;   eng_offdes.st2.u  = u2
                 eng_offdes.st2.A   = A2;   eng_offdes.st2.mdot = mcore
 
-                eng_offdes.st21.Tt  = Tt2_1; eng_offdes.st21.ht  = ht2_1
-                eng_offdes.st21.pt  = pt2_1; eng_offdes.st21.cpt = cpt2_1; eng_offdes.st21.Rt = Rt2_1
+                eng_offdes.st13.Tt  = Tt13; eng_offdes.st13.ht  = ht13
+                eng_offdes.st13.pt  = pt13; eng_offdes.st13.cpt = cpt13; eng_offdes.st13.Rt = Rt13
 
                 eng_offdes.st25.Tt  = Tt2_5; eng_offdes.st25.ht  = ht2_5
                 eng_offdes.st25.pt  = pt2_5; eng_offdes.st25.cpt = cpt2_5; eng_offdes.st25.Rt = Rt2_5
@@ -627,30 +627,30 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_offdes.st45.Tt  = Tt4_5; eng_offdes.st45.ht  = ht4_5
                 eng_offdes.st45.pt  = pt4_5; eng_offdes.st45.cpt = cpt4_5; eng_offdes.st45.Rt = Rt4_5
 
-                eng_offdes.st49.Tt  = Tt4_9; eng_offdes.st49.ht  = ht4_9
-                eng_offdes.st49.pt  = pt4_9; eng_offdes.st49.cpt = cpt4_9; eng_offdes.st49.Rt = Rt4_9
+                eng_offdes.st5.Tt  = Tt5; eng_offdes.st5.ht  = ht5
+                eng_offdes.st5.pt  = pt5; eng_offdes.st5.cpt = cpt5; eng_offdes.st5.Rt = Rt5
 
-                eng_offdes.st5.Tt  = Tt5;  eng_offdes.st5.ht  = ht5
-                eng_offdes.st5.pt  = pt5;  eng_offdes.st5.cpt = cpt5;  eng_offdes.st5.Rt = Rt5
-                eng_offdes.st5.Ts  = T5;   eng_offdes.st5.ps  = p5
-                eng_offdes.st5.Rs  = R5;   eng_offdes.st5.cps = cp5;   eng_offdes.st5.u  = u5
-                eng_offdes.st5.A   = A5
+                eng_offdes.st8.Tt  = Tt8;  eng_offdes.st8.ht  = ht8
+                eng_offdes.st8.pt  = pt8;  eng_offdes.st8.cpt = cpt8;  eng_offdes.st8.Rt = Rt8
+                eng_offdes.st8.Ts  = T5;   eng_offdes.st8.ps  = p5
+                eng_offdes.st8.Rs  = R5;   eng_offdes.st8.cps = cp5;   eng_offdes.st8.u  = u5
+                eng_offdes.st8.A   = A5
 
-                eng_offdes.st6.Ts  = T6;   eng_offdes.st6.ps  = p6
-                eng_offdes.st6.Rs  = R6;   eng_offdes.st6.cps = cp6;   eng_offdes.st6.u  = u6
-                eng_offdes.st6.A   = A6
+                eng_offdes.st9.Ts  = T6;   eng_offdes.st9.ps  = p6
+                eng_offdes.st9.Rs  = R6;   eng_offdes.st9.cps = cp6;   eng_offdes.st9.u  = u6
+                eng_offdes.st9.A   = A6
 
-                eng_offdes.st7.Tt  = Tt7;  eng_offdes.st7.ht  = ht7
-                eng_offdes.st7.pt  = pt7;  eng_offdes.st7.cpt = cpt7;  eng_offdes.st7.Rt = Rt7
-                eng_offdes.st7.Ts  = T7;   eng_offdes.st7.ps  = p7
-                eng_offdes.st7.Rs  = R7;   eng_offdes.st7.cps = cp7;   eng_offdes.st7.u  = u7
-                eng_offdes.st7.A   = A7
+                eng_offdes.st18.Tt  = Tt18;  eng_offdes.st18.ht  = ht18
+                eng_offdes.st18.pt  = pt18;  eng_offdes.st18.cpt = cpt18;  eng_offdes.st18.Rt = Rt18
+                eng_offdes.st18.Ts  = T7;   eng_offdes.st18.ps  = p7
+                eng_offdes.st18.Rs  = R7;   eng_offdes.st18.cps = cp7;   eng_offdes.st18.u  = u7
+                eng_offdes.st18.A   = A7
 
-                eng_offdes.st8.Ts  = T8;   eng_offdes.st8.ps  = p8
-                eng_offdes.st8.Rs  = R8;   eng_offdes.st8.cps = cp8;   eng_offdes.st8.u  = u8
-                eng_offdes.st8.A   = A8
+                eng_offdes.st19.Ts  = T8;   eng_offdes.st19.ps  = p8
+                eng_offdes.st19.Rs  = R8;   eng_offdes.st19.cps = cp8;   eng_offdes.st19.u  = u8
+                eng_offdes.st19.A   = A8
 
-                eng_offdes.st9.u   = u9;   eng_offdes.st9.A   = A9
+                eng_offdes.st25off.u   = u9;   eng_offdes.st25off.A   = A9
 
                 # Cooling — mirror the sizing EXIT block (lines 376-378) for both
                 # operating modes (FixedCoolingFlowRatio and FixedTmetal).
@@ -663,7 +663,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 # Performance rollup scalars (tasopt-j9l.52)
                 # BPR is computed from off-design corrected flows (not the design-point input).
                 # Fe is the per-engine net thrust (OUTPUT in FixedTt4; INPUT retained in FixedFe).
-                eng_offdes.BPR   = mbf / mblc * sqrt(Tt1_9c / Tt2) * pt2 / pt1_9c
+                eng_offdes.BPR   = mbf / mblc * sqrt(Tt2ac / Tt2) * pt2 / pt2ac
                 eng_offdes.Fe    = Fe
                 eng_offdes.TSFC  = TSFC
                 eng_offdes.Fsp   = Fsp
@@ -698,7 +698,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_offdes.Phiinl = Phiinl
                 eng_offdes.Kinl   = Kinl
                 eng_offdes.Nf    = Nbf  * sqrt(Tt2   / Tref)
-                eng_offdes.N1    = Nblc * sqrt(Tt1_9c / Tref)
+                eng_offdes.N1    = Nblc * sqrt(Tt2ac / Tref)
                 eng_offdes.N2    = Nbhc * sqrt(Tt2_5c / Tref)
                 eng_offdes.Nbf   = Nbf;   eng_offdes.Nblc = Nblc;  eng_offdes.Nbhc = Nbhc
                 eng_offdes.mbf   = mbf;   eng_offdes.mblc = mblc;  eng_offdes.mbhc = mbhc
