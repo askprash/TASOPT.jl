@@ -27,7 +27,9 @@ All thirteen `GasState` field names are forwarded transparently so callers
 can write, e.g., `station.Tt` instead of `station.gas.Tt`.  `getproperty`
 and `setproperty!` both honour the forwarding; the compiler constant-folds
 the symbol dispatch so the generated machine code is identical to a direct
-nested access.
+nested access.  See the [Zero-overhead property forwarding](@ref prop_forwarding)
+section in the developer notes for the pattern, requirements, and a
+`@code_llvm` verification recipe.
 
 ## Constructors
 

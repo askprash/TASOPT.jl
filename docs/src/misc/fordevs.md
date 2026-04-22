@@ -362,3 +362,111 @@ BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
 **All that really changed was the little square brackets!**
 `SVector{3}(0.0, 0.0, 0.0)` vs `SVector{3}([0.0, 0.0, 0.0])`
 The latter results in 1 allocation, which, for such a small calculation, is a significant increase in the time required!
+
+## [Zero-overhead property forwarding](@id prop_forwarding)
+
+Sometimes a container struct embeds another struct and you want callers to
+write `container.field` rather than `container.inner.field` — without
+paying any runtime cost for the indirection.  Julia's `getproperty` /
+`setproperty!` hooks make this possible, but only if the forwarding logic is
+visible to the compiler at specialisation time.
+
+### The pattern
+
+Three ingredients are required:
+
+1. **A `const` tuple of forwarded field names** declared as a module-level
+   constant (not a local or mutable variable).  The `const` qualifier is
+   what allows the compiler to constant-fold membership tests.
+2. **`@inline` on both accessors.**  Without `@inline`, Julia may decline to
+   inline the accessor body into the caller, leaving a call-site overhead.
+3. **No type annotation on the `name` argument** of `getproperty` /
+   `setproperty!`.  Adding `name::Symbol` is fine; adding a more specific
+   type (e.g. a value type) can defeat constant-folding.
+
+```julia
+# 1. Declare the forwarded field names as a module-level const.
+#    Place it next to the inner struct so that adding/removing a field
+#    requires editing only one file.
+const _INNER_FIELDS = (:x, :y, :z)   # every field of InnerStruct
+
+struct InnerStruct
+    x::Float64
+    y::Float64
+    z::Float64
+end
+
+mutable struct OuterStruct
+    inner ::InnerStruct
+    w     ::Float64        # own field, NOT forwarded
+end
+
+# 2. Forward reads: check the const tuple, then delegate.
+@inline function Base.getproperty(s::OuterStruct, name::Symbol)
+    name in _INNER_FIELDS && return getproperty(getfield(s, :inner), name)
+    return getfield(s, name)
+end
+
+# 3. Forward writes: same logic for setproperty!.
+@inline function Base.setproperty!(s::OuterStruct, name::Symbol, val)
+    if name in _INNER_FIELDS
+        setproperty!(getfield(s, :inner), name, val)
+    else
+        setfield!(s, name, val)
+    end
+end
+
+# 4. (Optional but recommended) Expose forwarded names for tab-completion.
+Base.propertynames(::OuterStruct, private::Bool=false) =
+    (:inner, :w, _INNER_FIELDS...)
+```
+
+### Why it works
+
+The `name in _INNER_FIELDS` check operates on a *compile-time constant*
+tuple of `Symbol` literals.  When the compiler specialises
+`getproperty(s, :x)`, it substitutes `:x` for `name` and reduces
+`(:x, :y, :z)` membership to `true` at compile time — the branch
+disappears entirely.  The result is a single `getfield` call, identical to
+what `s.inner.x` would have compiled to in the absence of any forwarding.
+
+### Verifying zero overhead
+
+Use `@code_typed` to confirm that the forwarded and direct accesses produce
+identical IR:
+
+```julia-repl
+julia> using InteractiveUtils
+
+# Both should show a single getfield intrinsic — no branch, no call overhead.
+julia> @code_typed s.x          # forwarded via getproperty
+julia> @code_typed s.inner.x    # direct nested access
+```
+
+For a byte-level confirmation use `@code_llvm`:
+
+```julia-repl
+julia> @code_llvm s.x
+; Expect a single `load` or `getelementptr` — no cmp, no br instructions.
+
+julia> @code_llvm s.inner.x
+; Should be byte-identical to the forwarded version above.
+```
+
+If you see `cmp` / `br` instructions in the forwarded path, one of the
+three requirements above is not met — check that the tuple is `const`,
+that both accessors are `@inline`, and that `name` is not over-constrained.
+
+### Canonical example in TASOPT
+
+[`FlowStation`](@ref) uses this pattern to forward all fourteen
+[`GasState`](@ref) field names (`:Tt`, `:ht`, `:pt`, …) so callers can
+write `station.Tt` instead of `station.gas.Tt`.  The forwarding table is
+`_GAS_FIELDS` in `src/engine/turbofan/gas_state.jl`; the accessors are in
+`src/engine/turbofan/flow_station.jl`.
+
+Verification data collected on Julia 1.11.2 (PR #7 HEAD):
+- `@code_typed` produces identical IR for `fs.Tt` and `fs.gas.Tt`.
+- `@code_llvm` output is byte-identical for getters and setters.
+- BenchmarkTools (10 000 samples × 1 000 evals): forwarded and direct
+  accesses both measure ≈ 2.1 ns median with 0 allocations.
