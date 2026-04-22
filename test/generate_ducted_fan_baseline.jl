@@ -22,14 +22,12 @@ include(TASOPT.__TASOPTindices__)
 println("Building test ducted-fan aircraft...")
 
 ac = TASOPT.load_default_model()
-pare = ac.pare
 parg = ac.parg
 
 enginecalc! = TASOPT.engine.calculate_fuel_cell_with_ducted_fan!
 engineweight! = TASOPT.engine.fuel_cell_with_ducted_fan_weight!
 enginemodel = TASOPT.engine.FuelCellDuctedFan(
     "fuel_cell_with_ducted_fan", enginecalc!, "nasa", engineweight!, false)
-pare[iePfanmax,:,:] .= 10e6
 
 fcdata = TASOPT.engine.FuelCellDuctedFanData(2)
 fcdata.type = "HT-PEMFC"
@@ -44,28 +42,34 @@ fcdata.thickness_membrane = 100e-6
 fcdata.thickness_anode    = 250e-6
 fcdata.thickness_cathode  = 250e-6
 fcdata.design_voltage = 200.0
-pare[ieRadiatorepsilon,:,:] .= 0.7
-pare[ieRadiatorMp,:,:]      .= 0.12
-pare[ieDi,:,:]              .= 0.4
 ac.para[iaROCdes, ipclimb1:ipclimbn, :] .= 500 * TASOPT.ft_to_m / 60
 
 engine = TASOPT.engine.Engine(enginemodel, fcdata, Vector{TASOPT.engine.HeatExchanger}())
 ac.engine = engine
-pare[ieRadiatorCoolantT,:,:] = engine.data.FC_temperature[:,:]
-pare[ieRadiatorCoolantP,:,:] = engine.data.FC_pressure[:,:]
-pare[ieRadiatorHeat,:,:]     = engine.data.FC_heat[:,:]
 
-pare[ieFe,    ipcruise1, 1] = 16981.808185580507
+# Seed per-point typed state: Pfanmax and radiator fields.
+for im in 1:length(ac.missions), ip in 1:length(ac.missions[im].points)
+    eng_ip = ac.missions[im].points[ip].engine
+    eng_ip.Pfanmax     = 10e6
+    eng_ip.RadCoolantT = engine.data.FC_temperature[ip, im]
+    eng_ip.RadCoolantP = engine.data.FC_pressure[ip, im]
+    eng_ip.Qradiator   = engine.data.FC_heat[ip, im]
+end
+
+# Design-point engine inputs at ipcruise1 written directly to typed state.
+let eng = ac.missions[1].points[ipcruise1].engine
+    eng.Fe           = 16981.808185580507
+    eng.Fsp          = 0.5268888878557653
+    eng.pif          = 1.685
+    eng.design.pid   = 0.998
+    eng.design.pifn  = 0.98
+    eng.design.epolf = 0.8948
+    eng.design.pifK  = 1.685
+    eng.design.epfK  = -0.077
+    eng.design.M2    = 0.6
+end
 parg[igneng]  = 2
 ac.wing.layout.S = 81.25043040696103
-pare[ieFsp,   ipcruise1, 1] = 0.5268888878557653
-pare[iepif,   ipcruise1, 1] = 1.685
-pare[iepid,   ipcruise1, 1] = 0.998
-pare[iepifn,  ipcruise1, 1] = 0.98
-pare[ieepolf, ipcruise1, 1] = 0.8948
-pare[iepifK,  ipcruise1, 1] = 1.685
-pare[ieepfK,  ipcruise1, 1] = -0.077
-pare[ieM2,    ipcruise1, 1] = 0.6
 
 ac.para[iaalt,  ipcruise1, 1] = 10668.0   # FL350 standard day
 ac.para[iaMach, ipcruise1, 1] = 0.8
