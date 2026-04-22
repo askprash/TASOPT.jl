@@ -121,17 +121,22 @@ end
             _bl_ds = _bl_pt["design"]
 
             # Scalar checks
+            # rtol=1e-10 atol=1e-14: baseline captured on macOS; CI runs on
+            # Linux x86_64 with a different libm/BLAS, and transcendental
+            # functions legitimately differ by a few ULPs across platforms.
+            # atol backstop handles zero-valued baseline fields (Fsp, Phiinl,
+            # Qradiator, ...) that rtol cannot compare meaningfully.
             for _f in _eng_fields
-                @test getfield(_eng, _f) ≈ _bl_pt[String(_f)] rtol=1e-12
+                @test getfield(_eng, _f) ≈ _bl_pt[String(_f)] rtol=1e-10 atol=1e-14
             end
             # DesignState scalar checks
             for _f in _ds_fields
-                @test getfield(_ds, _f) ≈ _bl_ds[String(_f)] rtol=1e-12
+                @test getfield(_ds, _f) ≈ _bl_ds[String(_f)] rtol=1e-10 atol=1e-14
             end
             # DesignState vector fields (epsrow, Tmrow)
             for _i in 1:4
-                @test _ds.epsrow[_i] ≈ _bl_ds["epsrow"][_i] rtol=1e-12
-                @test _ds.Tmrow[_i]  ≈ _bl_ds["Tmrow"][_i]  rtol=1e-12
+                @test _ds.epsrow[_i] ≈ _bl_ds["epsrow"][_i] rtol=1e-10 atol=1e-14
+                @test _ds.Tmrow[_i]  ≈ _bl_ds["Tmrow"][_i]  rtol=1e-10 atol=1e-14
             end
             # FlowStation checks
             _bl_sts = _bl_pt["stations"]
@@ -139,7 +144,7 @@ end
                 _st    = getfield(_eng, _stfld)
                 _bl_st = _bl_sts[String(_stfld)]
                 for _sf in _st_fields
-                    @test getproperty(_st, _sf) ≈ _bl_st[String(_sf)] rtol=1e-12
+                    @test getproperty(_st, _sf) ≈ _bl_st[String(_sf)] rtol=1e-10 atol=1e-14
                 end
             end
         end

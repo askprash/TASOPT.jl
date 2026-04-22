@@ -2760,16 +2760,26 @@ isGradient = false
         _ = TASOPT.engine.run_engine_sweep(ac_bench)  # JIT pass 1
         _ = TASOPT.engine.run_engine_sweep(ac_bench)  # JIT pass 2 → stable
 
-        # --- Allocation check (deterministic) --------------------------------
+        # --- Allocation check (deterministic, version-gated) -----------------
         # @allocations counts heap allocations made by the call post-JIT.
         # Any new heap allocation introduced by a code change will show up here.
+        # Gated on Julia >= 1.11 to match the baseline capture version
+        # (see baseline TOML meta). On 1.10 lts, compiler dispatch/inlining
+        # decisions produce a different stable alloc count, so the assertion
+        # is demoted to an informational log.
         alloc = @allocations TASOPT.engine.run_engine_sweep(ac_bench)
         alloc_limit = round(Int, baseline_alloc * 1.05)
         alloc_ok = alloc <= alloc_limit
-        @test alloc_ok
-        if !alloc_ok
-            @info "Allocation regression: got $alloc, baseline $baseline_alloc, " *
-                  "limit $alloc_limit ($(round((alloc / baseline_alloc - 1) * 100; digits=1))% over)"
+        if VERSION >= v"1.11"
+            @test alloc_ok
+            if !alloc_ok
+                @info "Allocation regression: got $alloc, baseline $baseline_alloc, " *
+                      "limit $alloc_limit ($(round((alloc / baseline_alloc - 1) * 100; digits=1))% over)"
+            end
+        else
+            @info "Allocation check (informational on Julia $(VERSION) < 1.11): " *
+                  "got $alloc, baseline $baseline_alloc (captured on 1.11.9), " *
+                  "limit $alloc_limit"
         end
 
         # --- Runtime check (informational) -----------------------------------
