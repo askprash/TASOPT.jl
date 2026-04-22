@@ -139,6 +139,29 @@ Return a zero-initialised `GasState{Float64}`.
 """
 GasState() = GasState{Float64}()
 
+# ---------------------------------------------------------------------------
+# _GAS_FIELDS — compile-time tuple of every GasState field name.
+#
+# Declared here (next to the struct) so that adding or removing a GasState
+# field requires touching only this file.  FlowStation's getproperty /
+# setproperty! forwarding in flow_station.jl consumes this constant.
+# ---------------------------------------------------------------------------
+
+"""
+    _GAS_FIELDS
+
+Tuple of every `GasState` field name as a `Symbol`.  Used by
+`FlowStation`'s `getproperty` / `setproperty!` overloads to forward
+`GasState` field accesses transparently.  Declared as a `const` so the
+compiler can constant-fold the `name in _GAS_FIELDS` membership test at
+every call site — no runtime overhead.
+"""
+const _GAS_FIELDS = (
+    :Tt, :ht, :pt, :cpt, :Rt, :st,      # total thermodynamic state
+    :Ts, :ps, :hs, :ss, :cps, :Rs, :u,  # static thermodynamic state
+    :alpha,                               # species composition
+)
+
 """
     GasState{T}(Tt, ht, pt, cpt, Rt, alpha) where {T<:AbstractFloat}
 

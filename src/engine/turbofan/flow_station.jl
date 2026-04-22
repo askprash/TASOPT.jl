@@ -5,19 +5,6 @@ Flow-station container: gas state plus cross-sectional area and mass flow.
 using StaticArrays
 
 # ---------------------------------------------------------------------------
-# GasState fields that FlowStation forwards to its embedded gas::GasState
-# ---------------------------------------------------------------------------
-
-# Tuple of every field name that lives in GasState.
-# Declared as a constant so the compiler can specialise the `in` check
-# to a constant fold at call sites.
-const _GAS_FIELDS = (
-    :Tt, :ht, :pt, :cpt, :Rt, :st,      # total thermodynamic state
-    :Ts, :ps, :hs, :ss, :cps, :Rs, :u,  # static thermodynamic state
-    :alpha,                               # species composition
-)
-
-# ---------------------------------------------------------------------------
 # FlowStation
 # ---------------------------------------------------------------------------
 
