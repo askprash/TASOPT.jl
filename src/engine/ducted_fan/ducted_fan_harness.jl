@@ -358,8 +358,6 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
 
     # -----------------------------------------------------------------------
     # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
-    # ductedfancalc! dual-writes every output to both pare and typed state,
-    # so reading from typed state gives identical values to the bare pare path.
     # -----------------------------------------------------------------------
     state = DuctedFanState{Float64}()
     pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
@@ -412,7 +410,6 @@ function run_ducted_fan_sweep(ac;
     for ip in ip_range
         ac.engine.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
         # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
-        # ductedfancalc! dual-writes outputs, so typed state is authoritative.
         state = DuctedFanState{Float64}()
         pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
         states[ip] = state

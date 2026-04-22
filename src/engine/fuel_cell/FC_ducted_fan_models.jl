@@ -34,8 +34,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
     if case == "design"
         #Design ducted fan for start of cruise
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
-        # ductedfancalc! dual-writes all outputs to both bare pare and typed state,
-        # so eng_ip.design.{A2,A7,mbfD,pifD,NbfD} and eng_ip.{A7fac,Pfan} are current.
+        # eng_ip.design.{A2,A7,mbfD,pifD,NbfD} and eng_ip.{A7fac,Pfan} are current.
 
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
@@ -83,7 +82,6 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         end
 
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
-        # ductedfancalc! dual-writes Pfan to both bare pare and typed state.
 
         Pfan = eng_ip.Pfan
         ## Model of electric machine to deliver Pfan

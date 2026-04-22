@@ -262,7 +262,6 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
 
     #Simulate heat exchanger performance if the engine contains any
     if eng.model.model_name == "ducted_fan"
-        # dual-write to typed state (tasopt-keh)
         for ip in eachindex(ac.missions[imission].points)
             pt = ac.missions[imission].points[ip]
             pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]

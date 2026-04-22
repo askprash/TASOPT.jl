@@ -559,7 +559,6 @@ function _size_aircraft!(ac; itermax=35,
         if iterw > 2 #Only include heat exchangers after second iteration
             if eng.model.model_name == "fuel_cell_with_ducted_fan"
                 ipdes = iprotate #Design point: takeoff rotation
-                # dual-write to typed state (tasopt-keh)
                 for ip in eachindex(ac.missions[imission].points)
                     pt = ac.missions[imission].points[ip]
                     pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]

@@ -157,7 +157,7 @@ performance scalars extracted from `pare`.
 | `TSFC`      | `n`   | kg/N/s  | Thrust-specific fuel consumption         |
 | `BPR`       | `n`   | —       | Bypass ratio                             |
 | `mcore`     | `n`   | kg/s    | Core mass flow rate (per engine)         |
-| `mdotf`     | `n`   | kg/s    | Fuel mass flow rate (total, all engines; from `pare[iemfuel]`) |
+| `mdotf`     | `n`   | kg/s    | Fuel mass flow rate (total, all engines)                       |
 """
 struct SweepResult{T<:AbstractFloat}
     ip_indices ::Vector{Int}
