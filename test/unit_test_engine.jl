@@ -1443,9 +1443,8 @@ isGradient = false
         @test ds.M4a       ≈ 0.10
 
         # ------------------------------------------------------------------
-        # ncrowx = 4: vector dimensions match legacy constant
+        # ncrowx = 4: vector dimensions match the blade-row dimension constant
         # ------------------------------------------------------------------
-        # The legacy index.inc defines ncrowx = ieTmet1 - ieepsc1 = 192 - 188 = 4
         @test length(ds.epsrow) == 4
         @test length(ds.Tmrow)  == 4
 

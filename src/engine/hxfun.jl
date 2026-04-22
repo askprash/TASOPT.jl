@@ -1106,36 +1106,36 @@ Populated from the per-point pare slice by the caller (`hxdesign!`,
 """
 struct HXPort
     # --- geometry / design constants ---
-    Di     :: Float64   # inner duct diameter [m]          → ieDi
-    Tft    :: Float64   # fuel tank temperature [K]        → ieTft
-    hvap   :: Float64   # fuel latent heat of vaporisation [J/kg] → iehvap
+    Di     :: Float64   # inner duct diameter [m]
+    Tft    :: Float64   # fuel tank temperature [K]
+    hvap   :: Float64   # fuel latent heat of vaporisation [J/kg]
     # --- mass flows ---
-    mcore  :: Float64   # core mass flow [kg/s]            → iemcore
-    mofft  :: Float64   # offtake mass flow [kg/s]         → iemofft
-    fc     :: Float64   # turbine-cooling mass-flow fraction [—] → iefc
-    ff     :: Float64   # fuel-to-core mass-flow ratio [—] → ieff
-    mfan   :: Float64   # fan total mass flow [kg/s]       → iemfan
+    mcore  :: Float64   # core mass flow [kg/s]
+    mofft  :: Float64   # offtake mass flow [kg/s]
+    fc     :: Float64   # turbine-cooling mass-flow fraction [—]
+    ff     :: Float64   # fuel-to-core mass-flow ratio [—]
+    mfan   :: Float64   # fan total mass flow [kg/s]
     # --- station total temperatures [K] ---
-    Tt19   :: Float64   # PreCooler process inlet           → ieTt19
-    Tt25   :: Float64   # InterCooler process inlet         → ieTt25
-    Tt49   :: Float64   # Regenerator process inlet         → ieTt49
-    Tt3    :: Float64   # HPCExit / TurbC process inlet     → ieTt3
-    Tt21   :: Float64   # FanExit / Radiator process inlet  → ieTt21
-    Tt4    :: Float64   # Combustor exit (Regen composition) → ieTt4
-    Tfuel  :: Float64   # fuel temperature at combustor [K] → ieTfuel
+    Tt19   :: Float64   # PreCooler process inlet
+    Tt25   :: Float64   # InterCooler process inlet
+    Tt49   :: Float64   # Regenerator process inlet
+    Tt3    :: Float64   # HPCExit / TurbC process inlet
+    Tt21   :: Float64   # FanExit / Radiator process inlet
+    Tt4    :: Float64   # Combustor exit (Regen composition)
+    Tfuel  :: Float64   # fuel temperature at combustor [K]
     # --- station total pressures [Pa] ---
-    pt19   :: Float64   #                                   → iept19
-    pt25   :: Float64   #                                   → iept25
-    pt49   :: Float64   #                                   → iept49
-    pt3    :: Float64   # also coolant P for PreC/InterC/Regen/TurbC → iept3
-    pt21   :: Float64   #                                   → iept21
+    pt19   :: Float64   # PreCooler process inlet
+    pt25   :: Float64   # InterCooler process inlet
+    pt49   :: Float64   # Regenerator process inlet
+    pt3    :: Float64   # also coolant P for PreC/InterC/Regen/TurbC
+    pt21   :: Float64   # FanExit / Radiator process inlet
     # --- radiator-specific inputs ---
-    RadCoolantT :: Float64   # radiator coolant inlet temperature [K]  → ieRadiatorCoolantT
-    RadCoolantP :: Float64   # radiator coolant pressure [Pa]           → ieRadiatorCoolantP
-    Qradiator   :: Float64   # radiator heat load [W]                   → ieRadiatorHeat
+    RadCoolantT :: Float64   # radiator coolant inlet temperature [K]
+    RadCoolantP :: Float64   # radiator coolant pressure [Pa]
+    Qradiator   :: Float64   # radiator heat load [W]
     # --- lambdap_calc inputs ---
     hvapcombustor :: Float64   # effective hvap in combustor [J/kg]
-    etab          :: Float64   # combustion efficiency [—]            → ieetab
+    etab          :: Float64   # combustion efficiency [—]
 end
 
 """

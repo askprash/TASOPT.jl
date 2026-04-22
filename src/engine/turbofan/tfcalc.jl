@@ -120,7 +120,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
         elseif opt_cooling == CoolingOpt.FixedTmetal
                 ncrow = ncrowx
                 for icrow = 1:ncrowx
-                        #cc      Tmrow[icrow]  = pare(ieTmet1+icrow-1)
+                        #cc      Tmrow[icrow]  = parg[igTmetal]  (Fortran bare-pare equivalent removed)
                         Tmrow[icrow] = parg[igTmetal]
                 end
         end
@@ -236,10 +236,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 M7 = u7 / sqrt(T7 * R7 * cp7 / (cp7 - R7))
                 M8 = u8 / sqrt(T8 * R8 * cp8 / (cp8 - R8))
 
-                #      pare(ieM5 ) = M5   
-                #      pare(ieM6 ) = M6   
-                #      pare(ieM7 ) = M7   
-                #      pare(ieM8 ) = M8   
+                # (station Mach numbers M5..M8 not stored in typed state)
 
                 fo = mofft / mcore
 
@@ -734,8 +731,7 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
         # FixedTmetal — epsrow is written into eng.design.epsrow in EXIT block.
         # FixedTmetal — fc (iefc) is a COMPUTED OUTPUT only in this mode; written via
         #   eng.design.fc (set in EXIT block at line 656).
-        # pare[ieTSFC/ieFsp/iemcore/iehfuel..ieKinl/ieNf..iepihc/ieepf..ieeplt/ieetaf..ieetalt/iemfuel]
-        #   removed (tasopt-j9l.45.14.1/52/63.1): written directly into typed EngineState.
+        # bare-pare outputs removed (tasopt-j9l.45.14.1/52/63.1): written directly into typed EngineState.
 
         if (M5 <= 0.999999)
                 ichoke5 = 0

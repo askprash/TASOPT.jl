@@ -120,19 +120,19 @@ mutable struct EngineState{T<:AbstractFloat}
     a0    ::T   # freestream speed of sound           [m/s]
     rho0  ::T   # freestream density                  [kg/m³]
     mu0   ::T   # freestream dynamic viscosity        [Pa·s]
-    Tfuel      ::T   # fuel temperature at combustor inlet [K] → ieTfuel
-    Tfuel_tank ::T   # fuel temperature in tank (source of truth) [K] → ieTft
-    hvap  ::T   # fuel latent heat of vaporisation (initial, const) [J/kg] → iehvap
+    Tfuel      ::T   # fuel temperature at combustor inlet [K]
+    Tfuel_tank ::T   # fuel temperature in tank (source of truth) [K]
+    hvap  ::T   # fuel latent heat of vaporisation (initial, const) [J/kg]
     # --- radiator coolant inputs (tasopt-keh) ---
-    RadCoolantT ::T   # radiator coolant inlet temperature [K]  → ieRadiatorCoolantT
-    RadCoolantP ::T   # radiator coolant pressure [Pa]           → ieRadiatorCoolantP
-    Qradiator   ::T   # radiator heat load [W]                   → ieRadiatorHeat
+    RadCoolantT ::T   # radiator coolant inlet temperature [K]
+    RadCoolantP ::T   # radiator coolant pressure [Pa]
+    Qradiator   ::T   # radiator heat load [W]
 
     # -----------------------------------------------------------------------
     # Heat-exchanger delta outputs (tasopt-7vz / tasopt-j9l.41.2 / tasopt-w82)
     # Written to EngineState by HXOffDesign!/resetHXs.
     # Read by tfcalc! via the eng_hx parameter (tasopt-dti).
-    # Legacy pare slots (iePreCDeltah etc.) removed in tasopt-w82.
+    # Legacy bare-pare slots removed in tasopt-w82.
     # -----------------------------------------------------------------------
     PreCDeltah    ::T   # pre-cooler enthalpy delta     [J/kg]
     PreCDeltap    ::T   # pre-cooler pressure delta     [Pa]
@@ -159,8 +159,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Ducted-fan performance outputs (tasopt-j9l.45.3)
-    # Written by ductedfancalc! EXIT block; backed by pare[iePfan], pare[ieTSEC],
-    # pare[iemfan].  Zero for turbofan missions.
+    # Written by ductedfancalc! EXIT block.  Zero for turbofan missions.
     # -----------------------------------------------------------------------
     Pfan  ::T   # fan shaft power                  [W]
     TSEC  ::T   # thrust-specific energy consumption [J/N]
@@ -191,7 +190,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Component adiabatic efficiencies (tasopt-j9l.63.1)
-    # Written by tfcalc! EXIT blocks; backed by pare[ieetaf..ieetalt].
+    # Written by tfcalc! EXIT blocks.
     # -----------------------------------------------------------------------
     etaf  ::T   # fan adiabatic efficiency           [—]
     etalc ::T   # LPC adiabatic efficiency           [—]
@@ -201,7 +200,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Overall propulsion efficiencies (tasopt-j9l.63.2)
-    # Derived quantities — no pare backing; written by tfcalc! EXIT blocks.
+    # Derived quantities — written by tfcalc! EXIT blocks.
     # Zero at ground-idle (Fe ≤ 0 or Fsp ≤ 0).
     #
     # Definitions (standard propulsion, Cumpsty Ch.1, Hill & Peterson Ch.5):
@@ -217,9 +216,7 @@ mutable struct EngineState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Per-point operating outputs (tasopt-j9l.45.1)
-    # Written by tfcalc! common EXIT block; dual-write alongside pare[ie*].
-    # Backed by pare[ieConvFail], pare[iehfuel..ieKinl], pare[ieNf..ieNbhc],
-    # pare[ieepf..ieeplt].
+    # Written by tfcalc! common EXIT block.
     # -----------------------------------------------------------------------
     ConvFail ::T   # convergence failure flag: 0.0 = converged, 1.0 = failed [—]
     hfuel    ::T   # fuel specific enthalpy                                    [J/kg]
@@ -232,7 +229,6 @@ mutable struct EngineState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Spool speeds (tasopt-j9l.45.1)
     # Written by tfcalc! common EXIT block.
-    # Backed by pare[ieNf], pare[ieN1], pare[ieN2], pare[ieNbf..ieNbhc].
     # -----------------------------------------------------------------------
     Nf   ::T   # fan physical spool speed (normalised by design)           [—]
     N1   ::T   # LP spool physical speed (normalised by design)            [—]
@@ -244,7 +240,6 @@ mutable struct EngineState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Component polytropic loss fractions (tasopt-j9l.45.1)
     # Returned by tfsize!/tfoper!; written by tfcalc! common EXIT block.
-    # Backed by pare[ieepf..ieeplt].
     # -----------------------------------------------------------------------
     epf  ::T   # fan polytropic loss fraction                              [—]
     eplc ::T   # LPC polytropic loss fraction                              [—]

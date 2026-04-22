@@ -440,8 +440,6 @@
         end
 
         #Test regenerative cooler
-        pare[ieTfuel, :] .= 20
-        # Mirror ieTfuel update to typed state (tasopt-n9f)
         for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
         HXs = [TASOPT.engine.make_HeatExchanger(1)]
         HXs[1].type = "Regen"
@@ -470,8 +468,6 @@
         end
 
         #Test regenerative cooler with recirculation
-        pare[ieTfuel, :] .= 20
-        # Mirror ieTfuel update to typed state (tasopt-n9f)
         for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
@@ -504,8 +500,6 @@
         end
 
         #Test two HXs: intercooler and regenerative cooler
-        pare[ieTfuel, :] .= 20
-        # Mirror ieTfuel update to typed state (tasopt-n9f)
         for ip in 1:iptotal; ac.missions[1].points[ip].engine.Tfuel = 20.0; end
 
         HXs = [TASOPT.engine.make_HeatExchanger(1), TASOPT.engine.make_HeatExchanger(1)]

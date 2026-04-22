@@ -26,7 +26,6 @@ export Nozzle, nozzle_exit, nozzle_massflow_residual, nozzle_gross_thrust
 export TurbineMap, Turbine, turbine_efficiency, turbine_delhd, turbine_exit!, turbine_mb_residual
 export dump_stations
 export run_engine_design_point
-export engine_state_to_pare_vec
 export SweepResult, run_engine_sweep, write_sweep_csv
 export write_sweep_toml, ENGINE_BASELINE_PATH, regenerate_engine_baseline
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!

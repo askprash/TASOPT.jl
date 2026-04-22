@@ -119,13 +119,13 @@ mutable struct DesignState{T<:AbstractFloat}
     epfK   ::T   # fan polytropic efficiency factor (Kf)
 
     # -----------------------------------------------------------------------
-    # Duct design Mach numbers — frozen inputs (ieM2, ieM25)
+    # Duct design Mach numbers — frozen inputs
     # -----------------------------------------------------------------------
     M2     ::T   # fan-face (station 2) design Mach number
     M25    ::T   # HPC-inlet (station 25) design Mach number
 
     # -----------------------------------------------------------------------
-    # Spool mechanical losses — frozen inputs (ieepsl, ieepsh)
+    # Spool mechanical losses — frozen inputs
     # -----------------------------------------------------------------------
     epsl   ::T   # LP spool mechanical loss fraction
     epsh   ::T   # HP spool mechanical loss fraction

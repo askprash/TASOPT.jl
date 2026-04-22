@@ -32,20 +32,6 @@ Output is customizable by:
     - `newfilepath::String`: actual output filepath; updates in case of header conflicts. same as input filepath if `overwrite = true`.
 """
 
-# _engine_pare_array — build ietotal×iptotal×nmissions array from typed state
-#
-# Returns the same layout as ac.pare, populated from ac.missions typed EngineState.
-# Slots without a typed-state equivalent (NOx indices, radiator ε, ieDi, etc.)
-# are NaN.  Used by output_csv to eliminate bare-pare reads.
-function _engine_pare_array(ac::TASOPT.aircraft)
-    n_im = length(ac.missions)
-    n_ip = n_im > 0 ? length(ac.missions[1].points) : iptotal
-    result = fill(NaN, ietotal, n_ip, n_im)
-    for im in 1:n_im, ip in 1:n_ip
-        result[:, ip, im] = engine_state_to_pare_vec(ac.missions[im].points[ip].engine)
-    end
-    return result
-end
 
 function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     filepath::String=joinpath(TASOPT.__TASOPTroot__, "IO/default_output.csv");
@@ -59,7 +45,7 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     csv_row = []
     #initalize header row to assess compatibility, and maybe write out
     header = ["Model Name","Description","Sized?"]
-    par_array_names = ["parg", "parm", "para", "pare"] #used for checking/populating indices Dict, deleting from struct
+    par_array_names = ["parg", "parm", "para"] #used for checking/populating indices Dict, deleting from struct
 
     #pull name and description, removing line breaks and commas
     append!(csv_row, [ac.name, 
@@ -145,19 +131,11 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     if (indices["para"]==Colon()) || !isempty(indices["para"])    #explicit check required, lest an empty [] be appended
         append!(csv_row,array2nestedvectors(ac.para[indices["para"], includeFlightPoints , includeMissions]))
     end
-    if (indices["pare"]==Colon()) || !isempty(indices["pare"])    # ( " )
-        # Build ietotal×iptotal×nmissions array from typed EngineState, then
-        # slice with the same semantics as ac.pare[ie, ip, im] would give.
-        # Requires ac.missions to be populated (sized aircraft).
-        pare_typed = _engine_pare_array(ac)
-        append!(csv_row, array2nestedvectors(pare_typed[indices["pare"], includeFlightPoints, includeMissions]))
-    end
-
     #jUlIa iS cOluMn MaJoR
-    csv_row=reshape(csv_row,1,:) 
+    csv_row=reshape(csv_row,1,:)
 
     #get lookup dict for column names from variable indices in indices Dict()
-    suffixes = ["g","m","a","e"]
+    suffixes = ["g","m","a"]
     par_indname_dict = generate_par_indname(suffixes) #gets dictionary with all index var names via global scope
 
     #get column names in order
@@ -289,44 +267,24 @@ For example:
 2 : `default_output_indices["para"] = Colon() #NOT [Colon()]`
         > when submitted to `output_csv()`, will output all indices of `para` (whether all flights or missions are included is controlled by a separate parameter)
 """
-default_output_indices = 
+default_output_indices =
     Dict("parg" => [#weights
                     igWMTO, igWfuel, igWpay, igWpaymax,
-                    igWtesys, igWftank, 
+                    igWtesys, igWftank,
                     #other
                     igdfan, igGearf,
                     #performance, different from im?
                     igRange
                     ],
-        "parm" => [imRange, imWpay, imWTO, imWfuel, imPFEI, 
+        "parm" => [imRange, imWpay, imWTO, imWfuel, imPFEI,
                     ],
         "para" => [iaalt, iaMach, iaReunit,iagamV,      #flight conditions
                     iaCL, iaCD, iaCDi, iaCLh,iaspaneff, #performance
                     iaxCG, iaxCP,                       #balance
-                    ],
-        "pare" => [iehfuel, ieTfuel, ieff, ieTSFC, ieBPR, iepif, iepilc, iepihc
-        ])
+                    ])
 
 output_indices_wEngine = deepcopy(default_output_indices)
-#append engine params
-pareinds = output_indices_wEngine["pare"]
-pare_toadd = [
-            ieFe, ieFsp,
-            ieN1, ieN2,#spool speeds
-            #core flow
-            ieTt0,ieTt19,ieTt3,ieTt4,ieTt45, ieTt49, ieTt5, 
-            iept0,iept19,iept3,iept4,iept45, iept49, iept5, 
-            #bypass flow
-            ieTt2, ieTt21, ieTt9,
-            iept2, iept21, iept9,
-            
-            iedeNOx, iemdotf, ieEINOx1, ieEINOx2,
-            ieFAR
-            ]
-append!(pareinds, pare_toadd)
-output_indices_wEngine["pare"] = pareinds
 
 output_indices_all =  Dict("parg" => Colon(),
                             "parm" => Colon(),
-                            "para" => Colon(),
-                            "pare" => Colon())
+                            "para" => Colon())

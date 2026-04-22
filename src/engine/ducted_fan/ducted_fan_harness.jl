@@ -301,14 +301,14 @@ number stored in `para[iaalt, ip, imission]` and `para[iaMach, ip, imission]`.
 
 ## Arguments
 - `ac`: an `aircraft` object whose `engine` is a ducted-fan model (e.g.
-  `fuel_cell_with_ducted_fan`).  `pare[ieFe, ip, imission]` must hold a
-  meaningful design thrust.
+  `fuel_cell_with_ducted_fan`).  The design thrust must be stored in the typed
+  `DuctedFanState` before calling this function.
 - `imission::Int`: mission index (default `1`).
 - `ip::Int`: mission-point index (default `ipcruise1`).
 
 ## Returns
-A `DuctedFanState{Float64}` populated from the converged design-point `pare`
-column at `ip`.
+A `DuctedFanState{Float64}` populated from the converged design-point typed state
+at `ip`.
 
 ## Example
 ```julia
@@ -378,16 +378,16 @@ Run the ducted-fan off-design routine across every mission point in `ip_range`,
 and return a `Dict` mapping mission-point index → `DuctedFanState`.
 
 The aircraft must already be sized (design point converged) so that:
-- `pare[ieFe, ip, imission]` holds the required thrust at each point.
-- `pare[iePfanmax, ip, imission]` holds the fan power limit at each point.
-- Ambient conditions (T0, p0, a0, M0, …) are pre-populated in `pare`.
+- Required thrust at each point is stored in the typed `DuctedFanState`.
+- Fan power limit at each point is stored in the typed `DuctedFanState`.
+- Ambient conditions (T0, p0, a0, M0, …) are pre-populated in typed state.
 
 Control logic mirrors `ductedfancalc!`: takeoff/rotation points
 (`ipstatic:iprotate`) operate at fixed fan power (`iPspec=true`); all other
 points operate at fixed thrust target.
 
 ## Arguments
-- `ac`: a ducted-fan `aircraft` object with converged design-point `pare`.
+- `ac`: a ducted-fan `aircraft` object with converged design-point typed state.
 - `imission::Int`: mission index (default `1`).
 - `ip_range`: iterable of mission-point indices (default all 16 points).
 - `initializes_engine::Bool`: passed to `enginecalc!` for each point.
@@ -523,8 +523,8 @@ const DUCTED_FAN_BASELINE_PATH = joinpath(
 **Auditable action** — regenerate the ducted-fan sweep regression baseline from
 a configured aircraft object and write it to `path`.
 
-`ac` must have its ducted-fan design point already converged (`pare[ieFe]`
-and ambient conditions populated at each `ip` in `ip_range`).
+`ac` must have its ducted-fan design point already converged (design thrust
+and ambient conditions stored in typed `DuctedFanState` at each `ip` in `ip_range`).
 
 ## ⚠  Warning
 

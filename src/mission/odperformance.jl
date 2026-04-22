@@ -185,7 +185,7 @@ for   i = 1:N
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             mdotf[i], deNOx_, EINOx1, EINOx2, FAR, Tt3, OPR,
             Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4max,
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, reduce(hcat, [engine_state_to_pare_vec(pt.engine) for pt in ac.missions[imission].points]), iptest)
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
         else
             Ftotal, η, P, Hrej, heatexcess,
             mdotf[i], BSFC,
@@ -292,7 +292,7 @@ for   i = 1:N
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             FFmaxcrz[i], deNOx, EINOx1, EINOx2, FAR, Tt3, OPR,
             Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4,
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, reduce(hcat, [engine_state_to_pare_vec(pt.engine) for pt in ac.missions[imission].points]), iptest)
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
             # Tmetmax: NPSS_TEsysOD not yet wired to typed state — left as NaN
         else
             Ftotal, η, P, Hrej, heatexcess,
@@ -313,7 +313,7 @@ for   i = 1:N
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             crzmdotf[i], deNOx, EINOx1, crzEINOx[i], crzFAR[i], Tt3, OPR,
             Wc3, Tt4crz[i], EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, F, 0.0,
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, reduce(hcat, [engine_state_to_pare_vec(pt.engine) for pt in ac.missions[imission].points]), iptest)
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
             # Tmetcrz: NPSS_TEsysOD not yet wired to typed state — left as NaN
         else
             iter = 1
