@@ -102,18 +102,18 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       _fs0  = FlowStation{Float64}(Tt0, ht0, pt0, cpt0, Rt0,
                   SVector{5,Float64}(alpha[1], alpha[2], alpha[3], alpha[4], alpha[5]))
       _fs0.st = st0  # entropy-complement not accepted by the 6-arg constructor
-      _fs18 = FlowStation{Float64}()
-      inlet_diffuser!(_fs18, _fs0, _inl)
-      Tt18, ht18, pt18, cpt18, Rt18, st18 =
-          _fs18.Tt, _fs18.ht, _fs18.pt, _fs18.cpt, _fs18.Rt, _fs18.st
+      _fs1_8 = FlowStation{Float64}()
+      inlet_diffuser!(_fs1_8, _fs0, _inl)
+      Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8, st1_8 =
+          _fs1_8.Tt, _fs1_8.ht, _fs1_8.pt, _fs1_8.cpt, _fs1_8.Rt, _fs1_8.st
 
-      # BLI output stations (ducted fan has no core; _fs19 satisfies interface)
+      # BLI output stations (ducted fan has no core; _fs1_9 satisfies interface)
       _fs2  = FlowStation{Float64}()
-      _fs19 = FlowStation{Float64}()
+      _fs1_9 = FlowStation{Float64}()
 
       #---- initial guesses for station 2 and 1.9
-      pt2 = pt18
-      Tt2 = Tt18
+      pt2 = pt1_8
+      Tt2 = Tt1_8
 
       # Fan compressor component — design anchors: pi_fan_des = pif (sizing point IS design point),
       # mb_fan_des = 1.0 (corrected flow normalised to design), NbD = 1.0.
@@ -126,15 +126,15 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
             # ===============================================================
             #---- set fan inlet conditions corrected for BLI
             if (ipass == 1)
-                  #----- mfan not yet computed; initialise st2 = st18 (sbfan = 0)
-                  _fs2.Tt    = _fs18.Tt;  _fs2.ht    = _fs18.ht;  _fs2.pt   = _fs18.pt
-                  _fs2.cpt   = _fs18.cpt; _fs2.Rt    = _fs18.Rt;  _fs2.st   = _fs18.st
-                  _fs2.alpha = _fs18.alpha
+                  #----- mfan not yet computed; initialise st2 = st1_8 (sbfan = 0)
+                  _fs2.Tt    = _fs1_8.Tt;  _fs2.ht    = _fs1_8.ht;  _fs2.pt   = _fs1_8.pt
+                  _fs2.cpt   = _fs1_8.cpt; _fs2.Rt    = _fs1_8.Rt;  _fs2.st   = _fs1_8.st
+                  _fs2.alpha = _fs1_8.alpha
             else
                   #----- account for inlet BLI defect via mass-averaged entropy
                   #      corrected-flow normalisation matches ductedfanoper!/inlet_bli_mixing!
                   mf_corr = mfan * sqrt(Tt2 / Tref) / (pt2 / pref)
-                  inlet_bli_mixing!(_fs2, _fs19, _fs18, _fs0, _inl,
+                  inlet_bli_mixing!(_fs2, _fs1_9, _fs1_8, _fs0, _inl,
                                     mf_corr, 0.0, M2, at0, gam0, Tref, pref)
             end
 
@@ -153,15 +153,15 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
             #     gas_prat preserves exact FP evaluation order of the original sizing code)
             _, epf, _, _, _, _ = compressor_efficiency(_comp_fan, pif, 1.0)
 
-            pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
+            pt2_1, Tt2_1, ht2_1, st2_1, cpt2_1, Rt2_1 = gas_prat(alpha, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pif, epf)
 
             # ===============================================================
             #---- Radiator heat exchanger
-            pt7 = pt21 * pifn - Δp_radiator
-            ht7 = ht21 + Δh_radiator
+            pt7 = pt2_1 * pifn - Δp_radiator
+            ht7 = ht2_1 + Δh_radiator
       
-            Tt7 = gas_tset(alpha, nair, ht7, Tt21)
+            Tt7 = gas_tset(alpha, nair, ht7, Tt2_1)
             st7, _, ht7, _, cpt7, Rt7 = gassum(alpha, nair, Tt7)
 
             # ===============================================================
@@ -206,7 +206,7 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
             #---- overall Fsp and TSFC
             Fsp = Feng / (u0 * mfan)
             #---- Fan power 
-            Pfan = mfan * (ht21 - ht2)
+            Pfan = mfan * (ht2_1 - ht2)
 
             TSEC = Pfan/Feng
 
@@ -233,16 +233,16 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
                         etaf = 0.0
 
                         #---- fan
-                        pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha, nair,
+                        pt2_1i, Tt2_1i, ht2_1i, st2_1i, cpt2_1i, Rt2_1i = gas_prat(alpha, nair,
                               pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
-                        etaf = (ht21i - ht2) / (ht21 - ht2)
+                        etaf = (ht2_1i - ht2) / (ht2_1 - ht2)
                         
                         Lconv = true
                         return TSEC, Fsp, Pfan, mfan,
                         Tt0, ht0, pt0, cpt0, Rt0,
-                        Tt18, ht18, pt18, cpt18, Rt18,
+                        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
                         Tt2, ht2, pt2, cpt2, Rt2,
-                        Tt21, ht21, pt21, cpt21, Rt21,
+                        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
                         Tt7, ht7, pt7, cpt7, Rt7,
                         u0,
                         T2, u2, p2, cp2, R2, A2,

@@ -15,26 +15,25 @@ Enumeration of every named flow station in the TASOPT turbofan.  Each member
 is a compile-time constant that can be used as a typed sentinel to index
 engine-state containers, eliminating bare integer indices.
 
-TASOPT station numbering convention (the original notation is preserved in
-`station_number`):
+SAE ARP755 station numbering convention:
 
-| Member            | TASOPT # | Description                                  |
+| Member            | ARP755 # | Description                                  |
 |:------------------|:--------:|:---------------------------------------------|
 | `Freestream`      | 0        | Far-field ambient                            |
-| `FanFaceOuter`    | 18       | Fan face outside casing boundary layers      |
-| `FanFaceLPC`      | 19       | Fan face over LPC (low-pressure compressor)  |
-| `PreCoolerOut`    | 19c      | Pre-cooler outlet / LPC inlet                |
+| `FanFaceOuter`    | 1.8      | Fan face outside casing boundary layers      |
+| `FanFaceLPC`      | 1.9      | Fan face over LPC (low-pressure compressor)  |
+| `PreCoolerOut`    | 1.9c     | Pre-cooler outlet / LPC inlet                |
 | `FanFaceFan`      | 2        | Fan face over fan stream                     |
-| `FanExit`         | 21       | Fan exit / pre-cooler inlet                  |
-| `LPCExit`         | 25       | LPC exit / inter-cooler inlet                |
-| `InterCoolerOut`  | 25c      | Inter-cooler outlet / HPC inlet              |
+| `FanExit`         | 2.1      | Fan exit / pre-cooler inlet                  |
+| `LPCExit`         | 2.5      | LPC exit / inter-cooler inlet                |
+| `InterCoolerOut`  | 2.5c     | Inter-cooler outlet / HPC inlet              |
 | `HPCExit`         | 3        | HPC (high-pressure compressor) exit          |
 | `CombustorExit`   | 4        | Combustor exit before cooling air addition   |
 | `CoolMixInlet`    | 4a       | Start-of-mixing / cooling-flow outlet        |
-| `TurbineInlet`    | 41       | Turbine inlet after cooling air addition     |
-| `HPTExit`         | 45       | HPT (high-pressure turbine) exit / LPT inlet |
-| `LPTExit`         | 49       | LPT (low-pressure turbine) exit              |
-| `RegenCoolerOut`  | 49c      | Regenerative cooler outlet                   |
+| `TurbineInlet`    | 4.1      | Turbine inlet after cooling air addition     |
+| `HPTExit`         | 4.5      | HPT (high-pressure turbine) exit / LPT inlet |
+| `LPTExit`         | 4.9      | LPT (low-pressure turbine) exit              |
+| `RegenCoolerOut`  | 4.9c     | Regenerative cooler outlet                   |
 | `CoreNozzle`      | 5        | Core nozzle throat                           |
 | `CoreNozzleExit`  | 6        | Core flow downstream of nozzle               |
 | `FanNozzle`       | 7        | Fan nozzle throat                            |
@@ -42,58 +41,60 @@ TASOPT station numbering convention (the original notation is preserved in
 | `OfftakeDisch`    | 9        | Offtake air discharge point                  |
 """
 @enumx EngineStation begin
-    Freestream       # station 0:   far-field ambient
-    FanFaceOuter     # station 18:  fan face outside casing boundary layers
-    FanFaceLPC       # station 19:  fan face over LPC portion
-    PreCoolerOut     # station 19c: pre-cooler outlet, LPC inlet
-    FanFaceFan       # station 2:   fan face over fan stream
-    FanExit          # station 21:  fan exit (off-design: precooler inlet)
-    LPCExit          # station 25:  LPC exit (off-design: intercooler inlet)
-    InterCoolerOut   # station 25c: inter-cooler outlet, HPC inlet
-    HPCExit          # station 3:   HPC discharge, combustor inlet
-    CombustorExit    # station 4:   combustor exit before cooling air addition
-    CoolMixInlet     # station 4a:  start-of-mixing / cooling-flow outlet
-    TurbineInlet     # station 41:  turbine inlet after cooling air addition
-    HPTExit          # station 45:  HPT exit, LPT inlet
-    LPTExit          # station 49:  LPT exit (off-design: regen cooler inlet)
-    RegenCoolerOut   # station 49c: regenerative cooler outlet
-    CoreNozzle       # station 5:   core nozzle throat
-    CoreNozzleExit   # station 6:   core flow downstream of nozzle
-    FanNozzle        # station 7:   fan nozzle throat
-    FanNozzleExit    # station 8:   fan duct exit downstream of fan nozzle
-    OfftakeDisch     # station 9:   offtake air discharge point
+    Freestream       # station 0:    far-field ambient
+    FanFaceOuter     # station 1.8:  fan face outside casing boundary layers
+    FanFaceLPC       # station 1.9:  fan face over LPC portion
+    PreCoolerOut     # station 1.9c: pre-cooler outlet, LPC inlet
+    FanFaceFan       # station 2:    fan face over fan stream
+    FanExit          # station 2.1:  fan exit (off-design: precooler inlet)
+    LPCExit          # station 2.5:  LPC exit (off-design: intercooler inlet)
+    InterCoolerOut   # station 2.5c: inter-cooler outlet, HPC inlet
+    HPCExit          # station 3:    HPC discharge, combustor inlet
+    CombustorExit    # station 4:    combustor exit before cooling air addition
+    CoolMixInlet     # station 4a:   start-of-mixing / cooling-flow outlet
+    TurbineInlet     # station 4.1:  turbine inlet after cooling air addition
+    HPTExit          # station 4.5:  HPT exit, LPT inlet
+    LPTExit          # station 4.9:  LPT exit (off-design: regen cooler inlet)
+    RegenCoolerOut   # station 4.9c: regenerative cooler outlet
+    CoreNozzle       # station 5:    core nozzle throat
+    CoreNozzleExit   # station 6:    core flow downstream of nozzle
+    FanNozzle        # station 7:    fan nozzle throat
+    FanNozzleExit    # station 8:    fan duct exit downstream of fan nozzle
+    OfftakeDisch     # station 9:    offtake air discharge point
 end
 
 """
     station_number(s::EngineStation.T) -> String
 
-Return the TASOPT station number string for station `s`.  Fractional and
-suffixed TASOPT numbers (e.g. `"19c"`, `"4a"`, `"49c"`) are returned as
-strings because they are not valid integers.
+Return the SAE ARP755 station number string for station `s`.  Fractional and
+suffixed numbers (e.g. `"1.9c"`, `"4a"`, `"4.9c"`) are returned as strings
+because they are not valid integers.
 
 # Examples
 ```julia
 station_number(EngineStation.Freestream)   # "0"
 station_number(EngineStation.HPCExit)      # "3"
-station_number(EngineStation.PreCoolerOut) # "19c"
+station_number(EngineStation.PreCoolerOut) # "1.9c"
+station_number(EngineStation.LPCExit)      # "2.5"
+station_number(EngineStation.TurbineInlet) # "4.1"
 ```
 """
 function station_number(s::EngineStation.T)::String
     s == EngineStation.Freestream      && return "0"
-    s == EngineStation.FanFaceOuter    && return "18"
-    s == EngineStation.FanFaceLPC      && return "19"
-    s == EngineStation.PreCoolerOut    && return "19c"
+    s == EngineStation.FanFaceOuter    && return "1.8"
+    s == EngineStation.FanFaceLPC      && return "1.9"
+    s == EngineStation.PreCoolerOut    && return "1.9c"
     s == EngineStation.FanFaceFan      && return "2"
-    s == EngineStation.FanExit         && return "21"
-    s == EngineStation.LPCExit         && return "25"
-    s == EngineStation.InterCoolerOut  && return "25c"
+    s == EngineStation.FanExit         && return "2.1"
+    s == EngineStation.LPCExit         && return "2.5"
+    s == EngineStation.InterCoolerOut  && return "2.5c"
     s == EngineStation.HPCExit         && return "3"
     s == EngineStation.CombustorExit   && return "4"
     s == EngineStation.CoolMixInlet    && return "4a"
-    s == EngineStation.TurbineInlet    && return "41"
-    s == EngineStation.HPTExit         && return "45"
-    s == EngineStation.LPTExit         && return "49"
-    s == EngineStation.RegenCoolerOut  && return "49c"
+    s == EngineStation.TurbineInlet    && return "4.1"
+    s == EngineStation.HPTExit         && return "4.5"
+    s == EngineStation.LPTExit         && return "4.9"
+    s == EngineStation.RegenCoolerOut  && return "4.9c"
     s == EngineStation.CoreNozzle      && return "5"
     s == EngineStation.CoreNozzleExit  && return "6"
     s == EngineStation.FanNozzle       && return "7"
@@ -147,7 +148,7 @@ Selects which turbofan calculation to perform.
 
 Selects the turbine cooling model.
 
-- `NoCooling`: no cooling air, station 41 == station 4
+- `NoCooling`: no cooling air, station 4.1 == station 4
 - `FixedCoolingFlowRatio`: cooling bypass ratios `epsrow` are inputs; `Tmrow` is computed
 - `FixedTmetal`: metal temperatures `Tmrow` are inputs; `epsrow` is computed
 """

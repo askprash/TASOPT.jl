@@ -88,9 +88,9 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
 
         TSEC, Fsp, Pfan, mfan,
         Tt0, ht0, pt0, cpt0, Rt0,
-        Tt18, ht18, pt18, cpt18, Rt18,
+        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
         Tt2, ht2, pt2, cpt2, Rt2,
-        Tt21, ht21, pt21, cpt21, Rt21,
+        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
         Tt7, ht7, pt7, cpt7, Rt7,
         u0,
         T2, u2, p2, cp2, R2, A2,
@@ -152,9 +152,9 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             TSEC, Fsp, Feng, Pfan, mfan,
             pif, mbf, Nbf,
             Tt0, ht0, pt0, cpt0, Rt0,
-            Tt18, ht18, pt18, cpt18, Rt18,
+            Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
             Tt2, ht2, pt2, cpt2, Rt2,
-            Tt21, ht21, pt21, cpt21, Rt21,
+            Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
             Tt7, ht7, pt7, cpt7, Rt7,
             u0, T2, u2, p2, cp2, R2, M2,
             T7, u7, p7, cp7, R7, M7,
@@ -180,9 +180,9 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             TSEC, Fsp, Feng, Pfan, mfan,
             pif, mbf, Nbf,
             Tt0, ht0, pt0, cpt0, Rt0,
-            Tt18, ht18, pt18, cpt18, Rt18,
+            Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
             Tt2, ht2, pt2, cpt2, Rt2,
-            Tt21, ht21, pt21, cpt21, Rt21,
+            Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
             Tt7, ht7, pt7, cpt7, Rt7,
             u0, T2, u2, p2, cp2, R2, M2,
             T7, u7, p7, cp7, R7, M7,
@@ -224,11 +224,11 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     eng_ip.st0.cpt = cpt0
     eng_ip.st0.Rt  = Rt0
 
-    eng_ip.st18.Tt  = Tt18
-    eng_ip.st18.ht  = ht18
-    eng_ip.st18.pt  = pt18
-    eng_ip.st18.cpt = cpt18
-    eng_ip.st18.Rt  = Rt18
+    eng_ip.st18.Tt  = Tt1_8
+    eng_ip.st18.ht  = ht1_8
+    eng_ip.st18.pt  = pt1_8
+    eng_ip.st18.cpt = cpt1_8
+    eng_ip.st18.Rt  = Rt1_8
 
     eng_ip.st2.Tt  = Tt2
     eng_ip.st2.ht  = ht2
@@ -236,11 +236,11 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
     eng_ip.st2.cpt = cpt2
     eng_ip.st2.Rt  = Rt2
 
-    eng_ip.st21.Tt  = Tt21
-    eng_ip.st21.ht  = ht21
-    eng_ip.st21.pt  = pt21
-    eng_ip.st21.cpt = cpt21
-    eng_ip.st21.Rt  = Rt21
+    eng_ip.st21.Tt  = Tt2_1
+    eng_ip.st21.ht  = ht2_1
+    eng_ip.st21.pt  = pt2_1
+    eng_ip.st21.cpt = cpt2_1
+    eng_ip.st21.Rt  = Rt2_1
 
     eng_ip.st7.Tt  = Tt7
     eng_ip.st7.ht  = ht7

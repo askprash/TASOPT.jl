@@ -1116,19 +1116,19 @@ struct HXPort
     ff     :: Float64   # fuel-to-core mass-flow ratio [—]
     mfan   :: Float64   # fan total mass flow [kg/s]
     # --- station total temperatures [K] ---
-    Tt19   :: Float64   # PreCooler process inlet
-    Tt25   :: Float64   # InterCooler process inlet
-    Tt49   :: Float64   # Regenerator process inlet
+    Tt1_9   :: Float64   # PreCooler process inlet
+    Tt2_5   :: Float64   # InterCooler process inlet
+    Tt4_9   :: Float64   # Regenerator process inlet
     Tt3    :: Float64   # HPCExit / TurbC process inlet
-    Tt21   :: Float64   # FanExit / Radiator process inlet
+    Tt2_1   :: Float64   # FanExit / Radiator process inlet
     Tt4    :: Float64   # Combustor exit (Regen composition)
     Tfuel  :: Float64   # fuel temperature at combustor [K]
     # --- station total pressures [Pa] ---
-    pt19   :: Float64   # PreCooler process inlet
-    pt25   :: Float64   # InterCooler process inlet
-    pt49   :: Float64   # Regenerator process inlet
+    pt1_9   :: Float64   # PreCooler process inlet
+    pt2_5   :: Float64   # InterCooler process inlet
+    pt4_9   :: Float64   # Regenerator process inlet
     pt3    :: Float64   # also coolant P for PreC/InterC/Regen/TurbC
-    pt21   :: Float64   # FanExit / Radiator process inlet
+    pt2_1   :: Float64   # FanExit / Radiator process inlet
     # --- radiator-specific inputs ---
     RadCoolantT :: Float64   # radiator coolant inlet temperature [K]
     RadCoolantP :: Float64   # radiator coolant pressure [Pa]
@@ -1314,15 +1314,15 @@ function PrepareHXobjects(HeatExchangers, idx, ip, imission, igas, port::HXPort,
 
       #Resolve station inlet state from the typed port
       Tp_in, pp_in, pc_in = if type == "PreC"
-            port.Tt19, port.pt19, port.pt3
+            port.Tt1_9, port.pt1_9, port.pt3
       elseif type == "InterC"
-            port.Tt25, port.pt25, port.pt3
+            port.Tt2_5, port.pt2_5, port.pt3
       elseif type == "Regen"
-            port.Tt49, port.pt49, port.pt3
+            port.Tt4_9, port.pt4_9, port.pt3
       elseif type == "TurbC"
             port.Tt3, port.pt3, port.pt3
       else # Radiator
-            port.Tt21, port.pt21, port.RadCoolantP
+            port.Tt2_1, port.pt2_1, port.RadCoolantP
       end
 
       #Store inputs

@@ -1257,22 +1257,22 @@ isGradient = false
             @test !isempty(num)
         end
 
-        # Spot-check TASOPT numbering for all stations
+        # Spot-check ARP755 numbering for all stations
         @test snum(ES.Freestream)     == "0"
-        @test snum(ES.FanFaceOuter)   == "18"
-        @test snum(ES.FanFaceLPC)     == "19"
-        @test snum(ES.PreCoolerOut)   == "19c"
+        @test snum(ES.FanFaceOuter)   == "1.8"
+        @test snum(ES.FanFaceLPC)     == "1.9"
+        @test snum(ES.PreCoolerOut)   == "1.9c"
         @test snum(ES.FanFaceFan)     == "2"
-        @test snum(ES.FanExit)        == "21"
-        @test snum(ES.LPCExit)        == "25"
-        @test snum(ES.InterCoolerOut) == "25c"
+        @test snum(ES.FanExit)        == "2.1"
+        @test snum(ES.LPCExit)        == "2.5"
+        @test snum(ES.InterCoolerOut) == "2.5c"
         @test snum(ES.HPCExit)        == "3"
         @test snum(ES.CombustorExit)  == "4"
         @test snum(ES.CoolMixInlet)   == "4a"
-        @test snum(ES.TurbineInlet)   == "41"
-        @test snum(ES.HPTExit)        == "45"
-        @test snum(ES.LPTExit)        == "49"
-        @test snum(ES.RegenCoolerOut) == "49c"
+        @test snum(ES.TurbineInlet)   == "4.1"
+        @test snum(ES.HPTExit)        == "4.5"
+        @test snum(ES.LPTExit)        == "4.9"
+        @test snum(ES.RegenCoolerOut) == "4.9c"
         @test snum(ES.CoreNozzle)     == "5"
         @test snum(ES.CoreNozzleExit) == "6"
         @test snum(ES.FanNozzle)      == "7"
@@ -1293,14 +1293,14 @@ isGradient = false
         # Enum members are usable as Dict keys (field-access sentinel use-case)
         d = Dict(s => snum(s) for s in all_stations)
         @test d[ES.HPCExit]      == "3"
-        @test d[ES.TurbineInlet] == "41"
+        @test d[ES.TurbineInlet] == "4.1"
 
         # Coverage: every station cited in tfsize! and tfoper! docs is present.
-        # Documented stations: 0, 18, 19, 19c, 2, 21, 25, 25c, 3, 4, 4a,
-        #                      41, 45, 49, 49c, 5, 6, 7, 8, 9
+        # ARP755 stations: 0, 1.8, 1.9, 1.9c, 2, 2.1, 2.5, 2.5c, 3, 4, 4a,
+        #                  4.1, 4.5, 4.9, 4.9c, 5, 6, 7, 8, 9
         documented = Set([
-            "0", "18", "19", "19c", "2", "21", "25", "25c",
-            "3", "4", "4a", "41", "45", "49", "49c",
+            "0", "1.8", "1.9", "1.9c", "2", "2.1", "2.5", "2.5c",
+            "3", "4", "4a", "4.1", "4.5", "4.9", "4.9c",
             "5", "6", "7", "8", "9"
         ])
         enum_nums = Set(snum(s) for s in all_stations)

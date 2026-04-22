@@ -32,7 +32,7 @@ Ducted fan operation routine
     - `iBLIc`:   0=core in clear flow, 1=core sees Phiinl
     - `pid`:     diffuser pressure ratio  ( = pt2/pt0)
     - `pifn`:    fan     nozzle pressure ratio  ( = pt7/pt6.9)
-    - `pi_fan_des`:    design fan pressure ratio  ( = pt21/pt2 )
+    - `pi_fan_des`:    design fan pressure ratio  ( = pt2_1/pt2 )
     - `mb_fan_des`:    design corrected fan mass flow ( = mf*sqrt(Tt2 /Tref)/(pt2 /pref) )
     - `A2`:      fan-face area [m^2]                mf = mc*BPR, mt = mc*(1+ff)
     - `A7`:      fan  nozzle area [m^2]
@@ -136,14 +136,14 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         _fs0  = FlowStation{Float64}(Tt0, ht0, pt0, cpt0, Rt0,
                     SVector{5,Float64}(alpha[1], alpha[2], alpha[3], alpha[4], alpha[5]))
         _fs0.st = st0
-        _fs18 = FlowStation{Float64}()
+        _fs1_8 = FlowStation{Float64}()
         _fs2  = FlowStation{Float64}()
-        _fs19 = FlowStation{Float64}()
-        inlet_diffuser!(_fs18, _fs0, _inl)
-        inlet_bli_mixing!(_fs2, _fs19, _fs18, _fs0, _inl,
+        _fs1_9 = FlowStation{Float64}()
+        inlet_diffuser!(_fs1_8, _fs0, _inl)
+        inlet_bli_mixing!(_fs2, _fs1_9, _fs1_8, _fs0, _inl,
                           mf, 0.0, Mi, at0, gam0, Tref, pref)
-        Tt18, ht18, pt18, cpt18, Rt18 =
-            _fs18.Tt, _fs18.ht, _fs18.pt, _fs18.cpt, _fs18.Rt
+        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8 =
+            _fs1_8.Tt, _fs1_8.ht, _fs1_8.pt, _fs1_8.cpt, _fs1_8.Rt
         Tt2, ht2, st2, cpt2, Rt2, pt2 =
             _fs2.Tt, _fs2.ht, _fs2.st, _fs2.cpt, _fs2.Rt, _fs2.pt
 
@@ -158,15 +158,15 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         #     gas_prat preserves exact FP evaluation order of the original off-design code)
         _, epf, _, _, _, _ = compressor_efficiency(_comp_fan, pf, mf)
 
-        pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
+        pt2_1, Tt2_1, ht2_1, st2_1, cpt2_1, Rt2_1 = gas_prat(alpha, nair,
                 pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
 
         # ===============================================================
         #---- Radiator heat exchanger
-        pt7 = pt21 * pifn - Δp_radiator
-        ht7 = ht21 + Δh_radiator
+        pt7 = pt2_1 * pifn - Δp_radiator
+        ht7 = ht2_1 + Δh_radiator
 
-        Tt7 = gas_tset(alpha, nair, ht7, Tt21)
+        Tt7 = gas_tset(alpha, nair, ht7, Tt2_1)
         st7, _, ht7, _, cpt7, Rt7 = gassum(alpha, nair, Tt7)
 
     # ===============================================================
@@ -201,7 +201,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         end
         mfan = mf * sqrt(Tref / Tt2) * pt2 / pref #Fan mass flow rate
         F = mfan * (u7 - u0) + A7 * (p7 - p0) + Finl #Total thrust
-        P = mfan * (ht21 - ht2) #Fan power
+        P = mfan * (ht2_1 - ht2) #Fan power
 
         A8 = mfan / (rho8 * u8) #Plume area
 
@@ -227,9 +227,9 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
             mbf = mf
             M2 = Mi
             #---- fan isentropic efficiency
-            pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha, nair,
+            pt2_1i, Tt2_1i, ht2_1i, st2_1i, cpt2_1i, Rt2_1i = gas_prat(alpha, nair,
             pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
-            etaf = (ht21i - ht2) / (ht21 - ht2)
+            etaf = (ht2_1i - ht2) / (ht2_1 - ht2)
 
             Nbf, _, _ = Ncmap(pf, mf, pi_fan_des, mb_fan_des, Nb_fan_des, Cmapf)
 
@@ -246,9 +246,9 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
             outputs = (res, TSEC, Fsp, F, P, mfan, 
                         pif, mbf, Nbf, 
                         Tt0, ht0, pt0, cpt0, Rt0,
-                        Tt18, ht18, pt18, cpt18, Rt18,
+                        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
                         Tt2, ht2, pt2, cpt2, Rt2,
-                        Tt21, ht21, pt21, cpt21, Rt21,
+                        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
                         Tt7, ht7, pt7, cpt7, Rt7,
                         u0, T2, u2, p2, cp2, R2, M2,
                         T7, u7, p7, cp7, R7, M7,

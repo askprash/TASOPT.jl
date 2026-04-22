@@ -241,7 +241,7 @@ In a TASOPT turbofan the fan and LPC share a shaft (via gear ratio `Gearf`).
 At a converged off-design operating point the corrected spool speeds must
 satisfy:
 
-    Gearf × √(Tt2/Tref) × Nb_fan = √(Tt19c/Tref) × Nb_lpc
+    Gearf × √(Tt2/Tref) × Nb_fan = √(Tt1_9c/Tref) × Nb_lpc
 
 The per-compressor primitive is:
 

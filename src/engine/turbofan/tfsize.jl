@@ -1,5 +1,5 @@
 """
-    tfsize!(gee, M0, T0, p0, a0, M2, M25,
+    tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
       Feng, Phiinl, Kinl, eng_has_BLI_cores,
       BPR, pif, pilc, pihc,
       pid, pib, pifn, pitn,
@@ -31,14 +31,14 @@ added.
     - `T0`:      freestream temperature  [K]
     - `p0`:      freestream pressure  [Pa]
     - `M2`:      fan-face Mach number
-    - `M25`:     HPC-face Mach number
+    - `M2_5`:     HPC-face Mach number
     - `Feng`:    required net thrust  (PK_inl+PK_out-Phi_jet)/u0  =  sum( mdot u)
     - `Phiinl`:  inlet ingested dissipation
     - `eng_has_BLI_cores`:   false=core in clear flow, true=core sees `Phiinl`
     - `BPR`:     bypass ratio  = `mdot_fan/mdot_core`
     - `pif`:     fan      pressure ratio  ( = pt7 /pt2)
-    - `pilc`:    LP comp  pressure ratio  ( = pt25/pt2)
-    - `pihc`:    HP comp  pressure ratio  ( = pt3 /pt25)
+    - `pilc`:    LP comp  pressure ratio  ( = pt2_5/pt2)
+    - `pihc`:    HP comp  pressure ratio  ( = pt3 /pt2_5)
     - `pid`:     diffuser pressure ratio  ( = pt2 /pt0)
     - `pib`:     burner   pressure ratio  ( = pt4 /pt3)
     - `pifn`:    fan     nozzle pressure ratio  ( = pt7/pt2.1)
@@ -84,7 +84,7 @@ added.
     - `ff`:      fuel mass flow fraction  =  `mdot_fuel / mdot_core`
     - `mcore`:   core mass flow = `mdot_core`  [kg/s]
     - `A2`:      fan-face area [m^2]
-    - `A25`:     HPC-face area [m^2]
+    - `A2_5`:     HPC-face area [m^2]
     - `A5`:      core nozzle area [m^2]
     - `A7`:      fan  nozzle area [m^2]
     - `A6`:      core plume  area [m^2]
@@ -108,24 +108,24 @@ added.
     - `etalt`:   LPT overall efficiency
     - `Lconv`:   `true` if convergence was successful, `false` otherwise
 
-    The "?" symbol denotes the station index:
-    - 0: freestream
-    - 18: fan face outside of casing BLs
-    - 19: fan face over LPC portion
-    - 2: fan face over fan portion
-    - 21: fan exit
-    - 25: LPC exit, HPC inlet
-    - 3: compressor exit
-    - 4: combustor exit before cooling air addition
-    - 41: turbine inlet after cooling air addition
-    - 45: HPT exit, LPT inlet
-    - 49: LPT exit
-    - 5: core nozzle
-    - 6: core flow downstream
-    - 7: fan nozzle
-    - 8: fan flow downstream
+    The "?" symbol denotes the ARP755 station index:
+    - 0:   freestream
+    - 1.8: fan face outside of casing BLs
+    - 1.9: fan face over LPC portion
+    - 2:   fan face over fan portion
+    - 2.1: fan exit
+    - 2.5: LPC exit, HPC inlet
+    - 3:   compressor exit
+    - 4:   combustor exit before cooling air addition
+    - 4.1: turbine inlet after cooling air addition
+    - 4.5: HPT exit, LPT inlet
+    - 4.9: LPT exit
+    - 5:   core nozzle
+    - 6:   core flow downstream
+    - 7:   fan nozzle
+    - 8:   fan flow downstream
 """
-function tfsize!(gee, M0, T0, p0, a0, M2, M25,
+function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
       Feng, Phiinl, Kinl, eng_has_BLI_cores,
       BPR, pif, pilc, pihc,
       pid, pib, pifn, pitn,
@@ -223,27 +223,27 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
       # ===============================================================
       #---- diffuser flow 0-2
-      Tt18 = Tt0
-      st18 = st0
-      ht18 = ht0
-      cpt18 = cpt0
-      Rt18 = Rt0
-      pt18 = pt0 * pid
+      Tt1_8 = Tt0
+      st1_8 = st0
+      ht1_8 = ht0
+      cpt1_8 = cpt0
+      Rt1_8 = Rt0
+      pt1_8 = pt0 * pid
       
       #---- initial guesses for station 2, 1.9 and 1.9c
-      pt2 = pt18
-      Tt2 = Tt18
-      pt19 = pt18
-      Tt19 = Tt18
-      pt19c = pt19
-      Tt19c = Tt19
+      pt2 = pt1_8
+      Tt2 = Tt1_8
+      pt1_9 = pt1_8
+      Tt1_9 = Tt1_8
+      pt1_9c = pt1_9
+      Tt1_9c = Tt1_9
 
 
       if (Kinl == 0.0 && mofft == 0.0 && Pofft == 0.0)
             #----- single design pass will be sufficient
             npass = 1
       else
-            #----- must use multiple passes to converge pt2,pt19 from inlet defect Kinl,
+            #----- must use multiple passes to converge pt2,pt1_9 from inlet defect Kinl,
             #-     and to converge on offtake fractions fo, Pom
             npass = 60
       end
@@ -272,7 +272,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
                   if eng_has_BLI_cores
                         #------ BL mixes with fan + core flow
                         mmix = BPR * mcore * sqrt(Tt2 / Tt0) * pt0 / pt2 +
-                                    mcore * sqrt(Tt19c / Tt0) * pt0 / pt19c
+                                    mcore * sqrt(Tt1_9c / Tt0) * pt0 / pt1_9c
                         sbfan2 = Kinl * gam0 / (mmix * a2sq)
                         sbcore2 = sbfan
                   else
@@ -291,19 +291,19 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
             #---- note: BL is assumed adiabatic, 
             #-     so Tt2,ht2,st2,cpt2,Rt2  will not change due to BL ingestion
-            Tt2 = Tt18
-            ht2 = ht18
-            st2 = st18
-            cpt2 = cpt18
-            Rt2 = Rt18
-            pt2 = pt18 * exp(-sbfan)
+            Tt2 = Tt1_8
+            ht2 = ht1_8
+            st2 = st1_8
+            cpt2 = cpt1_8
+            Rt2 = Rt1_8
+            pt2 = pt1_8 * exp(-sbfan)
 
-            Tt19 = Tt18
-            ht19 = ht18
-            st19 = st18
-            cpt19 = cpt18
-            Rt19 = Rt18
-            pt19 = pt18 * exp(-sbcore)
+            Tt1_9 = Tt1_8
+            ht1_9 = ht1_8
+            st1_9 = st1_8
+            cpt1_9 = cpt1_8
+            Rt1_9 = Rt1_8
+            pt1_9 = pt1_8 * exp(-sbcore)
 
             # ===============================================================
             #---- fan flow 2-7
@@ -314,23 +314,23 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             _, epf, _, _, _, _, _, _ = 
                   calculate_compressor_speed_and_efficiency(FanMap, pif, mf, pi_fan_des, mb_fan_des, 1.0, epf0, Ng = 1.0, Rg = 2.0)
 
-            pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
+            pt2_1, Tt2_1, ht2_1, st2_1, cpt2_1, Rt2_1 = gas_prat(alpha, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pif, epf)
 
             #---- fan duct nozzle total quantities
-            pt7 = pt21 * pifn
-            Tt7 = Tt21
-            ht7 = ht21
-            st7 = st21
-            cpt7 = cpt21
-            Rt7 = Rt21
+            pt7 = pt2_1 * pifn
+            Tt7 = Tt2_1
+            ht7 = ht2_1
+            st7 = st2_1
+            cpt7 = cpt2_1
+            Rt7 = Rt2_1
 
             # ===============================================================
             #---- Compressor precooler 19 - 19c
-            pt19c = pt19 - Δp_PreC
-            ht19c = ht19 + Δh_PreC
-            Tt19c = gas_tset(alpha, nair, ht19c, Tt19)
-            st19c, _, ht19c, _, cpt19c, Rt19c = gassum(alpha, nair, Tt19c)
+            pt1_9c = pt1_9 - Δp_PreC
+            ht1_9c = ht1_9 + Δh_PreC
+            Tt1_9c = gas_tset(alpha, nair, ht1_9c, Tt1_9)
+            st1_9c, _, ht1_9c, _, cpt1_9c, Rt1_9c = gassum(alpha, nair, Tt1_9c)
 
 
             #c      write(*,*) 'epf0 epf ', epf0, epf
@@ -344,15 +344,15 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             _, eplc, _, _, _, _, _, _ = 
                   calculate_compressor_speed_and_efficiency(LPCMap, pilc, ml, pi_lpc_des, mb_lpc_des, 1.0, eplc0, Ng = 1.0, Rg = 2.0)
 
-            pt25, Tt25, ht25, st25, cpt25, Rt25 = gas_prat(alpha, nair,
-                  pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pilc, eplc)
+            pt2_5, Tt2_5, ht2_5, st2_5, cpt2_5, Rt2_5 = gas_prat(alpha, nair,
+                  pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, pilc, eplc)
 
             # ===============================================================
             #---- Compressor intercooler 25 - 25c
-            pt25c = pt25 - Δp_InterC
-            ht25c = ht25 + Δh_InterC
-            Tt25c = gas_tset(alpha, nair, ht25c, Tt25)
-            st25c, _, ht25c, _, cpt25c, Rt25c = gassum(alpha, nair, Tt25c)
+            pt2_5c = pt2_5 - Δp_InterC
+            ht2_5c = ht2_5 + Δh_InterC
+            Tt2_5c = gas_tset(alpha, nair, ht2_5c, Tt2_5)
+            st2_5c, _, ht2_5c, _, cpt2_5c, Rt2_5c = gassum(alpha, nair, Tt2_5c)
 
             # ===============================================================
             #---- HP compressor flow 25c - 3
@@ -364,7 +364,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
                   calculate_compressor_speed_and_efficiency(HPCMap, pihc, mh, pi_hpc_des, mb_hpc_des, 1.0, ephc0, Ng = 1.0, Rg = 2.0)
 
             pt3, Tt3, ht3, st3, cpt3, Rt3 = gas_prat(alpha, nair,
-                  pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, pihc, ephc)
+                  pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, pihc, ephc)
 
             # ===============================================================
             #---- combustor flow 3-4   (ffb = mdot_fuel/mdot_burner)
@@ -377,22 +377,22 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
             lambdap = zeros(nair)
             if opt_cooling == CoolingOpt.NoCooling
-                  #----- no cooling air present... station 41 is same as 4
+                  #----- no cooling air present... station 4.1 is same as 4
                   ff = ffb * (1.0 - fo)
 
-                  pt41 = pt4
-                  Tt41 = Tt4
-                  ht41 = ht4
-                  st41 = st4
-                  cpt41 = cpt4
-                  Rt41 = Rt4
+                  pt4_1 = pt4
+                  Tt4_1 = Tt4
+                  ht4_1 = ht4
+                  st4_1 = st4
+                  cpt4_1 = cpt4
+                  Rt4_1 = Rt4
                   for i = 1:nair
                         lambdap[i] = lambda[i]
                   end
                   #
                   #----------------------------------------------------------------
             else
-                  #----- cooling air is present... calculate station 41
+                  #----- cooling air is present... calculate station 4.1
 
                   #----- hot-section temperature ratio for each blade row (for cooling model)
                   gmi4 = Rt4 / (cpt4 - Rt4)
@@ -462,32 +462,32 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
                   lambdap = copy(buf)
 
                   #----- mixed total enthalpy from enthalpy equation
-                  ht41 = frac4 * ht4 + fracm * ht_tc
+                  ht4_1 = frac4 * ht4 + fracm * ht_tc
 
                   #----- total temperature from total enthalpy
                   Tguess = frac4 * Tt4 + fracm * Tt_tc
-                  Tt41 = gas_tset(lambdap, nair, ht41, Tguess)
+                  Tt4_1 = gas_tset(lambdap, nair, ht4_1, Tguess)
 
                   #----- all total quantities (except for total pressure), from total temperature
-                  st41, dsdt, ht41, dhdt, cpt41, Rt41 = gassum(lambdap, nair, Tt41)
+                  st4_1, dsdt, ht4_1, dhdt, cpt4_1, Rt4_1 = gassum(lambdap, nair, Tt4_1)
 
                   #----- mixed velocity from momentum equation, assuming constant static pressure
-                  p41 = p4a
-                  u41 = frac4 * u4a + fracm * uc
+                  p4_1 = p4a
+                  u4_1 = frac4 * u4a + fracm * uc
 
                   #----- static temperature from static enthalpy
-                  h41 = ht41 - 0.5 * u41^2
-                  Tguess = T4a + (h41 - h4a) / cp4a
-                  T41 = gas_tset(lambdap, nair, h41, Tguess)
+                  h4_1 = ht4_1 - 0.5 * u4_1^2
+                  Tguess = T4a + (h4_1 - h4a) / cp4a
+                  T4_1 = gas_tset(lambdap, nair, h4_1, Tguess)
 
                   #----- all static quantities, from static temperature
-                  s41, dsdt, h41, dhdt, cp41, R41 = gassum(lambdap, nair, T41)
+                  s4_1, dsdt, h4_1, dhdt, cp4_1, R4_1 = gassum(lambdap, nair, T4_1)
 
                   #----- all stagnation quantities, from total-static enthalpy difference
-                  dhb = ht41 - h41
+                  dhb = ht4_1 - h4_1
                   epi = 1.0
-                  pt41, Tt41, ht41, st41, cpt41, Rt41 = gas_delh(lambdap, nair,
-                        p41, T41, h41, s41, cp41, R41, dhb, epi)
+                  pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1 = gas_delh(lambdap, nair,
+                        p4_1, T4_1, h4_1, s4_1, cp4_1, R4_1, dhb, epi)
 
             end
 
@@ -496,12 +496,12 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             dhfac = -(1.0 - fo) / (1.0 - fo + ff) / (1.0 - epsh)
             dlfac = -1.0 / (1.0 - fo + ff) / (1.0 - epsl)
 
-            dhht = (ht3 - ht25c) * dhfac
-            dhlt = (ht25 - ht19c + BPR * (ht21 - ht2) + Pom) * dlfac
+            dhht = (ht3 - ht2_5c) * dhfac
+            dhlt = (ht2_5 - ht1_9c + BPR * (ht2_1 - ht2) + Pom) * dlfac
 
             #---- HPT flow
-            #     Trh =  Tt41/(Tt41 + dhht/cpt41)
-            #     gexh = cpt41/(Rt41*epht0)
+            #     Trh =  Tt4_1/(Tt4_1 + dhht/cpt4_1)
+            #     gexh = cpt4_1/(Rt4_1*epht0)
             #     pi_hpt_des = Trh^gexh
             epht1 = epht0 #Assume same as design point prior to cooling
 
@@ -509,32 +509,32 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             epht = find_cooled_hpt_efficiency(epht1, epht_fc, fc0, fc)
             
             epi = 1.0 / epht
-            pt45, Tt45, ht45, st45, cpt45, Rt45 = gas_delh(lambdap, nair,
-                  pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epi)
+            pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5 = gas_delh(lambdap, nair,
+                  pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1, dhht, epi)
 
 
             eplt = eplt0 #Assume same as design turbine efficiency
             epi = 1.0 / eplt
-            pt49, Tt49, ht49, st49, cpt49, Rt49 = gas_delh(lambdap, nair,
-                  pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
+            pt4_9, Tt4_9, ht4_9, st4_9, cpt4_9, Rt4_9 = gas_delh(lambdap, nair,
+                  pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, dhlt, epi)
 
             # ===============================================================
             #---- Regenerative cooling heat exchanger 49 - 49c
-            pt49c = pt49 - Δp_Regen
-            ht49c = ht49 + Δh_Regen
+            pt4_9c = pt4_9 - Δp_Regen
+            ht4_9c = ht4_9 + Δh_Regen
 
-            Tt49c = gas_tset(lambdap, nair, ht49c, Tt49)
-            st49c, _, ht49c, _, cpt49c, Rt49c = gassum(lambdap, nair, Tt49c)
+            Tt4_9c = gas_tset(lambdap, nair, ht4_9c, Tt4_9)
+            st4_9c, _, ht4_9c, _, cpt4_9c, Rt4_9c = gassum(lambdap, nair, Tt4_9c)
 
             # ===============================================================
             #---- Turbine nozzle 49c - 5
 
-            pt5 = pt49c * pitn
-            Tt5 = Tt49c
-            ht5 = ht49c
-            st5 = st49c
-            cpt5 = cpt49c
-            Rt5 = Rt49c
+            pt5 = pt4_9c * pitn
+            Tt5 = Tt4_9c
+            ht5 = ht4_9c
+            st5 = st4_9c
+            cpt5 = cpt4_9c
+            Rt5 = Rt4_9c
 
 
             #
@@ -581,7 +581,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
                         "\n\tpt2,  Tt2  = ", pt2, " Pa, ",  Tt2, " K",
                         "\n\tpt3,  Tt3  = ", pt3, " Pa, ",  Tt3, " K", 
                         "\n\tpt4,  Tt4  = ", pt4, " Pa, ",  Tt4, " K", 
-                      "\n\tpt41,  Tt41  = ", pt41," Pa, ",  Tt41," K", 
+                      "\n\tpt4_1,  Tt4_1  = ", pt4_1," Pa, ",  Tt4_1," K", 
                         "\n\tpt6,  Tt6  = ", pt6, " Pa, ",  Tt6, " K", 
                         "\n\tp6,  T6  = "  , p6,  " Pa, ",  T6,  " K", 
                         "\n\tpif,  BPR  = ", pif, " Pa, ",  BPR)
@@ -599,8 +599,8 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             hfuel = cpa * (Tt4 - Tt3 + ffb * (Tt4 - Ttf)) / (etab * ffb)
 
             #---- effective fuel heating value, over states 3, 4.1  (just for info)
-            #      cpa = 0.5*(cpt3+cpt41)
-            #      hfuel = cpa*((1.0-fo)*(Tt41-Tt3) + ff*(Tt41-Ttf)) / (etab*ff)
+            #      cpa = 0.5*(cpt3+cpt4_1)
+            #      hfuel = cpa*((1.0-fo)*(Tt4_1-Tt3) + ff*(Tt4_1-Ttf)) / (etab*ff)
 
             # ===============================================================
             #---- size core mass flow
@@ -705,17 +705,17 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             u2 = sqrt(2.0 * (ht2 - h2))
             rho2 = p2 / (R2 * T2)
 
-            p19c, T19c, h19c, s19c, cp19c, R19c = gas_mach(alpha, nair,
-                  pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, 0.0, M2, 1.0)
-            u19c = sqrt(2.0 * (ht19c - h19c))
-            rho19c = p19c / (R19c * T19c)
-            A2 = BPR * mcore / (rho2 * u2) + mcore / (rho19c * u19c)
+            p1_9c, T1_9c, h1_9c, s1_9c, cp1_9c, R1_9c = gas_mach(alpha, nair,
+                  pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, 0.0, M2, 1.0)
+            u1_9c = sqrt(2.0 * (ht1_9c - h1_9c))
+            rho1_9c = p1_9c / (R1_9c * T1_9c)
+            A2 = BPR * mcore / (rho2 * u2) + mcore / (rho1_9c * u1_9c)
 
-            p25c, T25c, h25c, s25c, cp25c, R25c = gas_mach(alpha, nair,
-                  pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, 0.0, M25, 1.0)
-            u25c = sqrt(2.0 * (ht25c - h25c))
-            rho25c = p25c / (R25c * T25c)
-            A25 = (1.0 - fo) * mcore / (rho25c * u25c)
+            p2_5c, T2_5c, h2_5c, s2_5c, cp2_5c, R2_5c = gas_mach(alpha, nair,
+                  pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, 0.0, M2_5, 1.0)
+            u2_5c = sqrt(2.0 * (ht2_5c - h2_5c))
+            rho2_5c = p2_5c / (R2_5c * T2_5c)
+            A2_5 = (1.0 - fo) * mcore / (rho2_5c * u2_5c)
 
             if (ipass >= 2) || (npass == 1)
                   dmfrac = 1.0 - mcold / mcore
@@ -731,53 +731,53 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
                         etalt = 0.0
 
                         #---- fan
-                        pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha, nair,
+                        pt2_1i, Tt2_1i, ht2_1i, st2_1i, cpt2_1i, Rt2_1i = gas_prat(alpha, nair,
                               pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
-                        etaf = (ht21i - ht2) / (ht21 - ht2)
+                        etaf = (ht2_1i - ht2) / (ht2_1 - ht2)
 
                         #---- LP compressor
-                        pt25i, Tt25i, ht25i, st25i, cpt25i, Rt25i = gas_prat(alpha, nair,
-                              pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pilc, 1.0)
-                        etalc = (ht25i - ht19c) / (ht25 - ht19c)
+                        pt2_5i, Tt2_5i, ht2_5i, st2_5i, cpt2_5i, Rt2_5i = gas_prat(alpha, nair,
+                              pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, pilc, 1.0)
+                        etalc = (ht2_5i - ht1_9c) / (ht2_5 - ht1_9c)
 
                         #---- HP compressor
                         pt3i, Tt3i, ht3i, st3i, cpt3i, Rt3i = gas_prat(alpha, nair,
-                              pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, pihc, 1.0)
-                        etahc = (ht3i - ht25c) / (ht3 - ht25c)
+                              pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, pihc, 1.0)
+                        etahc = (ht3i - ht2_5c) / (ht3 - ht2_5c)
 
                         #---- HP turbine
-                        piht = pt45 / pt41
-                        pt45i, Tt45i, ht45i, st45i, cpt45i, Rt45i = gas_prat(lambdap, nair,
-                              pt41, Tt41, ht41, st41, cpt41, Rt41, piht, 1.0)
-                        etaht = (ht45 - ht41) / (ht45i - ht41)
+                        piht = pt4_5 / pt4_1
+                        pt4_5i, Tt4_5i, ht4_5i, st4_5i, cpt4_5i, Rt4_5i = gas_prat(lambdap, nair,
+                              pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1, piht, 1.0)
+                        etaht = (ht4_5 - ht4_1) / (ht4_5i - ht4_1)
 
                         #---- LP turbine
-                        pilt = pt49 / pt45
-                        pt49i, Tt49i, ht49i, st49i, cpt49i, Rt49i = gas_prat(lambdap, nair,
-                              pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, 1.0)
-                        etalt = (ht49 - ht45) / (ht49i - ht45)
+                        pilt = pt4_9 / pt4_5
+                        pt4_9i, Tt4_9i, ht4_9i, st4_9i, cpt4_9i, Rt4_9i = gas_prat(lambdap, nair,
+                              pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, pilt, 1.0)
+                        etalt = (ht4_9 - ht4_5) / (ht4_9i - ht4_5)
                         
                         Lconv = true
                         return epsrow, Tmrow,
                         TSFC, Fsp, hfuel, ff, mcore,
                         Tt0, ht0, pt0, cpt0, Rt0,
-                        Tt18, ht18, pt18, cpt18, Rt18,
-                        Tt19, ht19, pt19, cpt19, Rt19,
-                        Tt19c, ht19c, pt19c, cpt19c, Rt19c,
+                        Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+                        Tt1_9, ht1_9, pt1_9, cpt1_9, Rt1_9,
+                        Tt1_9c, ht1_9c, pt1_9c, cpt1_9c, Rt1_9c,
                         Tt2, ht2, pt2, cpt2, Rt2,
-                        Tt21, ht21, pt21, cpt21, Rt21,
-                        Tt25, ht25, pt25, cpt25, Rt25,
-                        Tt25c, ht25c, pt25c, cpt25c, Rt25c,
+                        Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
+                        Tt2_5, ht2_5, pt2_5, cpt2_5, Rt2_5,
+                        Tt2_5c, ht2_5c, pt2_5c, cpt2_5c, Rt2_5c,
                         Tt3, ht3, pt3, cpt3, Rt3,
                         ht4, pt4, cpt4, Rt4,
-                        Tt41, ht41, pt41, cpt41, Rt41,
-                        Tt45, ht45, pt45, cpt45, Rt45,
-                        Tt49, ht49, pt49, cpt49, Rt49,
+                        Tt4_1, ht4_1, pt4_1, cpt4_1, Rt4_1,
+                        Tt4_5, ht4_5, pt4_5, cpt4_5, Rt4_5,
+                        Tt4_9, ht4_9, pt4_9, cpt4_9, Rt4_9,
                         Tt5, ht5, pt5, cpt5, Rt5,
                         Tt7, ht7, pt7, cpt7, Rt7,
                         u0,
                         T2, u2, p2, cp2, R2, A2,
-                        T25c, u25c, p25c, cp25c, R25c, A25,
+                        T2_5c, u2_5c, p2_5c, cp2_5c, R2_5c, A2_5,
                         T5, u5, p5, cp5, R5, A5,
                         T6, u6, p6, cp6, R6, A6,
                         T7, u7, p7, cp7, R7, A7,

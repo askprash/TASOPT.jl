@@ -238,9 +238,9 @@ end
 # ---------------------------------------------------------------------------
 
 const _SWEEP_CSV_STATIONS = (
-    ("0",  :st0),  ("2",  :st2),  ("3",  :st3),
-    ("4",  :st4),  ("41", :st41), ("45", :st45),
-    ("49", :st49), ("5",  :st5),  ("7",  :st7))
+    ("0",   :st0),  ("2",   :st2),  ("3",   :st3),
+    ("4",   :st4),  ("4.1", :st41), ("4.5", :st45),
+    ("4.9", :st49), ("5",   :st5),  ("7",   :st7))
 
 """
     write_sweep_csv(io::IO, mission::Mission, ip_range, ac; imission=1)
@@ -374,26 +374,26 @@ import TOML
 
 # Stations serialised in physical flow-path order (mirrors _STATION_DUMP_ORDER).
 const _TOML_STATION_ORDER = (
-    ("0",   "Freestream",     :st0),
-    ("2",   "FanFaceFan",     :st2),
-    ("18",  "FanFaceOuter",   :st18),
-    ("19",  "FanFaceLPC",     :st19),
-    ("19c", "PreCoolerOut",   :st19c),
-    ("21",  "FanExit",        :st21),
-    ("25",  "LPCExit",        :st25),
-    ("25c", "InterCoolerOut", :st25c),
-    ("3",   "HPCExit",        :st3),
-    ("4",   "CombustorExit",  :st4),
-    ("4a",  "CoolMixInlet",   :st4a),
-    ("41",  "TurbineInlet",   :st41),
-    ("45",  "HPTExit",        :st45),
-    ("49",  "LPTExit",        :st49),
-    ("49c", "RegenCoolerOut", :st49c),
-    ("5",   "CoreNozzle",     :st5),
-    ("6",   "CoreNozzleExit", :st6),
-    ("7",   "FanNozzle",      :st7),
-    ("8",   "FanNozzleExit",  :st8),
-    ("9",   "OfftakeDisch",   :st9),
+    ("0",    "Freestream",     :st0),
+    ("2",    "FanFaceFan",     :st2),
+    ("1.8",  "FanFaceOuter",   :st18),
+    ("1.9",  "FanFaceLPC",     :st19),
+    ("1.9c", "PreCoolerOut",   :st19c),
+    ("2.1",  "FanExit",        :st21),
+    ("2.5",  "LPCExit",        :st25),
+    ("2.5c", "InterCoolerOut", :st25c),
+    ("3",    "HPCExit",        :st3),
+    ("4",    "CombustorExit",  :st4),
+    ("4a",   "CoolMixInlet",   :st4a),
+    ("4.1",  "TurbineInlet",   :st41),
+    ("4.5",  "HPTExit",        :st45),
+    ("4.9",  "LPTExit",        :st49),
+    ("4.9c", "RegenCoolerOut", :st49c),
+    ("5",    "CoreNozzle",     :st5),
+    ("6",    "CoreNozzleExit", :st6),
+    ("7",    "FanNozzle",      :st7),
+    ("8",    "FanNozzleExit",  :st8),
+    ("9",    "OfftakeDisch",   :st9),
 )
 
 """

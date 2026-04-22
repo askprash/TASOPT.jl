@@ -6,7 +6,7 @@
       pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
       mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
       Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
-      A2, A25, A5, A7,
+      A2, A2_5, A5, A7,
       opt_calc_call,
       Ttf, ifuel, etab,
       epf0, eplc0, ephc0, epht0, eplt0,
@@ -19,7 +19,7 @@
       ncrowx, ncrow,
       epsrow, Tmrow,
       Feng,
-      M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25)
+      M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M2_5)
 
 Turbofan operation routine. Calculation procedure follows that of Kerrebrock, but
 the usual gas property formulas are replaced by function calls, which can therefore
@@ -44,25 +44,25 @@ The gas routines are described in [Gas Calculations](@ref)
     - `pifn`:    fan     nozzle pressure ratio  ( = `pt7/pt6.9`)
     - `pitn`:    turbine nozzle pressure ratio  ( = `pt5/pt4.9`)
     - `Gearf`:   fan gear ratio  ( = Nl/Nf )
-    - `pi_fan_des`:    design fan pressure ratio  ( = `pt21/pt2`)
-    - `pi_lpc_des`:   design LPC pressure ratio  ( = `pt25/pt19`)
-    - `pi_hpc_des`:   design HPC pressure ratio  ( = `pt3/pt25`)
-    - `pi_hpt_des`:   design HPT pressure ratio  ( = `pt45/pt41`)
-    - `pi_lpt_des`:   design LPT pressure ratio  ( = `pt49/pt45`)
+    - `pi_fan_des`:    design fan pressure ratio  ( = `pt2_1/pt2`)
+    - `pi_lpc_des`:   design LPC pressure ratio  ( = `pt2_5/pt1_9`)
+    - `pi_hpc_des`:   design HPC pressure ratio  ( = `pt3/pt2_5`)
+    - `pi_hpt_des`:   design HPT pressure ratio  ( = `pt4_5/pt4_1`)
+    - `pi_lpt_des`:   design LPT pressure ratio  ( = `pt4_9/pt4_5`)
     - `mb_fan_des`:    design corrected fan mass flow ( = `mf*sqrt(Tt2/Tref)/(pt2/pref)` )
       where `mf = mc*BPR`
-    - `mb_lpc_des`:   design corrected LPC mass flow ( = `mc*sqrt(Tt19/Tref)/(pt19/pref)` )
-    - `mb_hpc_des`:   design corrected HLC mass flow ( = `mc*sqrt(Tt25/Tref)/(pt25/pref)` )
-    - `mb_hpt_des`:   design corrected HPT mass flow ( = `mt*sqrt(Tt41/Tref)/(pt41/pref)` )
+    - `mb_lpc_des`:   design corrected LPC mass flow ( = `mc*sqrt(Tt1_9/Tref)/(pt1_9/pref)` )
+    - `mb_hpc_des`:   design corrected HLC mass flow ( = `mc*sqrt(Tt2_5/Tref)/(pt2_5/pref)` )
+    - `mb_hpt_des`:   design corrected HPT mass flow ( = `mt*sqrt(Tt4_1/Tref)/(pt4_1/pref)` )
       where `mt = mc*(1+ff)`
-    - `mb_lpt_des`:   design corrected LPT mass flow ( = `mt*sqrt(Tt45/Tref)/(pt45/pref)` )
+    - `mb_lpt_des`:   design corrected LPT mass flow ( = `mt*sqrt(Tt4_5/Tref)/(pt4_5/pref)` )
     - `Nb_fan_des`:    design corrected fan speed ( = `Nf/sqrt(Tt2/Tref)` )
-    - `Nb_lpc_des`:   design corrected LPC speed ( = `Nl/sqrt(Tt19/Tref)` )
-    - `Nb_hpc_des`:   design corrected HPC speed ( = `Nh/sqrt(Tt25/Tref)` )
-    - `Nb_hpt_des`:   design corrected HPT speed ( = `Nh/sqrt(Tt41/Tref)` )
-    - `Nb_lpt_des`:   design corrected LPT speed ( = `Nl/sqrt(Tt45/Tref)` )
+    - `Nb_lpc_des`:   design corrected LPC speed ( = `Nl/sqrt(Tt1_9/Tref)` )
+    - `Nb_hpc_des`:   design corrected HPC speed ( = `Nh/sqrt(Tt2_5/Tref)` )
+    - `Nb_hpt_des`:   design corrected HPT speed ( = `Nh/sqrt(Tt4_1/Tref)` )
+    - `Nb_lpt_des`:   design corrected LPT speed ( = `Nl/sqrt(Tt4_5/Tref)` )
     - `A2`:      fan-face area [m^2]
-    - `A25`:     HPC-face area [m^2]
+    - `A2_5`:     HPC-face area [m^2]
     - `A5`:      core nozzle area [m^2]
     - `A7`:      fan  nozzle area [m^2]
     - `opt_calc_call::CalcMode.T`:
@@ -127,24 +127,24 @@ The gas routines are described in [Gas Calculations](@ref)
     - `Lconv`:   `true` if convergence was successful, `false` otherwise
 
     The "?" symbol denotes the station index:
-    - 0: freestream
-    - 18: fan face outside of casing BLs
-    - 19: fan face over LPC portion
-    - 2: fan face over fan portion
-    - 21: fan exit, precooler inlet
-    - 19c: precooler outlet, LPC inlet
-    - 25: LPC exit, intercooler inlet
-    - 25c: intercooler exit, HPC inlet
-    - 3: compressor exit
-    - 4: combustor exit before cooling air addition
-    - 41: turbine inlet after cooling air addition
-    - 45: HPT exit, LPT inlet
-    - 49: LPT exit, regenerative cooler inlet
-    - 49c: regenerative cooler outlet
-    - 5: core nozzle
-    - 6: core flow downstream
-    - 7: fan nozzle
-    - 8: fan flow downstream
+    - 0:    freestream
+    - 1.8:  fan face outside of casing BLs
+    - 1.9:  fan face over LPC portion
+    - 2:    fan face over fan portion
+    - 2.1:  fan exit, precooler inlet
+    - 1.9c: precooler outlet, LPC inlet
+    - 2.5:  LPC exit, intercooler inlet
+    - 2.5c: intercooler exit, HPC inlet
+    - 3:    compressor exit
+    - 4:    combustor exit before cooling air addition
+    - 4.1:  turbine inlet after cooling air addition
+    - 4.5:  HPT exit, LPT inlet
+    - 4.9:  LPT exit, regenerative cooler inlet
+    - 4.9c: regenerative cooler outlet
+    - 5:    core nozzle
+    - 6:    core flow downstream
+    - 7:    fan nozzle
+    - 8:    fan flow downstream
 """
 function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       Phiinl, Kinl, eng_has_BLI_cores,
@@ -153,7 +153,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
       mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
       Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
-      A2, A25, A5, A7,
+      A2, A2_5, A5, A7,
       opt_calc_call,
       Ttf, ifuel, hvap, etab,
       epf0, eplc0, ephc0, epht0, eplt0,
@@ -167,7 +167,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       ncrowx, ncrow,
       epsrow, Tmrow,
       Feng,
-      M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25, 
+      M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M2_5, 
       Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
       Δp_PreC, Δp_InterC, Δp_Regen)
 
@@ -179,13 +179,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       prod *= pi_fan_des * pi_lpc_des * pi_hpc_des * pi_hpt_des * pi_lpt_des
       prod *= mb_fan_des * mb_lpc_des * mb_hpc_des * mb_hpt_des * mb_lpt_des
       prod *= Nb_fan_des * Nb_lpc_des * Nb_hpc_des * Nb_hpt_des * Nb_lpt_des
-      prod *= A2 * A25 * A5 * A7
+      prod *= A2 * A2_5 * A5 * A7
       prod *= Ttf * ifuel * etab
       prod *= epf0 * eplc0 * ephc0 * epht0 * eplt0
       prod *= mofft * Pofft * Tt9 * pt9 * epsl * epsh
       prod *= Mtexit * dTstrk * StA * efilm * tfilm
       prod *= M4a * ruc
-      prod *= epsrow[1] * M2 * pif * pilc * pihc * mbf * mblc * mbhc * Tt4 * pt5 * mcore * M25
+      prod *= epsrow[1] * M2 * pif * pilc * pihc * mbf * mblc * mbhc * Tt4 * pt5 * mcore * M2_5
       T = typeof(prod)
 
       #---- typed turbine component instances (used by turbine_efficiency and turbine_mb_residual)
@@ -257,7 +257,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       burner = Combustor(pib, etab, Ttf, ifuel, hvap)
 
       #---- nozzle component instances (used by nozzle_exit and nozzle_massflow_residual)
-      #     pn = 1 since pt7 = pt21*pifn and pt5 = pt49c*pitn already incorporate the loss
+      #     pn = 1 since pt7 = pt2_1*pifn and pt5 = pt4_9c*pitn already incorporate the loss
       nozzle_fan  = Nozzle(one(T), T(A7))
       nozzle_core = Nozzle(one(T), T(A5))
 
@@ -332,12 +332,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
       # ===============================================================
       #---- diffuser flow 0-2
-      Tt18 = Tt0
-      st18 = st0
-      ht18 = ht0
-      cpt18 = cpt0
-      Rt18 = Rt0
-      pt18 = pt0 * pid
+      Tt1_8 = Tt0
+      st1_8 = st0
+      ht1_8 = ht0
+      cpt1_8 = cpt0
+      Rt1_8 = Rt0
+      pt1_8 = pt0 * pid
 
       #---- initial guesses for primary Newton variables
       pf = pif
@@ -419,7 +419,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             # HSC: SEEMS TO BE FINE
 
             # ===============================================================
-            #---- set fan inlet total pressure pt21 corrected for BLI
+            #---- set fan inlet total pressure pt2_1 corrected for BLI
             #-    (Tt2,pt2 approximated with Tt0,pt0 here to avoid circular definition)
             if (u0 == 0.0)
                   #----- static case... no BL defect
@@ -442,11 +442,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   if eng_has_BLI_cores
                         #------ BL mixes with fan + core flow
                         #c      mmix    = mf*sqrt(Tref/Tt2 ) * pt2    /pref
-                        #c             + ml*sqrt(Tref/Tt19) * pt19   /pref
+                        #c             + ml*sqrt(Tref/Tt1_9) * pt1_9   /pref
                         #c      mmix_mf =    sqrt(Tref/Tt2 ) * pt2    /pref
-                        #c      mmix_ml =    sqrt(Tref/Tt19) * pt19   /pref
+                        #c      mmix_ml =    sqrt(Tref/Tt1_9) * pt1_9   /pref
                         #c      mmix_Mi = mf*sqrt(Tref/Tt2 ) * pt2_Mi /pref
-                        #c             + ml*sqrt(Tref/Tt19) * pt19_Mi/pref
+                        #c             + ml*sqrt(Tref/Tt1_9) * pt1_9_Mi/pref
 
                         mmix = mf * sqrt(Tref / Tt0) * pt0 / pref +
                                ml * sqrt(Tref / Tt0) * pt0 / pref
@@ -490,26 +490,26 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #---- note: BL is assumed adiabatic, 
             #-     so Tt2,ht2,st2,cpt2,Rt2  will not change due to BL ingestion
-            Tt2 = Tt18
-            ht2 = ht18
-            st2 = st18
-            cpt2 = cpt18
-            Rt2 = Rt18
-            pt2 = pt18 * exp(-sbfan)
+            Tt2 = Tt1_8
+            ht2 = ht1_8
+            st2 = st1_8
+            cpt2 = cpt1_8
+            Rt2 = Rt1_8
+            pt2 = pt1_8 * exp(-sbfan)
             pt2_mf = pt2 * (-sbfan_mf)
             pt2_ml = pt2 * (-sbfan_ml)
             pt2_Mi = pt2 * (-sbfan_Mi)
 
-            Tt19 = Tt18
-            ht19 = ht18
-            st19 = st18
-            cpt19 = cpt18
-            Tt19_ht19 = 1 / cpt19
-            Rt19 = Rt18
-            pt19 = pt18 * exp(-sbcore)
-            pt19_mf = pt19 * (-sbcore_mf)
-            pt19_ml = pt19 * (-sbcore_ml)
-            pt19_Mi = pt19 * (-sbcore_Mi)
+            Tt1_9 = Tt1_8
+            ht1_9 = ht1_8
+            st1_9 = st1_8
+            cpt1_9 = cpt1_8
+            Tt1_9_ht1_9 = 1 / cpt1_9
+            Rt1_9 = Rt1_8
+            pt1_9 = pt1_8 * exp(-sbcore)
+            pt1_9_mf = pt1_9 * (-sbcore_mf)
+            pt1_9_ml = pt1_9 * (-sbcore_ml)
+            pt1_9_Mi = pt1_9 * (-sbcore_Mi)
 
             p2, T2, h2, s2, cp2, R2,
             p2_st2,
@@ -534,204 +534,204 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             rho2_ml = rho2_p2 * p2_pt2 * pt2_ml
 
 
-            p19, T19, h19, s19, cp19, R19,
-            p19_st19,
-            p19_pt19,
+            p1_9, T1_9, h1_9, s1_9, cp1_9, R1_9,
+            p1_9_st1_9,
+            p1_9_pt1_9,
             dum,
-            p19_Tt19, T19_Tt19, h19_Tt19, s19_Tt19,
-            p19_ht19, T19_ht19, h19_ht19, s19_ht19,
-            p19_Mi, T19_Mi, h19_Mi, s19_Mi,
+            p1_9_Tt1_9, T1_9_Tt1_9, h1_9_Tt1_9, s1_9_Tt1_9,
+            p1_9_ht1_9, T1_9_ht1_9, h1_9_ht1_9, s1_9_ht1_9,
+            p1_9_Mi, T1_9_Mi, h1_9_Mi, s1_9_Mi,
             p_al, T_al, h_al, s_al,
             cp_al, R_al = gas_machd(alpha, nair,
-                  pt19, Tt19, ht19, st19, cpt19, Rt19, 0.0, Mi, 1.0)
-            u19 = sqrt(2.0 * (ht19 - h19))
-            u19_Mi = (-1.0 / u19) * h19_Mi
+                  pt1_9, Tt1_9, ht1_9, st1_9, cpt1_9, Rt1_9, 0.0, Mi, 1.0)
+            u1_9 = sqrt(2.0 * (ht1_9 - h1_9))
+            u1_9_Mi = (-1.0 / u1_9) * h1_9_Mi
 
-            rho19 = p19 / (R19 * T19)
-            rho19_p19 = 1.0 / (R19 * T19)
-            rho19_T19 = -rho19 / T19
+            rho1_9 = p1_9 / (R1_9 * T1_9)
+            rho1_9_p1_9 = 1.0 / (R1_9 * T1_9)
+            rho1_9_T1_9 = -rho1_9 / T1_9
 
-            rho19_Mi = rho19_T19 * T19_Mi +
-                       rho19_p19 * (p19_pt19 * pt19_Mi + p19_Mi)
-            rho19_mf = rho19_p19 * p19_pt19 * pt19_mf
-            rho19_ml = rho19_p19 * p19_pt19 * pt19_ml
+            rho1_9_Mi = rho1_9_T1_9 * T1_9_Mi +
+                       rho1_9_p1_9 * (p1_9_pt1_9 * pt1_9_Mi + p1_9_Mi)
+            rho1_9_mf = rho1_9_p1_9 * p1_9_pt1_9 * pt1_9_mf
+            rho1_9_ml = rho1_9_p1_9 * p1_9_pt1_9 * pt1_9_ml
 
             # ===============================================================
             #---- fan flow 2-7
-            pt21, Tt21, ht21, st21, cpt21, Rt21,
-            pt21_pt2,
-            pt21_st2, Tt21_st2, ht21_st2, st21_st2,
-            pt21_pf, Tt21_pf, ht21_pf, st21_pf,
-            pt21_mf_eff, Tt21_mf_eff, ht21_mf_eff, st21_mf_eff,
+            pt2_1, Tt2_1, ht2_1, st2_1, cpt2_1, Rt2_1,
+            pt2_1_pt2,
+            pt2_1_st2, Tt2_1_st2, ht2_1_st2, st2_1_st2,
+            pt2_1_pf, Tt2_1_pf, ht2_1_pf, st2_1_pf,
+            pt2_1_mf_eff, Tt2_1_mf_eff, ht2_1_mf_eff, st2_1_mf_eff,
             Nf, Nf_pf, Nf_mf, epf, epf_pf, epf_mf =
                   compressor_pratd(comp_fan, alpha, nair,
                         pt2, Tt2, ht2, st2, cpt2, Rt2, pf, mf)
 
-            pt21_mf = pt21_mf_eff + pt21_pt2 * pt2_mf
-            Tt21_mf = Tt21_mf_eff
-            ht21_mf = ht21_mf_eff
-            st21_mf = st21_mf_eff
+            pt2_1_mf = pt2_1_mf_eff + pt2_1_pt2 * pt2_mf
+            Tt2_1_mf = Tt2_1_mf_eff
+            ht2_1_mf = ht2_1_mf_eff
+            st2_1_mf = st2_1_mf_eff
 
-            pt21_ml = pt21_pt2 * pt2_ml
-            pt21_Mi = pt21_pt2 * pt2_Mi
+            pt2_1_ml = pt2_1_pt2 * pt2_ml
+            pt2_1_Mi = pt2_1_pt2 * pt2_Mi
 
             #---- fan duct nozzle total quantities
-            pt7 = pt21 * pifn
-            Tt7 = Tt21
-            ht7 = ht21
-            st7 = st21
-            cpt7 = cpt21
-            Rt7 = Rt21
+            pt7 = pt2_1 * pifn
+            Tt7 = Tt2_1
+            ht7 = ht2_1
+            st7 = st2_1
+            cpt7 = cpt2_1
+            Rt7 = Rt2_1
 
-            pt7_pf = pt21_pf * pifn
-            Tt7_pf = Tt21_pf
-            ht7_pf = ht21_pf
-            st7_pf = st21_pf
+            pt7_pf = pt2_1_pf * pifn
+            Tt7_pf = Tt2_1_pf
+            ht7_pf = ht2_1_pf
+            st7_pf = st2_1_pf
 
-            pt7_mf = pt21_mf * pifn
-            Tt7_mf = Tt21_mf
-            ht7_mf = ht21_mf
-            st7_mf = st21_mf
+            pt7_mf = pt2_1_mf * pifn
+            Tt7_mf = Tt2_1_mf
+            ht7_mf = ht2_1_mf
+            st7_mf = st2_1_mf
 
-            pt7_ml = pt21_ml * pifn
+            pt7_ml = pt2_1_ml * pifn
             ht7_ml = 0.0
 
-            pt7_Mi = pt21_Mi * pifn
+            pt7_Mi = pt2_1_Mi * pifn
             ht7_Mi = 0.0
             # ===============================================================
             #---- Compressor precooler 19-19c
-            pt19c = pt19 - Δp_PreC
-            ht19c = ht19 + Δh_PreC
-            Tt19c, Tt19c_ht19c, _ = gas_tsetd(alpha, nair, ht19c, Tt19)
-            st19c, st19c_Tt19c, ht19c, ht29c_Tt29c, cpt19c, cpt19c_Tt19c, Rt19c = gassumd(alpha, nair, Tt19c)
+            pt1_9c = pt1_9 - Δp_PreC
+            ht1_9c = ht1_9 + Δh_PreC
+            Tt1_9c, Tt1_9c_ht1_9c, _ = gas_tsetd(alpha, nair, ht1_9c, Tt1_9)
+            st1_9c, st1_9c_Tt1_9c, ht1_9c, ht29c_Tt29c, cpt1_9c, cpt1_9c_Tt1_9c, Rt1_9c = gassumd(alpha, nair, Tt1_9c)
 
-             #Derivatives with respect to pressure are unchanged because pt19c_pt19 = 1
-            pt19c_pt19 = 1.0
-            ht19c_ht19 = 1.0
+             #Derivatives with respect to pressure are unchanged because pt1_9c_pt1_9 = 1
+            pt1_9c_pt1_9 = 1.0
+            ht1_9c_ht1_9 = 1.0
 
-            Tt19c_Tt19 = Tt19c_ht19c * ht19c_ht19 / Tt19_ht19
-            pt19c_mf = pt19_mf * pt19c_pt19
-            pt19c_Mi = pt19_Mi * pt19c_pt19
-            pt19c_ml = pt19_ml * pt19c_pt19
+            Tt1_9c_Tt1_9 = Tt1_9c_ht1_9c * ht1_9c_ht1_9 / Tt1_9_ht1_9
+            pt1_9c_mf = pt1_9_mf * pt1_9c_pt1_9
+            pt1_9c_Mi = pt1_9_Mi * pt1_9c_pt1_9
+            pt1_9c_ml = pt1_9_ml * pt1_9c_pt1_9
 
-            p19c, T19c, h19c, s19c, cp19c, R19c,
-            p19c_st19c,
-            p19c_pt19c,
+            p1_9c, T1_9c, h1_9c, s1_9c, cp1_9c, R1_9c,
+            p1_9c_st1_9c,
+            p1_9c_pt1_9c,
             dum,
-            p19c_Tt19c, T19c_Tt19c, h19c_Tt19c, s19c_Tt19c,
-            p19c_ht19c, T19c_ht19c, h19c_ht19c, s19c_ht19c,
-            p19c_Mi, T19c_Mi, h19c_Mi, s19c_Mi,
+            p1_9c_Tt1_9c, T1_9c_Tt1_9c, h1_9c_Tt1_9c, s1_9c_Tt1_9c,
+            p1_9c_ht1_9c, T1_9c_ht1_9c, h1_9c_ht1_9c, s1_9c_ht1_9c,
+            p1_9c_Mi, T1_9c_Mi, h1_9c_Mi, s1_9c_Mi,
             p_al, T_al, h_al, s_al,
             cp_al, R_al = gas_machd(alpha, nair,
-                  pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, 0.0, Mi, 1.0)
-            u19c = sqrt(2.0 * (ht19c - h19c))
-            u19c_Mi = (-1.0 / u19c) * h19c_Mi
+                  pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, 0.0, Mi, 1.0)
+            u1_9c = sqrt(2.0 * (ht1_9c - h1_9c))
+            u1_9c_Mi = (-1.0 / u1_9c) * h1_9c_Mi
 
-            rho19c = p19c / (R19c * T19c)
-            rho19c_p19c = 1.0 / (R19c * T19c)
-            rho19c_T19c = -rho19c / T19c
+            rho1_9c = p1_9c / (R1_9c * T1_9c)
+            rho1_9c_p1_9c = 1.0 / (R1_9c * T1_9c)
+            rho1_9c_T1_9c = -rho1_9c / T1_9c
 
-            rho19c_Mi = rho19c_T19c * T19c_Mi +
-                       rho19c_p19c * (p19c_pt19c * pt19c_Mi + p19c_Mi)
-            rho19c_mf = rho19c_p19c * p19c_pt19c * pt19c_mf
-            rho19c_ml = rho19c_p19c * p19c_pt19c * pt19c_ml
+            rho1_9c_Mi = rho1_9c_T1_9c * T1_9c_Mi +
+                       rho1_9c_p1_9c * (p1_9c_pt1_9c * pt1_9c_Mi + p1_9c_Mi)
+            rho1_9c_mf = rho1_9c_p1_9c * p1_9c_pt1_9c * pt1_9c_mf
+            rho1_9c_ml = rho1_9c_p1_9c * p1_9c_pt1_9c * pt1_9c_ml
 
 
             #--------------------------------------------------------------
             #---- offtake mass ratio
             #cc   fo = mofft / mcore
-            fo = mofft / ml * sqrt(Tt19c / Tref) * pref / pt19c
-            fo_ml = -fo / ml - (fo / pt19c) * pt19c_ml
-            fo_mf = -(fo / pt19c) * pt19c_mf
-            fo_Mi = -(fo / pt19c) * pt19c_Mi
+            fo = mofft / ml * sqrt(Tt1_9c / Tref) * pref / pt1_9c
+            fo_ml = -fo / ml - (fo / pt1_9c) * pt1_9c_ml
+            fo_mf = -(fo / pt1_9c) * pt1_9c_mf
+            fo_Mi = -(fo / pt1_9c) * pt1_9c_Mi
 
             #---- normalized power offtake Pofft / mcore
-            Pom = Pofft / ml * sqrt(Tt19c / Tref) * pref / pt19c
-            Pom_ml = -Pom / ml - (Pom / pt19c) * pt19c_ml
-            Pom_mf = -(Pom / pt19c) * pt19c_mf
-            Pom_Mi = -(Pom / pt19c) * pt19c_Mi
+            Pom = Pofft / ml * sqrt(Tt1_9c / Tref) * pref / pt1_9c
+            Pom_ml = -Pom / ml - (Pom / pt1_9c) * pt1_9c_ml
+            Pom_mf = -(Pom / pt1_9c) * pt1_9c_mf
+            Pom_Mi = -(Pom / pt1_9c) * pt1_9c_Mi
       
             # ===============================================================
             #---- LP compressor flow 2-25
-            pt25, Tt25, ht25, st25, cpt25, Rt25,
-            pt25_pt19c,
-            pt25_st19c, Tt25_st19c, ht25_st19c, st25_st19c,
-            pt25_pl, Tt25_pl, ht25_pl, st25_pl,
-            pt25_ml_eff, Tt25_ml_eff, ht25_ml_eff, st25_ml_eff,
+            pt2_5, Tt2_5, ht2_5, st2_5, cpt2_5, Rt2_5,
+            pt2_5_pt1_9c,
+            pt2_5_st1_9c, Tt2_5_st1_9c, ht2_5_st1_9c, st2_5_st1_9c,
+            pt2_5_pl, Tt2_5_pl, ht2_5_pl, st2_5_pl,
+            pt2_5_ml_eff, Tt2_5_ml_eff, ht2_5_ml_eff, st2_5_ml_eff,
             Nl, Nl_pl, Nl_ml, eplc, eplc_pl, eplc_ml =
                   compressor_pratd(comp_lpc, alpha, nair,
-                        pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pl, ml)
+                        pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, pl, ml)
 
-            pt25_ml = pt25_ml_eff + pt25_pt19c * pt19c_ml
-            Tt25_ml = Tt25_ml_eff
-            ht25_ml = ht25_ml_eff
-            st25_ml = st25_ml_eff
+            pt2_5_ml = pt2_5_ml_eff + pt2_5_pt1_9c * pt1_9c_ml
+            Tt2_5_ml = Tt2_5_ml_eff
+            ht2_5_ml = ht2_5_ml_eff
+            st2_5_ml = st2_5_ml_eff
 
-            pt25_mf = pt25_pt19c * pt19c_mf
-            pt25_Mi = pt25_pt19c * pt19c_Mi
+            pt2_5_mf = pt2_5_pt1_9c * pt1_9c_mf
+            pt2_5_Mi = pt2_5_pt1_9c * pt1_9c_Mi
 
-            Tt25_ht25 = 1 / cpt25
-            st25_Tt25 = cpt25 / Tt25
+            Tt2_5_ht2_5 = 1 / cpt2_5
+            st2_5_Tt2_5 = cpt2_5 / Tt2_5
 
             # ===============================================================
             #---- Compressor intercooler 25-25c
-            pt25c = pt25 - Δp_InterC
-            ht25c = ht25 + Δh_InterC
-            Tt25c, Tt25c_ht25c, _ = gas_tsetd(alpha, nair, ht25c, Tt25)
-            st25c, st25c_Tt25c, ht25c, ht25c_Tt25c, cpt25c, cpt25c_Tt25c, Rt25c = gassumd(alpha, nair, Tt25c)
+            pt2_5c = pt2_5 - Δp_InterC
+            ht2_5c = ht2_5 + Δh_InterC
+            Tt2_5c, Tt2_5c_ht2_5c, _ = gas_tsetd(alpha, nair, ht2_5c, Tt2_5)
+            st2_5c, st2_5c_Tt2_5c, ht2_5c, ht2_5c_Tt2_5c, cpt2_5c, cpt2_5c_Tt2_5c, Rt2_5c = gassumd(alpha, nair, Tt2_5c)
 
             #Derivatives with respect to pressure are unchanged
-            pt25c_pt25 = 1.0
-            ht25c_ht25 = 1.0
+            pt2_5c_pt2_5 = 1.0
+            ht2_5c_ht2_5 = 1.0
 
-            Tt25c_Tt25 = Tt25c_ht25c * ht25c_ht25 / Tt25_ht25
-            st25c_st25 = st25c_Tt25c * Tt25c_Tt25 / st25_Tt25
+            Tt2_5c_Tt2_5 = Tt2_5c_ht2_5c * ht2_5c_ht2_5 / Tt2_5_ht2_5
+            st2_5c_st2_5 = st2_5c_Tt2_5c * Tt2_5c_Tt2_5 / st2_5_Tt2_5
 
-            pt25c_pl = pt25_pl * pt25c_pt25
-            Tt25c_pl = Tt25_pl * Tt25c_Tt25
-            ht25c_pl = ht25_pl * ht25c_ht25
-            st25c_pl = st25_pl * st25c_st25
+            pt2_5c_pl = pt2_5_pl * pt2_5c_pt2_5
+            Tt2_5c_pl = Tt2_5_pl * Tt2_5c_Tt2_5
+            ht2_5c_pl = ht2_5_pl * ht2_5c_ht2_5
+            st2_5c_pl = st2_5_pl * st2_5c_st2_5
 
-            pt25c_ml = pt25_ml * pt25c_pt25
-            Tt25c_ml = Tt25_ml * Tt25c_Tt25
-            ht25c_ml = ht25_ml * ht25c_ht25
-            st25c_ml = st25_ml * st25c_st25
+            pt2_5c_ml = pt2_5_ml * pt2_5c_pt2_5
+            Tt2_5c_ml = Tt2_5_ml * Tt2_5c_Tt2_5
+            ht2_5c_ml = ht2_5_ml * ht2_5c_ht2_5
+            st2_5c_ml = st2_5_ml * st2_5c_st2_5
 
-            pt25c_mf = pt25_mf * pt25c_pt25
-            pt25c_Mi = pt25_Mi * pt25c_pt25
-            pt25c_ml = pt25_ml * pt25c_pt25
+            pt2_5c_mf = pt2_5_mf * pt2_5c_pt2_5
+            pt2_5c_Mi = pt2_5_Mi * pt2_5c_pt2_5
+            pt2_5c_ml = pt2_5_ml * pt2_5c_pt2_5
       
             # ===============================================================
             #---- HP compressor flow 25-3
             pt3, Tt3, ht3, st3, cpt3, Rt3,
-            pt3_pt25c,
-            pt3_st25c, Tt3_st25c, ht3_st25c, st3_st25c,
+            pt3_pt2_5c,
+            pt3_st2_5c, Tt3_st2_5c, ht3_st2_5c, st3_st2_5c,
             pt3_ph, Tt3_ph, ht3_ph, st3_ph,
             pt3_mh_eff, Tt3_mh_eff, ht3_mh_eff, st3_mh_eff,
             Nh, Nh_ph, Nh_mh, ephc, ephc_ph, ephc_mh =
                   compressor_pratd(comp_hpc, alpha, nair,
-                        pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, ph, mh)
+                        pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, ph, mh)
 
-            pt3_pl = pt3_pt25c * pt25c_pl +
-                     pt3_st25c * st25c_pl
-            Tt3_pl = Tt3_st25c * st25c_pl
-            ht3_pl = ht3_st25c * st25c_pl
-            st3_pl = st3_st25c * st25c_pl
+            pt3_pl = pt3_pt2_5c * pt2_5c_pl +
+                     pt3_st2_5c * st2_5c_pl
+            Tt3_pl = Tt3_st2_5c * st2_5c_pl
+            ht3_pl = ht3_st2_5c * st2_5c_pl
+            st3_pl = st3_st2_5c * st2_5c_pl
 
-            pt3_ml = pt3_pt25c * pt25c_ml +
-                     pt3_st25c * st25c_ml
-            Tt3_ml = Tt3_st25c * st25c_ml
-            ht3_ml = ht3_st25c * st25c_ml
-            st3_ml = st3_st25c * st25c_ml
+            pt3_ml = pt3_pt2_5c * pt2_5c_ml +
+                     pt3_st2_5c * st2_5c_ml
+            Tt3_ml = Tt3_st2_5c * st2_5c_ml
+            ht3_ml = ht3_st2_5c * st2_5c_ml
+            st3_ml = st3_st2_5c * st2_5c_ml
 
-            pt3_mf = pt3_pt25c * pt25c_mf
+            pt3_mf = pt3_pt2_5c * pt2_5c_mf
 
             pt3_mh = pt3_mh_eff
             Tt3_mh = Tt3_mh_eff
             ht3_mh = ht3_mh_eff
             st3_mh = st3_mh_eff
 
-            pt3_Mi = pt3_pt25c * pt25c_Mi
+            pt3_Mi = pt3_pt2_5c * pt2_5c_Mi
 
             Tt3_ht3 = 1 / cpt3
 
@@ -780,13 +780,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             # HSC: SEEMS TO BE FINE
             # ===============================================================
             if opt_cooling == CoolingOpt.NoCooling
-                  #----- no cooling air present... station 41 is same as 4
-                  pt41 = pt4
-                  Tt41 = Tt4
-                  ht41 = ht4
-                  st41 = st4
-                  cpt41 = cpt4
-                  Rt41 = Rt4
+                  #----- no cooling air present... station 4.1 is same as 4
+                  pt4_1 = pt4
+                  Tt4_1 = Tt4
+                  ht4_1 = ht4
+                  st4_1 = st4
+                  cpt4_1 = cpt4
+                  Rt4_1 = Rt4
                   for i = 1:nair
                         lambdap[i] = lambda[i]
                         lamp_pl[i] = lam_pl[i]
@@ -798,46 +798,46 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         lamp_Mi[i] = 0.0
                   end
 
-                  pt41_pl = pt4_pl
-                  pt41_ph = pt4_ph
-                  pt41_ml = pt4_ml
-                  pt41_mh = pt4_mh
-                  pt41_Tb = pt4_Tb
-                  pt41_Mi = pt4_Mi
+                  pt4_1_pl = pt4_pl
+                  pt4_1_ph = pt4_ph
+                  pt4_1_ml = pt4_ml
+                  pt4_1_mh = pt4_mh
+                  pt4_1_Tb = pt4_Tb
+                  pt4_1_Mi = pt4_Mi
 
-                  Tt41_pl = 0.0
-                  Tt41_ph = 0.0
-                  Tt41_mf = 0.0
-                  Tt41_ml = 0.0
-                  Tt41_mh = 0.0
-                  Tt41_Tb = 1.0
-                  Tt41_Mi = 0.0
+                  Tt4_1_pl = 0.0
+                  Tt4_1_ph = 0.0
+                  Tt4_1_mf = 0.0
+                  Tt4_1_ml = 0.0
+                  Tt4_1_mh = 0.0
+                  Tt4_1_Tb = 1.0
+                  Tt4_1_Mi = 0.0
 
-                  ht41_pl = ht4_pl
-                  ht41_ph = ht4_ph
-                  ht41_mf = 0.0
-                  ht41_ml = ht4_ml
-                  ht41_mh = ht4_mh
-                  ht41_Tb = ht4_Tb
-                  ht41_Mi = 0.0
+                  ht4_1_pl = ht4_pl
+                  ht4_1_ph = ht4_ph
+                  ht4_1_mf = 0.0
+                  ht4_1_ml = ht4_ml
+                  ht4_1_mh = ht4_mh
+                  ht4_1_Tb = ht4_Tb
+                  ht4_1_Mi = 0.0
 
-                  st41_pl = st4_pl
-                  st41_ph = st4_ph
-                  st41_ml = st4_ml
-                  st41_mh = st4_mh
-                  st41_Tb = st4_Tb
+                  st4_1_pl = st4_pl
+                  st4_1_ph = st4_ph
+                  st4_1_ml = st4_ml
+                  st4_1_mh = st4_mh
+                  st4_1_Tb = st4_Tb
 
-                  cpt41_pl = cpt4_pl
-                  cpt41_ph = cpt4_ph
-                  cpt41_ml = cpt4_ml
-                  cpt41_mh = cpt4_mh
-                  cpt41_Tb = cpt4_Tb
+                  cpt4_1_pl = cpt4_pl
+                  cpt4_1_ph = cpt4_ph
+                  cpt4_1_ml = cpt4_ml
+                  cpt4_1_mh = cpt4_mh
+                  cpt4_1_Tb = cpt4_Tb
 
-                  Rt41_pl = Rt4_pl
-                  Rt41_ph = Rt4_ph
-                  Rt41_ml = Rt4_ml
-                  Rt41_mh = Rt4_mh
-                  Rt41_Tb = Rt4_Tb
+                  Rt4_1_pl = Rt4_pl
+                  Rt4_1_ph = Rt4_ph
+                  Rt4_1_ml = Rt4_ml
+                  Rt4_1_mh = Rt4_mh
+                  Rt4_1_Tb = Rt4_Tb
                   #
                   fc = 0.0
                   fc_pl = 0.0
@@ -945,7 +945,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   ff_Tb = (1.0 - fo - fc) * ffb_Tb - fc_Tb * ffb
                   ff_Mi = -fc_Mi * ffb - fo_Mi * ffb
 
-                  #----- calculate station 41
+                  #----- calculate station 4.1
                   pt4a = pt4
                   Tt4a = Tt4
                   ht4a = ht4
@@ -1125,209 +1125,209 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   httc_mh = ht3_mh * httc_ht3
 
                   #----- mixed total enthalpy from enthalpy equation
-                  ht41 = frac4 * ht4 + fracm * ht_tc
-                  ht41_pl = frac4_pl * ht4 + frac4 * ht4_pl + fracm_pl * ht_tc + fracm * httc_pl
-                  ht41_ph = frac4_ph * ht4 + frac4 * ht4_ph + fracm_ph * ht_tc + fracm * httc_ph
-                  ht41_mf = frac4_mf * ht4 + fracm_mf * ht_tc
-                  ht41_ml = frac4_ml * ht4 + frac4 * ht4_ml + fracm_ml * ht_tc + fracm * httc_ml
-                  ht41_mh = frac4_mh * ht4 + frac4 * ht4_mh + fracm_mh * ht_tc + fracm * httc_mh
-                  ht41_Tb = frac4_Tb * ht4 + frac4 * ht4_Tb + fracm_Tb * ht_tc
-                  ht41_Mi = frac4_mf * ht4 + fracm_Mi * ht_tc
+                  ht4_1 = frac4 * ht4 + fracm * ht_tc
+                  ht4_1_pl = frac4_pl * ht4 + frac4 * ht4_pl + fracm_pl * ht_tc + fracm * httc_pl
+                  ht4_1_ph = frac4_ph * ht4 + frac4 * ht4_ph + fracm_ph * ht_tc + fracm * httc_ph
+                  ht4_1_mf = frac4_mf * ht4 + fracm_mf * ht_tc
+                  ht4_1_ml = frac4_ml * ht4 + frac4 * ht4_ml + fracm_ml * ht_tc + fracm * httc_ml
+                  ht4_1_mh = frac4_mh * ht4 + frac4 * ht4_mh + fracm_mh * ht_tc + fracm * httc_mh
+                  ht4_1_Tb = frac4_Tb * ht4 + frac4 * ht4_Tb + fracm_Tb * ht_tc
+                  ht4_1_Mi = frac4_mf * ht4 + fracm_Mi * ht_tc
 
                   #----- total temperature from total enthalpy
                   Tguess = frac4 * Tt4 + fracm * Tt_tc
-                  Tt41, Tt41_ht41, T_al = gas_tsetd(lambdap, nair, ht41, Tguess)
-                  Tt41_pl = Tt41_ht41 * ht41_pl
-                  Tt41_ph = Tt41_ht41 * ht41_ph
-                  Tt41_mf = Tt41_ht41 * ht41_mf
-                  Tt41_ml = Tt41_ht41 * ht41_ml
-                  Tt41_mh = Tt41_ht41 * ht41_mh
-                  Tt41_Tb = Tt41_ht41 * ht41_Tb
-                  Tt41_Mi = Tt41_ht41 * ht41_Mi
+                  Tt4_1, Tt4_1_ht4_1, T_al = gas_tsetd(lambdap, nair, ht4_1, Tguess)
+                  Tt4_1_pl = Tt4_1_ht4_1 * ht4_1_pl
+                  Tt4_1_ph = Tt4_1_ht4_1 * ht4_1_ph
+                  Tt4_1_mf = Tt4_1_ht4_1 * ht4_1_mf
+                  Tt4_1_ml = Tt4_1_ht4_1 * ht4_1_ml
+                  Tt4_1_mh = Tt4_1_ht4_1 * ht4_1_mh
+                  Tt4_1_Tb = Tt4_1_ht4_1 * ht4_1_Tb
+                  Tt4_1_Mi = Tt4_1_ht4_1 * ht4_1_Mi
                   for i = 1:nair
-                        Tt41_pl = Tt41_pl + T_al[i] * lamp_pl[i]
-                        Tt41_ph = Tt41_ph + T_al[i] * lamp_ph[i]
-                        Tt41_mf = Tt41_mf + T_al[i] * lamp_mf[i]
-                        Tt41_ml = Tt41_ml + T_al[i] * lamp_ml[i]
-                        Tt41_mh = Tt41_mh + T_al[i] * lamp_mh[i]
-                        Tt41_Tb = Tt41_Tb + T_al[i] * lamp_Tb[i]
-                        Tt41_Mi = Tt41_Mi + T_al[i] * lamp_Mi[i]
+                        Tt4_1_pl = Tt4_1_pl + T_al[i] * lamp_pl[i]
+                        Tt4_1_ph = Tt4_1_ph + T_al[i] * lamp_ph[i]
+                        Tt4_1_mf = Tt4_1_mf + T_al[i] * lamp_mf[i]
+                        Tt4_1_ml = Tt4_1_ml + T_al[i] * lamp_ml[i]
+                        Tt4_1_mh = Tt4_1_mh + T_al[i] * lamp_mh[i]
+                        Tt4_1_Tb = Tt4_1_Tb + T_al[i] * lamp_Tb[i]
+                        Tt4_1_Mi = Tt4_1_Mi + T_al[i] * lamp_Mi[i]
                   end
 
-                  #----- will also need st41,cpt41,Rt41 derivatives
-                  st41, st41_Tt41,
-                  ht41, ht41_Tt41,
-                  cpt41, cpt41_Tt41, Rt41 = gassumd(lambdap, nair, Tt41)
-                  st41_pl = st41_Tt41 * Tt41_pl
-                  st41_ph = st41_Tt41 * Tt41_ph
-                  st41_mf = st41_Tt41 * Tt41_mf
-                  st41_ml = st41_Tt41 * Tt41_ml
-                  st41_mh = st41_Tt41 * Tt41_mh
-                  st41_Tb = st41_Tt41 * Tt41_Tb
-                  st41_Mi = st41_Tt41 * Tt41_Mi
+                  #----- will also need st4_1,cpt4_1,Rt4_1 derivatives
+                  st4_1, st4_1_Tt4_1,
+                  ht4_1, ht4_1_Tt4_1,
+                  cpt4_1, cpt4_1_Tt4_1, Rt4_1 = gassumd(lambdap, nair, Tt4_1)
+                  st4_1_pl = st4_1_Tt4_1 * Tt4_1_pl
+                  st4_1_ph = st4_1_Tt4_1 * Tt4_1_ph
+                  st4_1_mf = st4_1_Tt4_1 * Tt4_1_mf
+                  st4_1_ml = st4_1_Tt4_1 * Tt4_1_ml
+                  st4_1_mh = st4_1_Tt4_1 * Tt4_1_mh
+                  st4_1_Tb = st4_1_Tt4_1 * Tt4_1_Tb
+                  st4_1_Mi = st4_1_Tt4_1 * Tt4_1_Mi
 
-                  cpt41_pl = cpt41_Tt41 * Tt41_pl
-                  cpt41_ph = cpt41_Tt41 * Tt41_ph
-                  cpt41_mf = cpt41_Tt41 * Tt41_mf
-                  cpt41_ml = cpt41_Tt41 * Tt41_ml
-                  cpt41_mh = cpt41_Tt41 * Tt41_mh
-                  cpt41_Tb = cpt41_Tt41 * Tt41_Tb
-                  cpt41_Mi = cpt41_Tt41 * Tt41_Mi
+                  cpt4_1_pl = cpt4_1_Tt4_1 * Tt4_1_pl
+                  cpt4_1_ph = cpt4_1_Tt4_1 * Tt4_1_ph
+                  cpt4_1_mf = cpt4_1_Tt4_1 * Tt4_1_mf
+                  cpt4_1_ml = cpt4_1_Tt4_1 * Tt4_1_ml
+                  cpt4_1_mh = cpt4_1_Tt4_1 * Tt4_1_mh
+                  cpt4_1_Tb = cpt4_1_Tt4_1 * Tt4_1_Tb
+                  cpt4_1_Mi = cpt4_1_Tt4_1 * Tt4_1_Mi
 
-                  Rt41_pl = 0.0
-                  Rt41_ph = 0.0
-                  Rt41_mf = 0.0
-                  Rt41_ml = 0.0
-                  Rt41_mh = 0.0
-                  Rt41_Tb = 0.0
-                  Rt41_Mi = 0.0
+                  Rt4_1_pl = 0.0
+                  Rt4_1_ph = 0.0
+                  Rt4_1_mf = 0.0
+                  Rt4_1_ml = 0.0
+                  Rt4_1_mh = 0.0
+                  Rt4_1_Tb = 0.0
+                  Rt4_1_Mi = 0.0
                   for i = 1:nair
-                        si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, Tt41)
-                        st41_pl = st41_pl + si * lamp_pl[i]
-                        st41_ph = st41_ph + si * lamp_ph[i]
-                        st41_mf = st41_mf + si * lamp_mf[i]
-                        st41_ml = st41_ml + si * lamp_ml[i]
-                        st41_mh = st41_mh + si * lamp_mh[i]
-                        st41_Tb = st41_Tb + si * lamp_Tb[i]
-                        st41_Mi = st41_Mi + si * lamp_Mi[i]
+                        si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, Tt4_1)
+                        st4_1_pl = st4_1_pl + si * lamp_pl[i]
+                        st4_1_ph = st4_1_ph + si * lamp_ph[i]
+                        st4_1_mf = st4_1_mf + si * lamp_mf[i]
+                        st4_1_ml = st4_1_ml + si * lamp_ml[i]
+                        st4_1_mh = st4_1_mh + si * lamp_mh[i]
+                        st4_1_Tb = st4_1_Tb + si * lamp_Tb[i]
+                        st4_1_Mi = st4_1_Mi + si * lamp_Mi[i]
 
-                        cpt41_pl = cpt41_pl + cpi * lamp_pl[i]
-                        cpt41_ph = cpt41_ph + cpi * lamp_ph[i]
-                        cpt41_mf = cpt41_mf + cpi * lamp_mf[i]
-                        cpt41_ml = cpt41_ml + cpi * lamp_ml[i]
-                        cpt41_mh = cpt41_mh + cpi * lamp_mh[i]
-                        cpt41_Tb = cpt41_Tb + cpi * lamp_Tb[i]
-                        cpt41_Mi = cpt41_Mi + cpi * lamp_Mi[i]
+                        cpt4_1_pl = cpt4_1_pl + cpi * lamp_pl[i]
+                        cpt4_1_ph = cpt4_1_ph + cpi * lamp_ph[i]
+                        cpt4_1_mf = cpt4_1_mf + cpi * lamp_mf[i]
+                        cpt4_1_ml = cpt4_1_ml + cpi * lamp_ml[i]
+                        cpt4_1_mh = cpt4_1_mh + cpi * lamp_mh[i]
+                        cpt4_1_Tb = cpt4_1_Tb + cpi * lamp_Tb[i]
+                        cpt4_1_Mi = cpt4_1_Mi + cpi * lamp_Mi[i]
 
-                        Rt41_pl = Rt41_pl + Ri * lamp_pl[i]
-                        Rt41_ph = Rt41_ph + Ri * lamp_ph[i]
-                        Rt41_mf = Rt41_mf + Ri * lamp_mf[i]
-                        Rt41_ml = Rt41_ml + Ri * lamp_ml[i]
-                        Rt41_mh = Rt41_mh + Ri * lamp_mh[i]
-                        Rt41_Tb = Rt41_Tb + Ri * lamp_Tb[i]
-                        Rt41_Mi = Rt41_Mi + Ri * lamp_Mi[i]
+                        Rt4_1_pl = Rt4_1_pl + Ri * lamp_pl[i]
+                        Rt4_1_ph = Rt4_1_ph + Ri * lamp_ph[i]
+                        Rt4_1_mf = Rt4_1_mf + Ri * lamp_mf[i]
+                        Rt4_1_ml = Rt4_1_ml + Ri * lamp_ml[i]
+                        Rt4_1_mh = Rt4_1_mh + Ri * lamp_mh[i]
+                        Rt4_1_Tb = Rt4_1_Tb + Ri * lamp_Tb[i]
+                        Rt4_1_Mi = Rt4_1_Mi + Ri * lamp_Mi[i]
                   end
 
                   #----- mixed velocity from momentum equation, assuming constant static pressure
-                  p41 = p4a
-                  p41_pl = p4a_pl
-                  p41_ph = p4a_ph
-                  p41_ml = p4a_ml
-                  p41_mh = p4a_mh
-                  p41_Tb = p4a_Tb
-                  p41_Mi = p4a_Mi
+                  p4_1 = p4a
+                  p4_1_pl = p4a_pl
+                  p4_1_ph = p4a_ph
+                  p4_1_ml = p4a_ml
+                  p4_1_mh = p4a_mh
+                  p4_1_Tb = p4a_Tb
+                  p4_1_Mi = p4a_Mi
 
-                  u41 = frac4 * u4a + fracm * uc
-                  u41_pl = frac4_pl * u4a + frac4 * u4a_pl + fracm_pl * uc + fracm * uc_pl
-                  u41_ph = frac4_ph * u4a + frac4 * u4a_ph + fracm_ph * uc + fracm * uc_ph
-                  u41_mf = frac4_mf * u4a + fracm_mf * uc
-                  u41_ml = frac4_ml * u4a + frac4 * u4a_ml + fracm_ml * uc + fracm * uc_ml
-                  u41_mh = frac4_mh * u4a + frac4 * u4a_mh + fracm_mh * uc + fracm * uc_mh
-                  u41_Tb = frac4_Tb * u4a + frac4 * u4a_Tb + fracm_Tb * uc + fracm * uc_Tb
-                  u41_Mi = frac4_Mi * u4a + fracm_Mi * uc
+                  u4_1 = frac4 * u4a + fracm * uc
+                  u4_1_pl = frac4_pl * u4a + frac4 * u4a_pl + fracm_pl * uc + fracm * uc_pl
+                  u4_1_ph = frac4_ph * u4a + frac4 * u4a_ph + fracm_ph * uc + fracm * uc_ph
+                  u4_1_mf = frac4_mf * u4a + fracm_mf * uc
+                  u4_1_ml = frac4_ml * u4a + frac4 * u4a_ml + fracm_ml * uc + fracm * uc_ml
+                  u4_1_mh = frac4_mh * u4a + frac4 * u4a_mh + fracm_mh * uc + fracm * uc_mh
+                  u4_1_Tb = frac4_Tb * u4a + frac4 * u4a_Tb + fracm_Tb * uc + fracm * uc_Tb
+                  u4_1_Mi = frac4_Mi * u4a + fracm_Mi * uc
 
                   #----- static temperature from static enthalpy
-                  h41 = ht41 - 0.5 * u41^2
-                  h41_pl = ht41_pl - u41 * u41_pl
-                  h41_ph = ht41_ph - u41 * u41_ph
-                  h41_mf = ht41_mf - u41 * u41_mf
-                  h41_ml = ht41_ml - u41 * u41_ml
-                  h41_mh = ht41_mh - u41 * u41_mh
-                  h41_Tb = ht41_Tb - u41 * u41_Tb
-                  h41_Mi = ht41_Mi - u41 * u41_Mi
+                  h4_1 = ht4_1 - 0.5 * u4_1^2
+                  h4_1_pl = ht4_1_pl - u4_1 * u4_1_pl
+                  h4_1_ph = ht4_1_ph - u4_1 * u4_1_ph
+                  h4_1_mf = ht4_1_mf - u4_1 * u4_1_mf
+                  h4_1_ml = ht4_1_ml - u4_1 * u4_1_ml
+                  h4_1_mh = ht4_1_mh - u4_1 * u4_1_mh
+                  h4_1_Tb = ht4_1_Tb - u4_1 * u4_1_Tb
+                  h4_1_Mi = ht4_1_Mi - u4_1 * u4_1_Mi
 
-                  Tguess = t4a + (h41 - h4a) / cp4a
-                  T41, T41_h41, T_al = gas_tsetd(lambdap, nair, h41, Tguess)
-                  T41_pl = T41_h41 * h41_pl
-                  T41_ph = T41_h41 * h41_ph
-                  T41_mf = T41_h41 * h41_mf
-                  T41_ml = T41_h41 * h41_ml
-                  T41_mh = T41_h41 * h41_mh
-                  T41_Tb = T41_h41 * h41_Tb
-                  T41_Mi = T41_h41 * h41_Mi
+                  Tguess = t4a + (h4_1 - h4a) / cp4a
+                  T4_1, T4_1_h4_1, T_al = gas_tsetd(lambdap, nair, h4_1, Tguess)
+                  T4_1_pl = T4_1_h4_1 * h4_1_pl
+                  T4_1_ph = T4_1_h4_1 * h4_1_ph
+                  T4_1_mf = T4_1_h4_1 * h4_1_mf
+                  T4_1_ml = T4_1_h4_1 * h4_1_ml
+                  T4_1_mh = T4_1_h4_1 * h4_1_mh
+                  T4_1_Tb = T4_1_h4_1 * h4_1_Tb
+                  T4_1_Mi = T4_1_h4_1 * h4_1_Mi
                   for i = 1:nair
-                        T41_pl = T41_pl + T_al[i] * lamp_pl[i]
-                        T41_ph = T41_ph + T_al[i] * lamp_ph[i]
-                        T41_mf = T41_mf + T_al[i] * lamp_mf[i]
-                        T41_ml = T41_ml + T_al[i] * lamp_ml[i]
-                        T41_mh = T41_mh + T_al[i] * lamp_mh[i]
-                        T41_Tb = T41_Tb + T_al[i] * lamp_Tb[i]
-                        T41_Mi = T41_Mi + T_al[i] * lamp_Mi[i]
+                        T4_1_pl = T4_1_pl + T_al[i] * lamp_pl[i]
+                        T4_1_ph = T4_1_ph + T_al[i] * lamp_ph[i]
+                        T4_1_mf = T4_1_mf + T_al[i] * lamp_mf[i]
+                        T4_1_ml = T4_1_ml + T_al[i] * lamp_ml[i]
+                        T4_1_mh = T4_1_mh + T_al[i] * lamp_mh[i]
+                        T4_1_Tb = T4_1_Tb + T_al[i] * lamp_Tb[i]
+                        T4_1_Mi = T4_1_Mi + T_al[i] * lamp_Mi[i]
                   end
-                  s41, s41_T41, h41, dum, cp41, R41 = gassum(lambdap, nair, T41)
-                  s41_pl = s41_T41 * T41_pl
-                  s41_ph = s41_T41 * T41_ph
-                  s41_mf = s41_T41 * T41_mf
-                  s41_ml = s41_T41 * T41_ml
-                  s41_mh = s41_T41 * T41_mh
-                  s41_Tb = s41_T41 * T41_Tb
-                  s41_Mi = s41_T41 * T41_Mi
+                  s4_1, s4_1_T4_1, h4_1, dum, cp4_1, R4_1 = gassum(lambdap, nair, T4_1)
+                  s4_1_pl = s4_1_T4_1 * T4_1_pl
+                  s4_1_ph = s4_1_T4_1 * T4_1_ph
+                  s4_1_mf = s4_1_T4_1 * T4_1_mf
+                  s4_1_ml = s4_1_T4_1 * T4_1_ml
+                  s4_1_mh = s4_1_T4_1 * T4_1_mh
+                  s4_1_Tb = s4_1_T4_1 * T4_1_Tb
+                  s4_1_Mi = s4_1_T4_1 * T4_1_Mi
                   for i = 1:nair
-                        si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, T41)
-                        s41_pl = s41_pl + si * lamp_pl[i]
-                        s41_ph = s41_ph + si * lamp_ph[i]
-                        s41_mf = s41_mf + si * lamp_mf[i]
-                        s41_ml = s41_ml + si * lamp_ml[i]
-                        s41_mh = s41_mh + si * lamp_mh[i]
-                        s41_Tb = s41_Tb + si * lamp_Tb[i]
-                        s41_Mi = s41_Mi + si * lamp_Mi[i]
+                        si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, T4_1)
+                        s4_1_pl = s4_1_pl + si * lamp_pl[i]
+                        s4_1_ph = s4_1_ph + si * lamp_ph[i]
+                        s4_1_mf = s4_1_mf + si * lamp_mf[i]
+                        s4_1_ml = s4_1_ml + si * lamp_ml[i]
+                        s4_1_mh = s4_1_mh + si * lamp_mh[i]
+                        s4_1_Tb = s4_1_Tb + si * lamp_Tb[i]
+                        s4_1_Mi = s4_1_Mi + si * lamp_Mi[i]
                   end
 
                   #----- all stagnation quantities, from total-static enthalpy difference
-                  dhb = ht41 - h41
-                  dhb_pl = ht41_pl - h41_pl
-                  dhb_ph = ht41_ph - h41_ph
-                  dhb_mf = ht41_mf - h41_mf
-                  dhb_ml = ht41_ml - h41_ml
-                  dhb_mh = ht41_mh - h41_mh
-                  dhb_Tb = ht41_Tb - h41_Tb
-                  dhb_Mi = ht41_Mi - h41_Mi
+                  dhb = ht4_1 - h4_1
+                  dhb_pl = ht4_1_pl - h4_1_pl
+                  dhb_ph = ht4_1_ph - h4_1_ph
+                  dhb_mf = ht4_1_mf - h4_1_mf
+                  dhb_ml = ht4_1_ml - h4_1_ml
+                  dhb_mh = ht4_1_mh - h4_1_mh
+                  dhb_Tb = ht4_1_Tb - h4_1_Tb
+                  dhb_Mi = ht4_1_Mi - h4_1_Mi
                   epi = 1.0
-                  pt41, Tt41, ht41, st41, cpt41, Rt41,
-                  pt41_s41,
-                  pt41_p41,
+                  pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1,
+                  pt4_1_s4_1,
+                  pt4_1_p4_1,
                   dum,
-                  pt41_h41, Tt41_h41, ht41_h41, st41_h41,
-                  pt41_dhb, Tt41_dhb, ht41_dhb, st41_dhb,
+                  pt4_1_h4_1, Tt4_1_h4_1, ht4_1_h4_1, st4_1_h4_1,
+                  pt4_1_dhb, Tt4_1_dhb, ht4_1_dhb, st4_1_dhb,
                   p_al, T_al, h_al, s_al,
                   cp_al, R_al = gas_delhd(lambdap, nair,
-                        p41, T41, h41, s41, cp41, R41, dhb, epi)
+                        p4_1, T4_1, h4_1, s4_1, cp4_1, R4_1, dhb, epi)
 
-                  pt41_pl = pt41_s41 * s41_pl +
-                            pt41_p41 * p41_pl +
-                            pt41_h41 * h41_pl + pt41_dhb * dhb_pl
+                  pt4_1_pl = pt4_1_s4_1 * s4_1_pl +
+                            pt4_1_p4_1 * p4_1_pl +
+                            pt4_1_h4_1 * h4_1_pl + pt4_1_dhb * dhb_pl
 
-                  pt41_ph = pt41_s41 * s41_ph +
-                            pt41_p41 * p41_ph +
-                            pt41_h41 * h41_ph + pt41_dhb * dhb_ph
+                  pt4_1_ph = pt4_1_s4_1 * s4_1_ph +
+                            pt4_1_p4_1 * p4_1_ph +
+                            pt4_1_h4_1 * h4_1_ph + pt4_1_dhb * dhb_ph
 
-                  pt41_mf = pt41_s41 * s41_mf +
-                            pt41_h41 * h41_mf + pt41_dhb * dhb_mf
+                  pt4_1_mf = pt4_1_s4_1 * s4_1_mf +
+                            pt4_1_h4_1 * h4_1_mf + pt4_1_dhb * dhb_mf
 
-                  pt41_ml = pt41_s41 * s41_ml +
-                            pt41_p41 * p41_ml +
-                            pt41_h41 * h41_ml + pt41_dhb * dhb_ml
+                  pt4_1_ml = pt4_1_s4_1 * s4_1_ml +
+                            pt4_1_p4_1 * p4_1_ml +
+                            pt4_1_h4_1 * h4_1_ml + pt4_1_dhb * dhb_ml
 
-                  pt41_mh = pt41_s41 * s41_mh +
-                            pt41_p41 * p41_mh +
-                            pt41_h41 * h41_mh + pt41_dhb * dhb_mh
+                  pt4_1_mh = pt4_1_s4_1 * s4_1_mh +
+                            pt4_1_p4_1 * p4_1_mh +
+                            pt4_1_h4_1 * h4_1_mh + pt4_1_dhb * dhb_mh
 
-                  pt41_Tb = pt41_s41 * s41_Tb +
-                            pt41_p41 * p41_Tb +
-                            pt41_h41 * h41_Tb + pt41_dhb * dhb_Tb
+                  pt4_1_Tb = pt4_1_s4_1 * s4_1_Tb +
+                            pt4_1_p4_1 * p4_1_Tb +
+                            pt4_1_h4_1 * h4_1_Tb + pt4_1_dhb * dhb_Tb
 
-                  pt41_Mi = pt41_s41 * s41_Mi +
-                            pt41_p41 * p41_Mi +
-                            pt41_h41 * h41_Mi + pt41_dhb * dhb_Mi
+                  pt4_1_Mi = pt4_1_s4_1 * s4_1_Mi +
+                            pt4_1_p4_1 * p4_1_Mi +
+                            pt4_1_h4_1 * h4_1_Mi + pt4_1_dhb * dhb_Mi
 
                   for i = 1:nair
-                        pt41_pl = pt41_pl + p_al[i] * lamp_pl[i]
-                        pt41_ph = pt41_ph + p_al[i] * lamp_ph[i]
-                        pt41_mf = pt41_mf + p_al[i] * lamp_mf[i]
-                        pt41_ml = pt41_ml + p_al[i] * lamp_ml[i]
-                        pt41_mh = pt41_mh + p_al[i] * lamp_mh[i]
-                        pt41_Tb = pt41_Tb + p_al[i] * lamp_Tb[i]
-                        pt41_Mi = pt41_Mi + p_al[i] * lamp_Mi[i]
+                        pt4_1_pl = pt4_1_pl + p_al[i] * lamp_pl[i]
+                        pt4_1_ph = pt4_1_ph + p_al[i] * lamp_ph[i]
+                        pt4_1_mf = pt4_1_mf + p_al[i] * lamp_mf[i]
+                        pt4_1_ml = pt4_1_ml + p_al[i] * lamp_ml[i]
+                        pt4_1_mh = pt4_1_mh + p_al[i] * lamp_mh[i]
+                        pt4_1_Tb = pt4_1_Tb + p_al[i] * lamp_Tb[i]
+                        pt4_1_Mi = pt4_1_Mi + p_al[i] * lamp_Mi[i]
 
                   end
 
@@ -1337,80 +1337,80 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- HPT and LPT work
 
             #---- bypass ratio  (splitter = Splitter() constructed above Newton loop)
-            BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt19c =
-                bypass_ratio(splitter, mf, ml, pt2, pt19c, Tt2, Tt19c)
-            BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt19c * pt19c_mf
-            BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt19c * pt19c_ml
-            BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
+            BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt1_9c =
+                bypass_ratio(splitter, mf, ml, pt2, pt1_9c, Tt2, Tt1_9c)
+            BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt1_9c * pt1_9c_mf
+            BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt1_9c * pt1_9c_ml
+            BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt1_9c * pt1_9c_Mi
 
             #---- HPT work with Jacobian  (shaft_hp = Shaft(epsh, 1.0) constructed above Newton loop)
-            dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht25c =
-                hp_shaft_workd(shaft_hp, fo, ff, ht3, ht25c)
+            dhht, dhht_fo, dhht_ff, dhht_ht3, dhht_ht2_5c =
+                hp_shaft_workd(shaft_hp, fo, ff, ht3, ht2_5c)
 
-            dhht_pl = dhht_ff * ff_pl + dhht_ht3 * ht3_pl + dhht_ht25c * ht25c_pl
+            dhht_pl = dhht_ff * ff_pl + dhht_ht3 * ht3_pl + dhht_ht2_5c * ht2_5c_pl
             dhht_ph = dhht_ff * ff_ph + dhht_ht3 * ht3_ph
             dhht_mf = dhht_ff * ff_mf + dhht_fo * fo_mf
-            dhht_ml = dhht_ff * ff_ml + dhht_fo * fo_ml + dhht_ht3 * ht3_ml + dhht_ht25c * ht25c_ml
+            dhht_ml = dhht_ff * ff_ml + dhht_fo * fo_ml + dhht_ht3 * ht3_ml + dhht_ht2_5c * ht2_5c_ml
             dhht_mh = dhht_ff * ff_mh + dhht_ht3 * ht3_mh
             dhht_Tb = dhht_ff * ff_Tb
             dhht_Mi = dhht_ff * ff_Mi + dhht_fo * fo_Mi
 
             #---- LPT work with Jacobian  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
             dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
-            dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom =
-                lp_shaft_workd(shaft_lp, fo, ff, BPR, ht25, ht19c, ht21, ht2, Pom)
+            dhlt_ht2_5, dhlt_ht1_9c, dhlt_ht2_1, dhlt_ht2, dhlt_Pom =
+                lp_shaft_workd(shaft_lp, fo, ff, BPR, ht2_5, ht1_9c, ht2_1, ht2, Pom)
 
-            dhlt_pf = dhlt_ht21 * ht21_pf
-            dhlt_pl = dhlt_ff * ff_pl + dhlt_ht25 * ht25_pl
+            dhlt_pf = dhlt_ht2_1 * ht2_1_pf
+            dhlt_pl = dhlt_ff * ff_pl + dhlt_ht2_5 * ht2_5_pl
             dhlt_ph = dhlt_ff * ff_ph
             dhlt_mf = dhlt_ff * ff_mf + dhlt_fo * fo_mf +
-                      dhlt_BPR * BPR_mf + dhlt_ht21 * ht21_mf + dhlt_Pom * Pom_mf
+                      dhlt_BPR * BPR_mf + dhlt_ht2_1 * ht2_1_mf + dhlt_Pom * Pom_mf
             dhlt_ml = dhlt_ff * ff_ml + dhlt_fo * fo_ml +
-                      dhlt_BPR * BPR_ml + dhlt_ht25 * ht25_ml + dhlt_Pom * Pom_ml
+                      dhlt_BPR * BPR_ml + dhlt_ht2_5 * ht2_5_ml + dhlt_Pom * Pom_ml
             dhlt_mh = dhlt_ff * ff_mh
             dhlt_Tb = dhlt_ff * ff_Tb
             dhlt_Mi = dhlt_ff * ff_Mi + dhlt_fo * fo_Mi +
                       dhlt_BPR * BPR_Mi + dhlt_Pom * Pom_Mi
 
             #---- HPT corrected mass flow, using LPC corrected mass flow and fuel/air ratio
-            mbht = ml * (1.0 - fo + ff) * sqrt(Tt41 / Tt19c) * pt19c / pt41
-            mbht_ml = (1.0 - fo + ff) * sqrt(Tt41 / Tt19c) * pt19c / pt41
-            mbht_ff = ml * sqrt(Tt41 / Tt19c) * pt19c / pt41
-            mbht_fo = -ml * sqrt(Tt41 / Tt19c) * pt19c / pt41
-            mbht_Tt41 = 0.5 * mbht / Tt41
-            mbht_pt41 = -mbht / pt41
-            mbht_pt19c = ml * (1.0 - fo + ff) * sqrt(Tt41 / Tt19c) / pt41
+            mbht = ml * (1.0 - fo + ff) * sqrt(Tt4_1 / Tt1_9c) * pt1_9c / pt4_1
+            mbht_ml = (1.0 - fo + ff) * sqrt(Tt4_1 / Tt1_9c) * pt1_9c / pt4_1
+            mbht_ff = ml * sqrt(Tt4_1 / Tt1_9c) * pt1_9c / pt4_1
+            mbht_fo = -ml * sqrt(Tt4_1 / Tt1_9c) * pt1_9c / pt4_1
+            mbht_Tt4_1 = 0.5 * mbht / Tt4_1
+            mbht_pt4_1 = -mbht / pt4_1
+            mbht_pt1_9c = ml * (1.0 - fo + ff) * sqrt(Tt4_1 / Tt1_9c) / pt4_1
 
-            mbht_pl = mbht_ff * ff_pl + mbht_Tt41 * Tt41_pl + mbht_pt41 * pt41_pl
-            mbht_ph = mbht_ff * ff_ph + mbht_Tt41 * Tt41_ph + mbht_pt41 * pt41_ph
-            mbht_mf = mbht_ff * ff_mf + mbht_Tt41 * Tt41_mf + mbht_pt41 * pt41_mf +
-                      mbht_fo * fo_mf + mbht_pt19c * pt19c_mf
-            mbht_ml = mbht_ff * ff_ml + mbht_Tt41 * Tt41_ml + mbht_pt41 * pt41_ml +
-                      mbht_fo * fo_ml + mbht_pt19c * pt19c_ml + mbht_ml
-            mbht_mh = mbht_ff * ff_mh + mbht_Tt41 * Tt41_mh + mbht_pt41 * pt41_mh
-            mbht_Tb = mbht_ff * ff_Tb + mbht_Tt41 * Tt41_Tb + mbht_pt41 * pt41_Tb
-            mbht_Mi = mbht_ff * ff_Mi + mbht_Tt41 * Tt41_Mi + mbht_pt41 * pt41_Mi +
-                      mbht_fo * fo_Mi + mbht_pt19c * pt19c_Mi
+            mbht_pl = mbht_ff * ff_pl + mbht_Tt4_1 * Tt4_1_pl + mbht_pt4_1 * pt4_1_pl
+            mbht_ph = mbht_ff * ff_ph + mbht_Tt4_1 * Tt4_1_ph + mbht_pt4_1 * pt4_1_ph
+            mbht_mf = mbht_ff * ff_mf + mbht_Tt4_1 * Tt4_1_mf + mbht_pt4_1 * pt4_1_mf +
+                      mbht_fo * fo_mf + mbht_pt1_9c * pt1_9c_mf
+            mbht_ml = mbht_ff * ff_ml + mbht_Tt4_1 * Tt4_1_ml + mbht_pt4_1 * pt4_1_ml +
+                      mbht_fo * fo_ml + mbht_pt1_9c * pt1_9c_ml + mbht_ml
+            mbht_mh = mbht_ff * ff_mh + mbht_Tt4_1 * Tt4_1_mh + mbht_pt4_1 * pt4_1_mh
+            mbht_Tb = mbht_ff * ff_Tb + mbht_Tt4_1 * Tt4_1_Tb + mbht_pt4_1 * pt4_1_Tb
+            mbht_Mi = mbht_ff * ff_Mi + mbht_Tt4_1 * Tt4_1_Mi + mbht_pt4_1 * pt4_1_Mi +
+                      mbht_fo * fo_Mi + mbht_pt1_9c * pt1_9c_Mi
 
             #---- HPT corrected speed
-            Nbht = Nh * sqrt(Tt25c / Tt41)
-            Nbht_Nh = sqrt(Tt25c / Tt41)
-            Nbht_Tt25c = 0.5 * Nbht / Tt25c
-            Nbht_Tt41 = -0.5 * Nbht / Tt41
+            Nbht = Nh * sqrt(Tt2_5c / Tt4_1)
+            Nbht_Nh = sqrt(Tt2_5c / Tt4_1)
+            Nbht_Tt2_5c = 0.5 * Nbht / Tt2_5c
+            Nbht_Tt4_1 = -0.5 * Nbht / Tt4_1
 
-            Nbht_pl = Nbht_Tt25c * Tt25c_pl + Nbht_Tt41 * Tt41_pl
-            Nbht_ph = Nbht_Nh * Nh_ph + Nbht_Tt41 * Tt41_ph
-            Nbht_mf = Nbht_Tt41 * Tt41_mf
-            Nbht_ml = Nbht_Tt25c * Tt25c_ml + Nbht_Tt41 * Tt41_ml
-            Nbht_mh = Nbht_Nh * Nh_mh + Nbht_Tt41 * Tt41_mh
-            Nbht_Tb = Nbht_Tt41 * Tt41_Tb
-            Nbht_Mi = Nbht_Tt41 * Tt41_Mi
+            Nbht_pl = Nbht_Tt2_5c * Tt2_5c_pl + Nbht_Tt4_1 * Tt4_1_pl
+            Nbht_ph = Nbht_Nh * Nh_ph + Nbht_Tt4_1 * Tt4_1_ph
+            Nbht_mf = Nbht_Tt4_1 * Tt4_1_mf
+            Nbht_ml = Nbht_Tt2_5c * Tt2_5c_ml + Nbht_Tt4_1 * Tt4_1_ml
+            Nbht_mh = Nbht_Nh * Nh_mh + Nbht_Tt4_1 * Tt4_1_mh
+            Nbht_Tb = Nbht_Tt4_1 * Tt4_1_Tb
+            Nbht_Mi = Nbht_Tt4_1 * Tt4_1_Mi
 
             #---- HPT efficiency
             # HACK: HSC
             #First find uncooled HPT efficiency and derivatives
-            epht1, epht1_dhht, epht1_mbht, epht1_Nbht, epht1_Tt41,
-            epht1_cpt41, epht1_Rt41 = turbine_efficiency(turb_hp, dhht, mbht, Nbht, Tt41, cpt41, Rt41)
+            epht1, epht1_dhht, epht1_mbht, epht1_Nbht, epht1_Tt4_1,
+            epht1_cpt4_1, epht1_Rt4_1 = turbine_efficiency(turb_hp, dhht, mbht, Nbht, Tt4_1, cpt4_1, Rt4_1)
 
             #Find cooled HPT efficiency epht
             epht = find_cooled_hpt_efficiency(epht1, epht_fc, fc0, fc)
@@ -1420,9 +1420,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   epht1_dhht = 0.0
                   epht1_mbht = 0.0
                   epht1_Nbht = 0.0
-                  epht1_Tt41 = 0.0
-                  epht1_cpt41 = 0.0
-                  epht1_Rt41 = 0.0
+                  epht1_Tt4_1 = 0.0
+                  epht1_cpt4_1 = 0.0
+                  epht1_Rt4_1 = 0.0
             end
 
             epht1_pl = epht1_dhht * dhht_pl + epht1_mbht * mbht_pl + epht1_Nbht * Nbht_pl
@@ -1433,20 +1433,20 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             epht1_Tb = epht1_dhht * dhht_Tb + epht1_mbht * mbht_Tb + epht1_Nbht * Nbht_Tb
             epht1_Mi = epht1_dhht * dhht_Mi + epht1_mbht * mbht_Mi + epht1_Nbht * Nbht_Mi
 
-            epht1_pl = epht1_Tt41 * Tt41_pl + epht1_cpt41 * cpt41_pl +
-                      epht1_Rt41 * Rt41_pl + epht1_pl
-            epht1_ph = epht1_Tt41 * Tt41_ph + epht1_cpt41 * cpt41_ph +
-                      epht1_Rt41 * Rt41_ph + epht1_ph
-            epht1_mf = epht1_Tt41 * Tt41_mf + epht1_cpt41 * cpt41_mf +
-                      epht1_Rt41 * Rt41_mf + epht1_mf
-            epht1_ml = epht1_Tt41 * Tt41_ml + epht1_cpt41 * cpt41_ml +
-                      epht1_Rt41 * Rt41_ml + epht1_ml
-            epht1_mh = epht1_Tt41 * Tt41_mh + epht1_cpt41 * cpt41_mh +
-                      epht1_Rt41 * Rt41_mh + epht1_mh
-            epht1_Tb = epht1_Tt41 * Tt41_Tb + epht1_cpt41 * cpt41_Tb +
-                      epht1_Rt41 * Rt41_Tb + epht1_Tb
-            epht1_Mi = epht1_Tt41 * Tt41_Mi + epht1_cpt41 * cpt41_Mi +
-                      epht1_Rt41 * Rt41_Mi + epht1_Mi
+            epht1_pl = epht1_Tt4_1 * Tt4_1_pl + epht1_cpt4_1 * cpt4_1_pl +
+                      epht1_Rt4_1 * Rt4_1_pl + epht1_pl
+            epht1_ph = epht1_Tt4_1 * Tt4_1_ph + epht1_cpt4_1 * cpt4_1_ph +
+                      epht1_Rt4_1 * Rt4_1_ph + epht1_ph
+            epht1_mf = epht1_Tt4_1 * Tt4_1_mf + epht1_cpt4_1 * cpt4_1_mf +
+                      epht1_Rt4_1 * Rt4_1_mf + epht1_mf
+            epht1_ml = epht1_Tt4_1 * Tt4_1_ml + epht1_cpt4_1 * cpt4_1_ml +
+                      epht1_Rt4_1 * Rt4_1_ml + epht1_ml
+            epht1_mh = epht1_Tt4_1 * Tt4_1_mh + epht1_cpt4_1 * cpt4_1_mh +
+                      epht1_Rt4_1 * Rt4_1_mh + epht1_mh
+            epht1_Tb = epht1_Tt4_1 * Tt4_1_Tb + epht1_cpt4_1 * cpt4_1_Tb +
+                      epht1_Rt4_1 * Rt4_1_Tb + epht1_Tb
+            epht1_Mi = epht1_Tt4_1 * Tt4_1_Mi + epht1_cpt4_1 * cpt4_1_Mi +
+                      epht1_Rt4_1 * Rt4_1_Mi + epht1_Mi
 
             #Chain rule for HPT efficiency derivatives
             epht_pl = epht1_pl + epht_fc * fc_pl
@@ -1457,195 +1457,195 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             epht_Tb = epht1_Tb + epht_fc * fc_Tb
             epht_Mi = epht1_Mi + epht_fc * fc_Mi
            
-            #---- HPT work to determine station 45
-            pt45, Tt45, ht45, st45, cpt45, Rt45,
-            pt45_pt41, pt45_st41,
-            pt45_ht41, Tt45_ht41, ht45_ht41, st45_ht41,
-            pt45_dhht, Tt45_dhht, ht45_dhht, st45_dhht,
-            pt45_epht,
+            #---- HPT work to determine station 4.5
+            pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5,
+            pt4_5_pt4_1, pt4_5_st4_1,
+            pt4_5_ht4_1, Tt4_5_ht4_1, ht4_5_ht4_1, st4_5_ht4_1,
+            pt4_5_dhht, Tt4_5_dhht, ht4_5_dhht, st4_5_dhht,
+            pt4_5_epht,
             p_al, T_al, h_al, s_al = turbine_delhd(lambdap, nair,
-                  pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epht)
+                  pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1, dhht, epht)
 
-            pt45_pl = pt45_st41 * st41_pl +
-                      pt45_pt41 * pt41_pl +
-                      pt45_epht * epht_pl +
-                      pt45_ht41 * ht41_pl + pt45_dhht * dhht_pl
-            Tt45_pl = Tt45_ht41 * ht41_pl + Tt45_dhht * dhht_pl
-            ht45_pl = ht45_ht41 * ht41_pl + ht45_dhht * dhht_pl
-            st45_pl = st45_ht41 * ht41_pl + st45_dhht * dhht_pl
+            pt4_5_pl = pt4_5_st4_1 * st4_1_pl +
+                      pt4_5_pt4_1 * pt4_1_pl +
+                      pt4_5_epht * epht_pl +
+                      pt4_5_ht4_1 * ht4_1_pl + pt4_5_dhht * dhht_pl
+            Tt4_5_pl = Tt4_5_ht4_1 * ht4_1_pl + Tt4_5_dhht * dhht_pl
+            ht4_5_pl = ht4_5_ht4_1 * ht4_1_pl + ht4_5_dhht * dhht_pl
+            st4_5_pl = st4_5_ht4_1 * ht4_1_pl + st4_5_dhht * dhht_pl
 
-            pt45_ph = pt45_st41 * st41_ph +
-                      pt45_pt41 * pt41_ph +
-                      pt45_epht * epht_ph +
-                      pt45_ht41 * ht41_ph + pt45_dhht * dhht_ph
-            Tt45_ph = Tt45_ht41 * ht41_ph + Tt45_dhht * dhht_ph
-            ht45_ph = ht45_ht41 * ht41_ph + ht45_dhht * dhht_ph
-            st45_ph = st45_ht41 * ht41_ph + st45_dhht * dhht_ph
+            pt4_5_ph = pt4_5_st4_1 * st4_1_ph +
+                      pt4_5_pt4_1 * pt4_1_ph +
+                      pt4_5_epht * epht_ph +
+                      pt4_5_ht4_1 * ht4_1_ph + pt4_5_dhht * dhht_ph
+            Tt4_5_ph = Tt4_5_ht4_1 * ht4_1_ph + Tt4_5_dhht * dhht_ph
+            ht4_5_ph = ht4_5_ht4_1 * ht4_1_ph + ht4_5_dhht * dhht_ph
+            st4_5_ph = st4_5_ht4_1 * ht4_1_ph + st4_5_dhht * dhht_ph
 
-            pt45_mf = pt45_st41 * st41_mf +
-                      pt45_pt41 * pt41_mf +
-                      pt45_epht * epht_mf +
-                      pt45_ht41 * ht41_mf + pt45_dhht * dhht_mf
-            Tt45_mf = Tt45_ht41 * ht41_mf + Tt45_dhht * dhht_mf
-            ht45_mf = ht45_ht41 * ht41_mf + ht45_dhht * dhht_mf
-            st45_mf = st45_ht41 * ht41_mf + st45_dhht * dhht_mf
+            pt4_5_mf = pt4_5_st4_1 * st4_1_mf +
+                      pt4_5_pt4_1 * pt4_1_mf +
+                      pt4_5_epht * epht_mf +
+                      pt4_5_ht4_1 * ht4_1_mf + pt4_5_dhht * dhht_mf
+            Tt4_5_mf = Tt4_5_ht4_1 * ht4_1_mf + Tt4_5_dhht * dhht_mf
+            ht4_5_mf = ht4_5_ht4_1 * ht4_1_mf + ht4_5_dhht * dhht_mf
+            st4_5_mf = st4_5_ht4_1 * ht4_1_mf + st4_5_dhht * dhht_mf
 
-            pt45_ml = pt45_st41 * st41_ml +
-                      pt45_pt41 * pt41_ml +
-                      pt45_epht * epht_ml +
-                      pt45_ht41 * ht41_ml + pt45_dhht * dhht_ml
-            Tt45_ml = Tt45_ht41 * ht41_ml + Tt45_dhht * dhht_ml
-            ht45_ml = ht45_ht41 * ht41_ml + ht45_dhht * dhht_ml
-            st45_ml = st45_ht41 * ht41_ml + st45_dhht * dhht_ml
+            pt4_5_ml = pt4_5_st4_1 * st4_1_ml +
+                      pt4_5_pt4_1 * pt4_1_ml +
+                      pt4_5_epht * epht_ml +
+                      pt4_5_ht4_1 * ht4_1_ml + pt4_5_dhht * dhht_ml
+            Tt4_5_ml = Tt4_5_ht4_1 * ht4_1_ml + Tt4_5_dhht * dhht_ml
+            ht4_5_ml = ht4_5_ht4_1 * ht4_1_ml + ht4_5_dhht * dhht_ml
+            st4_5_ml = st4_5_ht4_1 * ht4_1_ml + st4_5_dhht * dhht_ml
 
-            pt45_mh = pt45_st41 * st41_mh +
-                      pt45_pt41 * pt41_mh +
-                      pt45_epht * epht_mh +
-                      pt45_ht41 * ht41_mh + pt45_dhht * dhht_mh
-            Tt45_mh = Tt45_ht41 * ht41_mh + Tt45_dhht * dhht_mh
-            ht45_mh = ht45_ht41 * ht41_mh + ht45_dhht * dhht_mh
-            st45_mh = st45_ht41 * ht41_mh + st45_dhht * dhht_mh
+            pt4_5_mh = pt4_5_st4_1 * st4_1_mh +
+                      pt4_5_pt4_1 * pt4_1_mh +
+                      pt4_5_epht * epht_mh +
+                      pt4_5_ht4_1 * ht4_1_mh + pt4_5_dhht * dhht_mh
+            Tt4_5_mh = Tt4_5_ht4_1 * ht4_1_mh + Tt4_5_dhht * dhht_mh
+            ht4_5_mh = ht4_5_ht4_1 * ht4_1_mh + ht4_5_dhht * dhht_mh
+            st4_5_mh = st4_5_ht4_1 * ht4_1_mh + st4_5_dhht * dhht_mh
 
-            pt45_Tb = pt45_st41 * st41_Tb +
-                      pt45_pt41 * pt41_Tb +
-                      pt45_epht * epht_Tb +
-                      pt45_ht41 * ht41_Tb + pt45_dhht * dhht_Tb
-            Tt45_Tb = Tt45_ht41 * ht41_Tb + Tt45_dhht * dhht_Tb
-            ht45_Tb = ht45_ht41 * ht41_Tb + ht45_dhht * dhht_Tb
-            st45_Tb = st45_ht41 * ht41_Tb + st45_dhht * dhht_Tb
+            pt4_5_Tb = pt4_5_st4_1 * st4_1_Tb +
+                      pt4_5_pt4_1 * pt4_1_Tb +
+                      pt4_5_epht * epht_Tb +
+                      pt4_5_ht4_1 * ht4_1_Tb + pt4_5_dhht * dhht_Tb
+            Tt4_5_Tb = Tt4_5_ht4_1 * ht4_1_Tb + Tt4_5_dhht * dhht_Tb
+            ht4_5_Tb = ht4_5_ht4_1 * ht4_1_Tb + ht4_5_dhht * dhht_Tb
+            st4_5_Tb = st4_5_ht4_1 * ht4_1_Tb + st4_5_dhht * dhht_Tb
 
-            pt45_Mi = pt45_st41 * st41_Mi +
-                      pt45_pt41 * pt41_Mi +
-                      pt45_epht * epht_Mi +
-                      pt45_ht41 * ht41_Mi + pt45_dhht * dhht_Mi
-            Tt45_Mi = Tt45_ht41 * ht41_Mi + Tt45_dhht * dhht_Mi
-            ht45_Mi = ht45_ht41 * ht41_Mi + ht45_dhht * dhht_Mi
-            st45_Mi = st45_ht41 * ht41_Mi + st45_dhht * dhht_Mi
+            pt4_5_Mi = pt4_5_st4_1 * st4_1_Mi +
+                      pt4_5_pt4_1 * pt4_1_Mi +
+                      pt4_5_epht * epht_Mi +
+                      pt4_5_ht4_1 * ht4_1_Mi + pt4_5_dhht * dhht_Mi
+            Tt4_5_Mi = Tt4_5_ht4_1 * ht4_1_Mi + Tt4_5_dhht * dhht_Mi
+            ht4_5_Mi = ht4_5_ht4_1 * ht4_1_Mi + ht4_5_dhht * dhht_Mi
+            st4_5_Mi = st4_5_ht4_1 * ht4_1_Mi + st4_5_dhht * dhht_Mi
 
 
             for i = 1:nair
-                  pt45_pl = pt45_pl + p_al[i] * lamp_pl[i]
-                  Tt45_pl = Tt45_pl + T_al[i] * lamp_pl[i]
-                  ht45_pl = ht45_pl + h_al[i] * lamp_pl[i]
-                  st45_pl = st45_pl + s_al[i] * lamp_pl[i]
+                  pt4_5_pl = pt4_5_pl + p_al[i] * lamp_pl[i]
+                  Tt4_5_pl = Tt4_5_pl + T_al[i] * lamp_pl[i]
+                  ht4_5_pl = ht4_5_pl + h_al[i] * lamp_pl[i]
+                  st4_5_pl = st4_5_pl + s_al[i] * lamp_pl[i]
 
-                  pt45_ph = pt45_ph + p_al[i] * lamp_ph[i]
-                  Tt45_ph = Tt45_ph + T_al[i] * lamp_ph[i]
-                  ht45_ph = ht45_ph + h_al[i] * lamp_ph[i]
-                  st45_ph = st45_ph + s_al[i] * lamp_ph[i]
+                  pt4_5_ph = pt4_5_ph + p_al[i] * lamp_ph[i]
+                  Tt4_5_ph = Tt4_5_ph + T_al[i] * lamp_ph[i]
+                  ht4_5_ph = ht4_5_ph + h_al[i] * lamp_ph[i]
+                  st4_5_ph = st4_5_ph + s_al[i] * lamp_ph[i]
 
-                  pt45_mf = pt45_mf + p_al[i] * lamp_mf[i]
-                  Tt45_mf = Tt45_mf + T_al[i] * lamp_mf[i]
-                  ht45_mf = ht45_mf + h_al[i] * lamp_mf[i]
-                  st45_mf = st45_mf + s_al[i] * lamp_mf[i]
+                  pt4_5_mf = pt4_5_mf + p_al[i] * lamp_mf[i]
+                  Tt4_5_mf = Tt4_5_mf + T_al[i] * lamp_mf[i]
+                  ht4_5_mf = ht4_5_mf + h_al[i] * lamp_mf[i]
+                  st4_5_mf = st4_5_mf + s_al[i] * lamp_mf[i]
 
-                  pt45_ml = pt45_ml + p_al[i] * lamp_ml[i]
-                  Tt45_ml = Tt45_ml + T_al[i] * lamp_ml[i]
-                  ht45_ml = ht45_ml + h_al[i] * lamp_ml[i]
-                  st45_ml = st45_ml + s_al[i] * lamp_ml[i]
+                  pt4_5_ml = pt4_5_ml + p_al[i] * lamp_ml[i]
+                  Tt4_5_ml = Tt4_5_ml + T_al[i] * lamp_ml[i]
+                  ht4_5_ml = ht4_5_ml + h_al[i] * lamp_ml[i]
+                  st4_5_ml = st4_5_ml + s_al[i] * lamp_ml[i]
 
-                  pt45_mh = pt45_mh + p_al[i] * lamp_mh[i]
-                  Tt45_mh = Tt45_mh + T_al[i] * lamp_mh[i]
-                  ht45_mh = ht45_mh + h_al[i] * lamp_mh[i]
-                  st45_mh = st45_mh + s_al[i] * lamp_mh[i]
+                  pt4_5_mh = pt4_5_mh + p_al[i] * lamp_mh[i]
+                  Tt4_5_mh = Tt4_5_mh + T_al[i] * lamp_mh[i]
+                  ht4_5_mh = ht4_5_mh + h_al[i] * lamp_mh[i]
+                  st4_5_mh = st4_5_mh + s_al[i] * lamp_mh[i]
 
-                  pt45_Tb = pt45_Tb + p_al[i] * lamp_Tb[i]
-                  Tt45_Tb = Tt45_Tb + T_al[i] * lamp_Tb[i]
-                  ht45_Tb = ht45_Tb + h_al[i] * lamp_Tb[i]
-                  st45_Tb = st45_Tb + s_al[i] * lamp_Tb[i]
+                  pt4_5_Tb = pt4_5_Tb + p_al[i] * lamp_Tb[i]
+                  Tt4_5_Tb = Tt4_5_Tb + T_al[i] * lamp_Tb[i]
+                  ht4_5_Tb = ht4_5_Tb + h_al[i] * lamp_Tb[i]
+                  st4_5_Tb = st4_5_Tb + s_al[i] * lamp_Tb[i]
 
-                  pt45_Mi = pt45_Mi + p_al[i] * lamp_Mi[i]
-                  Tt45_Mi = Tt45_Mi + T_al[i] * lamp_Mi[i]
-                  ht45_Mi = ht45_Mi + h_al[i] * lamp_Mi[i]
-                  st45_Mi = st45_Mi + s_al[i] * lamp_Mi[i]
+                  pt4_5_Mi = pt4_5_Mi + p_al[i] * lamp_Mi[i]
+                  Tt4_5_Mi = Tt4_5_Mi + T_al[i] * lamp_Mi[i]
+                  ht4_5_Mi = ht4_5_Mi + h_al[i] * lamp_Mi[i]
+                  st4_5_Mi = st4_5_Mi + s_al[i] * lamp_Mi[i]
             end
 
-            #---- will also need cpt45,Rt45 derivatives
-            st45, st45_Tt45,
-            ht45, ht45_Tt45,
-            cpt45, cpt45_Tt45, Rt45 = gassumd(lambdap, nair, Tt45)
-            cpt45_pl = cpt45_Tt45 * Tt45_pl
-            cpt45_ph = cpt45_Tt45 * Tt45_ph
-            cpt45_mf = cpt45_Tt45 * Tt45_mf
-            cpt45_ml = cpt45_Tt45 * Tt45_ml
-            cpt45_mh = cpt45_Tt45 * Tt45_mh
-            cpt45_Tb = cpt45_Tt45 * Tt45_Tb
-            cpt45_Mi = cpt45_Tt45 * Tt45_Mi
+            #---- will also need cpt4_5,Rt4_5 derivatives
+            st4_5, st4_5_Tt4_5,
+            ht4_5, ht4_5_Tt4_5,
+            cpt4_5, cpt4_5_Tt4_5, Rt4_5 = gassumd(lambdap, nair, Tt4_5)
+            cpt4_5_pl = cpt4_5_Tt4_5 * Tt4_5_pl
+            cpt4_5_ph = cpt4_5_Tt4_5 * Tt4_5_ph
+            cpt4_5_mf = cpt4_5_Tt4_5 * Tt4_5_mf
+            cpt4_5_ml = cpt4_5_Tt4_5 * Tt4_5_ml
+            cpt4_5_mh = cpt4_5_Tt4_5 * Tt4_5_mh
+            cpt4_5_Tb = cpt4_5_Tt4_5 * Tt4_5_Tb
+            cpt4_5_Mi = cpt4_5_Tt4_5 * Tt4_5_Mi
 
-            Rt45_pl = 0.0
-            Rt45_ph = 0.0
-            Rt45_mf = 0.0
-            Rt45_ml = 0.0
-            Rt45_mh = 0.0
-            Rt45_Tb = 0.0
-            Rt45_Mi = 0.0
+            Rt4_5_pl = 0.0
+            Rt4_5_ph = 0.0
+            Rt4_5_mf = 0.0
+            Rt4_5_ml = 0.0
+            Rt4_5_mh = 0.0
+            Rt4_5_Tb = 0.0
+            Rt4_5_Mi = 0.0
             for i = 1:nair
-                  si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, Tt45)
-                  cpt45_pl = cpt45_pl + cpi * lamp_pl[i]
-                  cpt45_ph = cpt45_ph + cpi * lamp_ph[i]
-                  cpt45_mf = cpt45_mf + cpi * lamp_mf[i]
-                  cpt45_ml = cpt45_ml + cpi * lamp_ml[i]
-                  cpt45_mh = cpt45_mh + cpi * lamp_mh[i]
-                  cpt45_Tb = cpt45_Tb + cpi * lamp_Tb[i]
-                  cpt45_Mi = cpt45_Mi + cpi * lamp_Mi[i]
+                  si, s_ti, hi, h_ti, cpi, Ri = gasfun(i, Tt4_5)
+                  cpt4_5_pl = cpt4_5_pl + cpi * lamp_pl[i]
+                  cpt4_5_ph = cpt4_5_ph + cpi * lamp_ph[i]
+                  cpt4_5_mf = cpt4_5_mf + cpi * lamp_mf[i]
+                  cpt4_5_ml = cpt4_5_ml + cpi * lamp_ml[i]
+                  cpt4_5_mh = cpt4_5_mh + cpi * lamp_mh[i]
+                  cpt4_5_Tb = cpt4_5_Tb + cpi * lamp_Tb[i]
+                  cpt4_5_Mi = cpt4_5_Mi + cpi * lamp_Mi[i]
 
-                  Rt45_pl = Rt45_pl + Ri * lamp_pl[i]
-                  Rt45_ph = Rt45_ph + Ri * lamp_ph[i]
-                  Rt45_mf = Rt45_mf + Ri * lamp_mf[i]
-                  Rt45_ml = Rt45_ml + Ri * lamp_ml[i]
-                  Rt45_mh = Rt45_mh + Ri * lamp_mh[i]
-                  Rt45_Tb = Rt45_Tb + Ri * lamp_Tb[i]
-                  Rt45_Mi = Rt45_Mi + Ri * lamp_Mi[i]
+                  Rt4_5_pl = Rt4_5_pl + Ri * lamp_pl[i]
+                  Rt4_5_ph = Rt4_5_ph + Ri * lamp_ph[i]
+                  Rt4_5_mf = Rt4_5_mf + Ri * lamp_mf[i]
+                  Rt4_5_ml = Rt4_5_ml + Ri * lamp_ml[i]
+                  Rt4_5_mh = Rt4_5_mh + Ri * lamp_mh[i]
+                  Rt4_5_Tb = Rt4_5_Tb + Ri * lamp_Tb[i]
+                  Rt4_5_Mi = Rt4_5_Mi + Ri * lamp_Mi[i]
             end
 
 
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             #---- LPT corrected mass flow (in terms of Newton variables)
-            mblt = ml * (1.0 - fo + ff) * sqrt(Tt45 / Tt19c) * pt19c / pt45
-            mblt_ml = (1.0 - fo + ff) * sqrt(Tt45 / Tt19c) * pt19c / pt45
-            mblt_ff = ml * sqrt(Tt45 / Tt19c) * pt19c / pt45
-            mblt_fo = -ml * sqrt(Tt45 / Tt19c) * pt19c / pt45
-            mblt_Tt45 = 0.5 * mblt / Tt45
-            mblt_pt45 = -mblt / pt45
-            mblt_pt19c = ml * (1.0 - fo + ff) * sqrt(Tt45 / Tt19c) / pt45
+            mblt = ml * (1.0 - fo + ff) * sqrt(Tt4_5 / Tt1_9c) * pt1_9c / pt4_5
+            mblt_ml = (1.0 - fo + ff) * sqrt(Tt4_5 / Tt1_9c) * pt1_9c / pt4_5
+            mblt_ff = ml * sqrt(Tt4_5 / Tt1_9c) * pt1_9c / pt4_5
+            mblt_fo = -ml * sqrt(Tt4_5 / Tt1_9c) * pt1_9c / pt4_5
+            mblt_Tt4_5 = 0.5 * mblt / Tt4_5
+            mblt_pt4_5 = -mblt / pt4_5
+            mblt_pt1_9c = ml * (1.0 - fo + ff) * sqrt(Tt4_5 / Tt1_9c) / pt4_5
 
-            mblt_pl = mblt_ff * ff_pl + mblt_Tt45 * Tt45_pl + mblt_pt45 * pt45_pl
-            mblt_ph = mblt_ff * ff_ph + mblt_Tt45 * Tt45_ph + mblt_pt45 * pt45_ph
-            mblt_mf = mblt_ff * ff_mf + mblt_Tt45 * Tt45_mf + mblt_pt45 * pt45_mf +
-                      mblt_fo * fo_mf + mblt_pt19c * pt19c_mf
-            mblt_ml = mblt_ff * ff_ml + mblt_Tt45 * Tt45_ml + mblt_pt45 * pt45_ml +
-                      mblt_fo * fo_ml + mblt_pt19c * pt19c_ml + mblt_ml
-            mblt_mh = mblt_ff * ff_mh + mblt_Tt45 * Tt45_mh + mblt_pt45 * pt45_mh
-            mblt_Tb = mblt_ff * ff_Tb + mblt_Tt45 * Tt45_Tb + mblt_pt45 * pt45_Tb
-            mblt_Mi = mblt_ff * ff_Mi + mblt_Tt45 * Tt45_Mi + mblt_pt45 * pt45_Mi +
-                      mblt_fo * fo_Mi + mblt_pt19c * pt19c_Mi
+            mblt_pl = mblt_ff * ff_pl + mblt_Tt4_5 * Tt4_5_pl + mblt_pt4_5 * pt4_5_pl
+            mblt_ph = mblt_ff * ff_ph + mblt_Tt4_5 * Tt4_5_ph + mblt_pt4_5 * pt4_5_ph
+            mblt_mf = mblt_ff * ff_mf + mblt_Tt4_5 * Tt4_5_mf + mblt_pt4_5 * pt4_5_mf +
+                      mblt_fo * fo_mf + mblt_pt1_9c * pt1_9c_mf
+            mblt_ml = mblt_ff * ff_ml + mblt_Tt4_5 * Tt4_5_ml + mblt_pt4_5 * pt4_5_ml +
+                      mblt_fo * fo_ml + mblt_pt1_9c * pt1_9c_ml + mblt_ml
+            mblt_mh = mblt_ff * ff_mh + mblt_Tt4_5 * Tt4_5_mh + mblt_pt4_5 * pt4_5_mh
+            mblt_Tb = mblt_ff * ff_Tb + mblt_Tt4_5 * Tt4_5_Tb + mblt_pt4_5 * pt4_5_Tb
+            mblt_Mi = mblt_ff * ff_Mi + mblt_Tt4_5 * Tt4_5_Mi + mblt_pt4_5 * pt4_5_Mi +
+                      mblt_fo * fo_Mi + mblt_pt1_9c * pt1_9c_Mi
 
             #---- LPT corrected speed
-            Nblt = Nl * sqrt(Tt19c / Tt45)
-            Nblt_Nl = sqrt(Tt19c / Tt45)
-            Nblt_Tt45 = -0.5 * Nblt / Tt45
+            Nblt = Nl * sqrt(Tt1_9c / Tt4_5)
+            Nblt_Nl = sqrt(Tt1_9c / Tt4_5)
+            Nblt_Tt4_5 = -0.5 * Nblt / Tt4_5
 
-            Nblt_pl = Nblt_Nl * Nl_pl + Nblt_Tt45 * Tt45_pl
-            Nblt_ph = Nblt_Tt45 * Tt45_ph
-            Nblt_mf = Nblt_Tt45 * Tt45_mf
-            Nblt_ml = Nblt_Nl * Nl_ml + Nblt_Tt45 * Tt45_ml
-            Nblt_mh = Nblt_Tt45 * Tt45_mh
-            Nblt_Tb = Nblt_Tt45 * Tt45_Tb
-            Nblt_Mi = Nblt_Tt45 * Tt45_Mi
+            Nblt_pl = Nblt_Nl * Nl_pl + Nblt_Tt4_5 * Tt4_5_pl
+            Nblt_ph = Nblt_Tt4_5 * Tt4_5_ph
+            Nblt_mf = Nblt_Tt4_5 * Tt4_5_mf
+            Nblt_ml = Nblt_Nl * Nl_ml + Nblt_Tt4_5 * Tt4_5_ml
+            Nblt_mh = Nblt_Tt4_5 * Tt4_5_mh
+            Nblt_Tb = Nblt_Tt4_5 * Tt4_5_Tb
+            Nblt_Mi = Nblt_Tt4_5 * Tt4_5_Mi
 
             #---- LPT efficiency
             eplt,
             eplt_dhlt, eplt_mblt, eplt_Nblt,
-            eplt_Tt45, eplt_cpt45, eplt_Rt45 = turbine_efficiency(turb_lp, dhlt, mblt, Nblt, Tt45, cpt45, Rt45)
+            eplt_Tt4_5, eplt_cpt4_5, eplt_Rt4_5 = turbine_efficiency(turb_lp, dhlt, mblt, Nblt, Tt4_5, cpt4_5, Rt4_5)
 
             if (eplt < 0.80)
                   eplt = 0.80
                   eplt_dhlt = 0.0
                   eplt_mblt = 0.0
                   eplt_Nblt = 0.0
-                  eplt_Tt45 = 0.0
-                  eplt_cpt45 = 0.0
-                  eplt_Rt45 = 0.0
+                  eplt_Tt4_5 = 0.0
+                  eplt_cpt4_5 = 0.0
+                  eplt_Rt4_5 = 0.0
             end
 
             eplt_pf = eplt_dhlt * dhlt_pf
@@ -1657,256 +1657,256 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             eplt_Tb = eplt_dhlt * dhlt_Tb + eplt_mblt * mblt_Tb + eplt_Nblt * Nblt_Tb
             eplt_Mi = eplt_dhlt * dhlt_Mi + eplt_mblt * mblt_Mi + eplt_Nblt * Nblt_Mi
 
-            eplt_pl = eplt_Tt45 * Tt45_pl + eplt_cpt45 * cpt45_pl +
-                      eplt_Rt45 * Rt45_pl + eplt_pl
-            eplt_ph = eplt_Tt45 * Tt45_ph + eplt_cpt45 * cpt45_ph +
-                      eplt_Rt45 * Rt45_ph + eplt_ph
-            eplt_mf = eplt_Tt45 * Tt45_mf + eplt_cpt45 * cpt45_mf +
-                      eplt_Rt45 * Rt45_mf + eplt_mf
-            eplt_ml = eplt_Tt45 * Tt45_ml + eplt_cpt45 * cpt45_ml +
-                      eplt_Rt45 * Rt45_ml + eplt_ml
-            eplt_mh = eplt_Tt45 * Tt45_mh + eplt_cpt45 * cpt45_mh +
-                      eplt_Rt45 * Rt45_mh + eplt_mh
-            eplt_Tb = eplt_Tt45 * Tt45_Tb + eplt_cpt45 * cpt45_Tb +
-                      eplt_Rt45 * Rt45_Tb + eplt_Tb
-            eplt_Mi = eplt_Tt45 * Tt45_Mi + eplt_cpt45 * cpt45_Mi +
-                      eplt_Rt45 * Rt45_Mi + eplt_Mi
+            eplt_pl = eplt_Tt4_5 * Tt4_5_pl + eplt_cpt4_5 * cpt4_5_pl +
+                      eplt_Rt4_5 * Rt4_5_pl + eplt_pl
+            eplt_ph = eplt_Tt4_5 * Tt4_5_ph + eplt_cpt4_5 * cpt4_5_ph +
+                      eplt_Rt4_5 * Rt4_5_ph + eplt_ph
+            eplt_mf = eplt_Tt4_5 * Tt4_5_mf + eplt_cpt4_5 * cpt4_5_mf +
+                      eplt_Rt4_5 * Rt4_5_mf + eplt_mf
+            eplt_ml = eplt_Tt4_5 * Tt4_5_ml + eplt_cpt4_5 * cpt4_5_ml +
+                      eplt_Rt4_5 * Rt4_5_ml + eplt_ml
+            eplt_mh = eplt_Tt4_5 * Tt4_5_mh + eplt_cpt4_5 * cpt4_5_mh +
+                      eplt_Rt4_5 * Rt4_5_mh + eplt_mh
+            eplt_Tb = eplt_Tt4_5 * Tt4_5_Tb + eplt_cpt4_5 * cpt4_5_Tb +
+                      eplt_Rt4_5 * Rt4_5_Tb + eplt_Tb
+            eplt_Mi = eplt_Tt4_5 * Tt4_5_Mi + eplt_cpt4_5 * cpt4_5_Mi +
+                      eplt_Rt4_5 * Rt4_5_Mi + eplt_Mi
 
 
             if (Pc == 0.0)
                   #----- initial guess for pt5
                   epi = 1.0 / eplt
-                  pt49, Tt49, ht49, st49, cpt49, Rt49 = gas_delh(lambdap, nair,
-                        pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
-                  Pc = pt49 * pitn
+                  pt4_9, Tt4_9, ht4_9, st4_9, cpt4_9, Rt4_9 = gas_delh(lambdap, nair,
+                        pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, dhlt, epi)
+                  Pc = pt4_9 * pitn
                   Pc = max(Pc, p0 * (1.0 + 0.2 * M0^2)^3.5)
             end
 
             Pc = max(Pc, 1.000001 * p0)
 
-            pilt = Pc / pt45 / pitn
-            pilt_Pc = 1.0 / pt45 / pitn
-            pilt_pt45 = -pilt / pt45
+            pilt = Pc / pt4_5 / pitn
+            pilt_Pc = 1.0 / pt4_5 / pitn
+            pilt_pt4_5 = -pilt / pt4_5
 
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
-            pt49, Tt49, ht49, st49, cpt49, Rt49,
-            pt49_pt45,
-            pt49_st45, Tt49_st45, ht49_st45, st49_st45,
-            pt49_pilt, Tt49_pilt, ht49_pilt, st49_pilt,
-            pt49_epi, Tt49_epi, ht49_epi, st49_epi,
+            pt4_9, Tt4_9, ht4_9, st4_9, cpt4_9, Rt4_9,
+            pt4_9_pt4_5,
+            pt4_9_st4_5, Tt4_9_st4_5, ht4_9_st4_5, st4_9_st4_5,
+            pt4_9_pilt, Tt4_9_pilt, ht4_9_pilt, st4_9_pilt,
+            pt4_9_epi, Tt4_9_epi, ht4_9_epi, st4_9_epi,
             p_al, T_al, h_al, s_al,
             cp_al, R_al = gas_pratd(lambdap, nair,
-                  pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, epi)
+                  pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, pilt, epi)
 
-            pt49_Pc = pt49_pilt * pilt_Pc
-            Tt49_Pc = Tt49_pilt * pilt_Pc
-            ht49_Pc = ht49_pilt * pilt_Pc
-            st49_Pc = st49_pilt * pilt_Pc
+            pt4_9_Pc = pt4_9_pilt * pilt_Pc
+            Tt4_9_Pc = Tt4_9_pilt * pilt_Pc
+            ht4_9_Pc = ht4_9_pilt * pilt_Pc
+            st4_9_Pc = st4_9_pilt * pilt_Pc
 
-            pt49_pt45 = pt49_pilt * pilt_pt45 + pt49_pt45
-            Tt49_pt45 = Tt49_pilt * pilt_pt45
-            ht49_pt45 = ht49_pilt * pilt_pt45
-            st49_pt45 = st49_pilt * pilt_pt45
+            pt4_9_pt4_5 = pt4_9_pilt * pilt_pt4_5 + pt4_9_pt4_5
+            Tt4_9_pt4_5 = Tt4_9_pilt * pilt_pt4_5
+            ht4_9_pt4_5 = ht4_9_pilt * pilt_pt4_5
+            st4_9_pt4_5 = st4_9_pilt * pilt_pt4_5
 
-            pt49_eplt = pt49_epi * epi_eplt
-            Tt49_eplt = Tt49_epi * epi_eplt
-            ht49_eplt = ht49_epi * epi_eplt
-            st49_eplt = st49_epi * epi_eplt
-
-
-            pt49_pf = pt49_eplt * eplt_pf
-            Tt49_pf = Tt49_eplt * eplt_pf
-            ht49_pf = ht49_eplt * eplt_pf
-            st49_pf = st49_eplt * eplt_pf
-
-            pt49_pl = pt49_pt45 * pt45_pl + pt49_st45 * st45_pl + pt49_eplt * eplt_pl
-            Tt49_pl = Tt49_pt45 * pt45_pl + Tt49_st45 * st45_pl + Tt49_eplt * eplt_pl
-            ht49_pl = ht49_pt45 * pt45_pl + ht49_st45 * st45_pl + ht49_eplt * eplt_pl
-            st49_pl = st49_pt45 * pt45_pl + st49_st45 * st45_pl + st49_eplt * eplt_pl
-
-            pt49_ph = pt49_pt45 * pt45_ph + pt49_st45 * st45_ph + pt49_eplt * eplt_ph
-            Tt49_ph = Tt49_pt45 * pt45_ph + Tt49_st45 * st45_ph + Tt49_eplt * eplt_ph
-            ht49_ph = ht49_pt45 * pt45_ph + ht49_st45 * st45_ph + ht49_eplt * eplt_ph
-            st49_ph = st49_pt45 * pt45_ph + st49_st45 * st45_ph + st49_eplt * eplt_ph
-
-            pt49_mf = pt49_pt45 * pt45_mf + pt49_st45 * st45_mf + pt49_eplt * eplt_mf
-            Tt49_mf = Tt49_pt45 * pt45_mf + Tt49_st45 * st45_mf + Tt49_eplt * eplt_mf
-            ht49_mf = ht49_pt45 * pt45_mf + ht49_st45 * st45_mf + ht49_eplt * eplt_mf
-            st49_mf = st49_pt45 * pt45_mf + st49_st45 * st45_mf + st49_eplt * eplt_mf
-
-            pt49_ml = pt49_pt45 * pt45_ml + pt49_st45 * st45_ml + pt49_eplt * eplt_ml
-            Tt49_ml = Tt49_pt45 * pt45_ml + Tt49_st45 * st45_ml + Tt49_eplt * eplt_ml
-            ht49_ml = ht49_pt45 * pt45_ml + ht49_st45 * st45_ml + ht49_eplt * eplt_ml
-            st49_ml = st49_pt45 * pt45_ml + st49_st45 * st45_ml + st49_eplt * eplt_ml
-
-            pt49_mh = pt49_pt45 * pt45_mh + pt49_st45 * st45_mh + pt49_eplt * eplt_mh
-            Tt49_mh = Tt49_pt45 * pt45_mh + Tt49_st45 * st45_mh + Tt49_eplt * eplt_mh
-            ht49_mh = ht49_pt45 * pt45_mh + ht49_st45 * st45_mh + ht49_eplt * eplt_mh
-            st49_mh = st49_pt45 * pt45_mh + st49_st45 * st45_mh + st49_eplt * eplt_mh
+            pt4_9_eplt = pt4_9_epi * epi_eplt
+            Tt4_9_eplt = Tt4_9_epi * epi_eplt
+            ht4_9_eplt = ht4_9_epi * epi_eplt
+            st4_9_eplt = st4_9_epi * epi_eplt
 
 
-            pt49_Tb = pt49_pt45 * pt45_Tb + pt49_st45 * st45_Tb + pt49_eplt * eplt_Tb
-            Tt49_Tb = Tt49_pt45 * pt45_Tb + Tt49_st45 * st45_Tb + Tt49_eplt * eplt_Tb
-            ht49_Tb = ht49_pt45 * pt45_Tb + ht49_st45 * st45_Tb + ht49_eplt * eplt_Tb
-            st49_Tb = st49_pt45 * pt45_Tb + st49_st45 * st45_Tb + st49_eplt * eplt_Tb
+            pt4_9_pf = pt4_9_eplt * eplt_pf
+            Tt4_9_pf = Tt4_9_eplt * eplt_pf
+            ht4_9_pf = ht4_9_eplt * eplt_pf
+            st4_9_pf = st4_9_eplt * eplt_pf
 
-            pt49_Mi = pt49_pt45 * pt45_Mi + pt49_st45 * st45_Mi + pt49_eplt * eplt_Mi
-            Tt49_Mi = Tt49_pt45 * pt45_Mi + Tt49_st45 * st45_Mi + Tt49_eplt * eplt_Mi
-            ht49_Mi = ht49_pt45 * pt45_Mi + ht49_st45 * st45_Mi + ht49_eplt * eplt_Mi
-            st49_Mi = st49_pt45 * pt45_Mi + st49_st45 * st45_Mi + st49_eplt * eplt_Mi
+            pt4_9_pl = pt4_9_pt4_5 * pt4_5_pl + pt4_9_st4_5 * st4_5_pl + pt4_9_eplt * eplt_pl
+            Tt4_9_pl = Tt4_9_pt4_5 * pt4_5_pl + Tt4_9_st4_5 * st4_5_pl + Tt4_9_eplt * eplt_pl
+            ht4_9_pl = ht4_9_pt4_5 * pt4_5_pl + ht4_9_st4_5 * st4_5_pl + ht4_9_eplt * eplt_pl
+            st4_9_pl = st4_9_pt4_5 * pt4_5_pl + st4_9_st4_5 * st4_5_pl + st4_9_eplt * eplt_pl
+
+            pt4_9_ph = pt4_9_pt4_5 * pt4_5_ph + pt4_9_st4_5 * st4_5_ph + pt4_9_eplt * eplt_ph
+            Tt4_9_ph = Tt4_9_pt4_5 * pt4_5_ph + Tt4_9_st4_5 * st4_5_ph + Tt4_9_eplt * eplt_ph
+            ht4_9_ph = ht4_9_pt4_5 * pt4_5_ph + ht4_9_st4_5 * st4_5_ph + ht4_9_eplt * eplt_ph
+            st4_9_ph = st4_9_pt4_5 * pt4_5_ph + st4_9_st4_5 * st4_5_ph + st4_9_eplt * eplt_ph
+
+            pt4_9_mf = pt4_9_pt4_5 * pt4_5_mf + pt4_9_st4_5 * st4_5_mf + pt4_9_eplt * eplt_mf
+            Tt4_9_mf = Tt4_9_pt4_5 * pt4_5_mf + Tt4_9_st4_5 * st4_5_mf + Tt4_9_eplt * eplt_mf
+            ht4_9_mf = ht4_9_pt4_5 * pt4_5_mf + ht4_9_st4_5 * st4_5_mf + ht4_9_eplt * eplt_mf
+            st4_9_mf = st4_9_pt4_5 * pt4_5_mf + st4_9_st4_5 * st4_5_mf + st4_9_eplt * eplt_mf
+
+            pt4_9_ml = pt4_9_pt4_5 * pt4_5_ml + pt4_9_st4_5 * st4_5_ml + pt4_9_eplt * eplt_ml
+            Tt4_9_ml = Tt4_9_pt4_5 * pt4_5_ml + Tt4_9_st4_5 * st4_5_ml + Tt4_9_eplt * eplt_ml
+            ht4_9_ml = ht4_9_pt4_5 * pt4_5_ml + ht4_9_st4_5 * st4_5_ml + ht4_9_eplt * eplt_ml
+            st4_9_ml = st4_9_pt4_5 * pt4_5_ml + st4_9_st4_5 * st4_5_ml + st4_9_eplt * eplt_ml
+
+            pt4_9_mh = pt4_9_pt4_5 * pt4_5_mh + pt4_9_st4_5 * st4_5_mh + pt4_9_eplt * eplt_mh
+            Tt4_9_mh = Tt4_9_pt4_5 * pt4_5_mh + Tt4_9_st4_5 * st4_5_mh + Tt4_9_eplt * eplt_mh
+            ht4_9_mh = ht4_9_pt4_5 * pt4_5_mh + ht4_9_st4_5 * st4_5_mh + ht4_9_eplt * eplt_mh
+            st4_9_mh = st4_9_pt4_5 * pt4_5_mh + st4_9_st4_5 * st4_5_mh + st4_9_eplt * eplt_mh
+
+
+            pt4_9_Tb = pt4_9_pt4_5 * pt4_5_Tb + pt4_9_st4_5 * st4_5_Tb + pt4_9_eplt * eplt_Tb
+            Tt4_9_Tb = Tt4_9_pt4_5 * pt4_5_Tb + Tt4_9_st4_5 * st4_5_Tb + Tt4_9_eplt * eplt_Tb
+            ht4_9_Tb = ht4_9_pt4_5 * pt4_5_Tb + ht4_9_st4_5 * st4_5_Tb + ht4_9_eplt * eplt_Tb
+            st4_9_Tb = st4_9_pt4_5 * pt4_5_Tb + st4_9_st4_5 * st4_5_Tb + st4_9_eplt * eplt_Tb
+
+            pt4_9_Mi = pt4_9_pt4_5 * pt4_5_Mi + pt4_9_st4_5 * st4_5_Mi + pt4_9_eplt * eplt_Mi
+            Tt4_9_Mi = Tt4_9_pt4_5 * pt4_5_Mi + Tt4_9_st4_5 * st4_5_Mi + Tt4_9_eplt * eplt_Mi
+            ht4_9_Mi = ht4_9_pt4_5 * pt4_5_Mi + ht4_9_st4_5 * st4_5_Mi + ht4_9_eplt * eplt_Mi
+            st4_9_Mi = st4_9_pt4_5 * pt4_5_Mi + st4_9_st4_5 * st4_5_Mi + st4_9_eplt * eplt_Mi
 
             for i = 1:nair
-                  pt49_pl = pt49_pl + p_al[i] * lamp_pl[i]
-                  Tt49_pl = Tt49_pl + T_al[i] * lamp_pl[i]
-                  ht49_pl = ht49_pl + h_al[i] * lamp_pl[i]
-                  st49_pl = st49_pl + s_al[i] * lamp_pl[i]
+                  pt4_9_pl = pt4_9_pl + p_al[i] * lamp_pl[i]
+                  Tt4_9_pl = Tt4_9_pl + T_al[i] * lamp_pl[i]
+                  ht4_9_pl = ht4_9_pl + h_al[i] * lamp_pl[i]
+                  st4_9_pl = st4_9_pl + s_al[i] * lamp_pl[i]
 
-                  pt49_ph = pt49_ph + p_al[i] * lamp_ph[i]
-                  Tt49_ph = Tt49_ph + T_al[i] * lamp_ph[i]
-                  ht49_ph = ht49_ph + h_al[i] * lamp_ph[i]
-                  st49_ph = st49_ph + s_al[i] * lamp_ph[i]
+                  pt4_9_ph = pt4_9_ph + p_al[i] * lamp_ph[i]
+                  Tt4_9_ph = Tt4_9_ph + T_al[i] * lamp_ph[i]
+                  ht4_9_ph = ht4_9_ph + h_al[i] * lamp_ph[i]
+                  st4_9_ph = st4_9_ph + s_al[i] * lamp_ph[i]
 
-                  pt49_mf = pt49_mf + p_al[i] * lamp_mf[i]
-                  Tt49_mf = Tt49_mf + T_al[i] * lamp_mf[i]
-                  ht49_mf = ht49_mf + h_al[i] * lamp_mf[i]
-                  st49_mf = st49_mf + s_al[i] * lamp_mf[i]
+                  pt4_9_mf = pt4_9_mf + p_al[i] * lamp_mf[i]
+                  Tt4_9_mf = Tt4_9_mf + T_al[i] * lamp_mf[i]
+                  ht4_9_mf = ht4_9_mf + h_al[i] * lamp_mf[i]
+                  st4_9_mf = st4_9_mf + s_al[i] * lamp_mf[i]
 
-                  pt49_ml = pt49_ml + p_al[i] * lamp_ml[i]
-                  Tt49_ml = Tt49_ml + T_al[i] * lamp_ml[i]
-                  ht49_ml = ht49_ml + h_al[i] * lamp_ml[i]
-                  st49_ml = st49_ml + s_al[i] * lamp_ml[i]
+                  pt4_9_ml = pt4_9_ml + p_al[i] * lamp_ml[i]
+                  Tt4_9_ml = Tt4_9_ml + T_al[i] * lamp_ml[i]
+                  ht4_9_ml = ht4_9_ml + h_al[i] * lamp_ml[i]
+                  st4_9_ml = st4_9_ml + s_al[i] * lamp_ml[i]
 
-                  pt49_mh = pt49_mh + p_al[i] * lamp_mh[i]
-                  Tt49_mh = Tt49_mh + T_al[i] * lamp_mh[i]
-                  ht49_mh = ht49_mh + h_al[i] * lamp_mh[i]
-                  st49_mh = st49_mh + s_al[i] * lamp_mh[i]
+                  pt4_9_mh = pt4_9_mh + p_al[i] * lamp_mh[i]
+                  Tt4_9_mh = Tt4_9_mh + T_al[i] * lamp_mh[i]
+                  ht4_9_mh = ht4_9_mh + h_al[i] * lamp_mh[i]
+                  st4_9_mh = st4_9_mh + s_al[i] * lamp_mh[i]
 
-                  pt49_Tb = pt49_Tb + p_al[i] * lamp_Tb[i]
-                  Tt49_Tb = Tt49_Tb + T_al[i] * lamp_Tb[i]
-                  ht49_Tb = ht49_Tb + h_al[i] * lamp_Tb[i]
-                  st49_Tb = st49_Tb + s_al[i] * lamp_Tb[i]
+                  pt4_9_Tb = pt4_9_Tb + p_al[i] * lamp_Tb[i]
+                  Tt4_9_Tb = Tt4_9_Tb + T_al[i] * lamp_Tb[i]
+                  ht4_9_Tb = ht4_9_Tb + h_al[i] * lamp_Tb[i]
+                  st4_9_Tb = st4_9_Tb + s_al[i] * lamp_Tb[i]
 
-                  pt49_Mi = pt49_Mi + p_al[i] * lamp_Mi[i]
-                  Tt49_Mi = Tt49_Mi + T_al[i] * lamp_Mi[i]
-                  ht49_Mi = ht49_Mi + h_al[i] * lamp_Mi[i]
-                  st49_Mi = st49_Mi + s_al[i] * lamp_Mi[i]
+                  pt4_9_Mi = pt4_9_Mi + p_al[i] * lamp_Mi[i]
+                  Tt4_9_Mi = Tt4_9_Mi + T_al[i] * lamp_Mi[i]
+                  ht4_9_Mi = ht4_9_Mi + h_al[i] * lamp_Mi[i]
+                  st4_9_Mi = st4_9_Mi + s_al[i] * lamp_Mi[i]
             end
-            Tt49_ht49 = 1 / cpt49
-            st49_Tt49 = cpt49 / Tt49
+            Tt4_9_ht4_9 = 1 / cpt4_9
+            st4_9_Tt4_9 = cpt4_9 / Tt4_9
 
             # ===============================================================
             #---- Regenerative cooling heat exchanger 49-49c
-            pt49c = pt49 - Δp_Regen
-            ht49c = ht49 + Δh_Regen
-            Tt49c, Tt49c_ht49c, _ = gas_tsetd(lambdap, nair, ht49c, Tt49)
-            st49c, st49c_Tt49c, ht49c, ht49c_Tt49, cpt49c, cpt49c_Tt49c, Rt49c = gassumd(lambdap, nair, Tt49c)
+            pt4_9c = pt4_9 - Δp_Regen
+            ht4_9c = ht4_9 + Δh_Regen
+            Tt4_9c, Tt4_9c_ht4_9c, _ = gas_tsetd(lambdap, nair, ht4_9c, Tt4_9)
+            st4_9c, st4_9c_Tt4_9c, ht4_9c, ht4_9c_Tt4_9, cpt4_9c, cpt4_9c_Tt4_9c, Rt4_9c = gassumd(lambdap, nair, Tt4_9c)
 
             #Derivatives with respect to pressure are unchanged
-            pt49c_pt49 = 1.0
-            ht49c_ht49 = 1.0
+            pt4_9c_pt4_9 = 1.0
+            ht4_9c_ht4_9 = 1.0
 
-            Tt49c_Tt49 = Tt49c_ht49c * ht49c_ht49 / Tt49_ht49
-            st49c_st49 = st49c_Tt49c * Tt49c_Tt49 / st49_Tt49
+            Tt4_9c_Tt4_9 = Tt4_9c_ht4_9c * ht4_9c_ht4_9 / Tt4_9_ht4_9
+            st4_9c_st4_9 = st4_9c_Tt4_9c * Tt4_9c_Tt4_9 / st4_9_Tt4_9
 
             #Apply chain rule
-            pt49c_pf = pt49_pf * pt49c_pt49
-            Tt49c_pf = Tt49_pf * pt49c_pt49
-            ht49c_pf = ht49_pf * pt49c_pt49
-            st49c_pf = st49_pf * pt49c_pt49
+            pt4_9c_pf = pt4_9_pf * pt4_9c_pt4_9
+            Tt4_9c_pf = Tt4_9_pf * pt4_9c_pt4_9
+            ht4_9c_pf = ht4_9_pf * pt4_9c_pt4_9
+            st4_9c_pf = st4_9_pf * pt4_9c_pt4_9
 
-            pt49c_pl = pt49_pl * pt49c_pt49 
-            Tt49c_pl = Tt49_pl * Tt49c_Tt49
-            ht49c_pl = ht49_pl * ht49c_ht49
-            st49c_pl = st49_pl * st49c_st49
+            pt4_9c_pl = pt4_9_pl * pt4_9c_pt4_9 
+            Tt4_9c_pl = Tt4_9_pl * Tt4_9c_Tt4_9
+            ht4_9c_pl = ht4_9_pl * ht4_9c_ht4_9
+            st4_9c_pl = st4_9_pl * st4_9c_st4_9
 
-            pt49c_ph = pt49_ph * pt49c_pt49  
-            Tt49c_ph = Tt49_ph * Tt49c_Tt49
-            ht49c_ph = ht49_ph * ht49c_ht49
-            st49c_ph = st49_ph * st49c_st49
+            pt4_9c_ph = pt4_9_ph * pt4_9c_pt4_9  
+            Tt4_9c_ph = Tt4_9_ph * Tt4_9c_Tt4_9
+            ht4_9c_ph = ht4_9_ph * ht4_9c_ht4_9
+            st4_9c_ph = st4_9_ph * st4_9c_st4_9
 
-            pt49c_mf = pt49_mf * pt49c_pt49  
-            Tt49c_mf = Tt49_mf * Tt49c_Tt49
-            ht49c_mf = ht49_mf * ht49c_ht49
-            st49c_mf = st49_mf * st49c_st49
+            pt4_9c_mf = pt4_9_mf * pt4_9c_pt4_9  
+            Tt4_9c_mf = Tt4_9_mf * Tt4_9c_Tt4_9
+            ht4_9c_mf = ht4_9_mf * ht4_9c_ht4_9
+            st4_9c_mf = st4_9_mf * st4_9c_st4_9
 
-            pt49c_ml = pt49_ml * pt49c_pt49 
-            Tt49c_ml = Tt49_ml * Tt49c_Tt49
-            ht49c_ml = ht49_ml * ht49c_ht49
-            st49c_ml = st49_ml * st49c_st49
+            pt4_9c_ml = pt4_9_ml * pt4_9c_pt4_9 
+            Tt4_9c_ml = Tt4_9_ml * Tt4_9c_Tt4_9
+            ht4_9c_ml = ht4_9_ml * ht4_9c_ht4_9
+            st4_9c_ml = st4_9_ml * st4_9c_st4_9
 
-            pt49c_mh = pt49_mh * pt49c_pt49  
-            Tt49c_mh = Tt49_mh * Tt49c_Tt49
-            ht49c_mh = ht49_mh * ht49c_ht49
-            st49c_mh = st49_mh * st49c_st49
+            pt4_9c_mh = pt4_9_mh * pt4_9c_pt4_9  
+            Tt4_9c_mh = Tt4_9_mh * Tt4_9c_Tt4_9
+            ht4_9c_mh = ht4_9_mh * ht4_9c_ht4_9
+            st4_9c_mh = st4_9_mh * st4_9c_st4_9
 
-            pt49c_Tb = pt49_Tb * pt49c_pt49  
-            Tt49c_Tb = Tt49_Tb * Tt49c_Tt49
-            ht49c_Tb = ht49_Tb * ht49c_ht49
-            st49c_Tb = st49_Tb * st49c_st49
+            pt4_9c_Tb = pt4_9_Tb * pt4_9c_pt4_9  
+            Tt4_9c_Tb = Tt4_9_Tb * Tt4_9c_Tt4_9
+            ht4_9c_Tb = ht4_9_Tb * ht4_9c_ht4_9
+            st4_9c_Tb = st4_9_Tb * st4_9c_st4_9
 
-            pt49c_Pc = pt49_Pc * pt49c_pt49  
-            Tt49c_Pc = Tt49_Pc * Tt49c_Tt49
-            ht49c_Pc = ht49_Pc * ht49c_ht49
-            st49c_Pc = st49_Pc * st49c_st49
+            pt4_9c_Pc = pt4_9_Pc * pt4_9c_pt4_9  
+            Tt4_9c_Pc = Tt4_9_Pc * Tt4_9c_Tt4_9
+            ht4_9c_Pc = ht4_9_Pc * ht4_9c_ht4_9
+            st4_9c_Pc = st4_9_Pc * st4_9c_st4_9
 
-            pt49c_Mi = pt49_Mi * pt49c_pt49  
-            Tt49c_Mi = Tt49_Mi * Tt49c_Tt49
-            ht49c_Mi = ht49_Mi * ht49c_ht49
-            st49c_Mi = st49_Mi * st49c_st49
+            pt4_9c_Mi = pt4_9_Mi * pt4_9c_pt4_9  
+            Tt4_9c_Mi = Tt4_9_Mi * Tt4_9c_Tt4_9
+            ht4_9c_Mi = ht4_9_Mi * ht4_9c_ht4_9
+            st4_9c_Mi = st4_9_Mi * st4_9c_st4_9
 
             #---- apply core nozzle loss
-            pt5 = pt49c * pitn
-            Tt5 = Tt49c
-            ht5 = ht49c
-            st5 = st49c
-            cpt5 = cpt49c
-            Rt5 = Rt49c
+            pt5 = pt4_9c * pitn
+            Tt5 = Tt4_9c
+            ht5 = ht4_9c
+            st5 = st4_9c
+            cpt5 = cpt4_9c
+            Rt5 = Rt4_9c
 
-            pt5_pf = pt49c_pf * pitn
-            Tt5_pf = Tt49c_pf
-            ht5_pf = ht49c_pf
-            st5_pf = st49c_pf
+            pt5_pf = pt4_9c_pf * pitn
+            Tt5_pf = Tt4_9c_pf
+            ht5_pf = ht4_9c_pf
+            st5_pf = st4_9c_pf
 
-            pt5_pl = pt49c_pl * pitn
-            Tt5_pl = Tt49c_pl
-            ht5_pl = ht49c_pl
-            st5_pl = st49c_pl
+            pt5_pl = pt4_9c_pl * pitn
+            Tt5_pl = Tt4_9c_pl
+            ht5_pl = ht4_9c_pl
+            st5_pl = st4_9c_pl
 
-            pt5_ph = pt49c_ph * pitn
-            Tt5_ph = Tt49c_ph
-            ht5_ph = ht49c_ph
-            st5_ph = st49c_ph
+            pt5_ph = pt4_9c_ph * pitn
+            Tt5_ph = Tt4_9c_ph
+            ht5_ph = ht4_9c_ph
+            st5_ph = st4_9c_ph
 
-            pt5_mf = pt49c_mf * pitn
-            Tt5_mf = Tt49c_mf
-            ht5_mf = ht49c_mf
-            st5_mf = st49c_mf
+            pt5_mf = pt4_9c_mf * pitn
+            Tt5_mf = Tt4_9c_mf
+            ht5_mf = ht4_9c_mf
+            st5_mf = st4_9c_mf
 
-            pt5_ml = pt49c_ml * pitn
-            Tt5_ml = Tt49c_ml
-            ht5_ml = ht49c_ml
-            st5_ml = st49c_ml
+            pt5_ml = pt4_9c_ml * pitn
+            Tt5_ml = Tt4_9c_ml
+            ht5_ml = ht4_9c_ml
+            st5_ml = st4_9c_ml
 
-            pt5_mh = pt49c_mh * pitn
-            Tt5_mh = Tt49c_mh
-            ht5_mh = ht49c_mh
-            st5_mh = st49c_mh
+            pt5_mh = pt4_9c_mh * pitn
+            Tt5_mh = Tt4_9c_mh
+            ht5_mh = ht4_9c_mh
+            st5_mh = st4_9c_mh
 
-            pt5_Tb = pt49c_Tb * pitn
-            Tt5_Tb = Tt49c_Tb
-            ht5_Tb = ht49c_Tb
-            st5_Tb = st49c_Tb
+            pt5_Tb = pt4_9c_Tb * pitn
+            Tt5_Tb = Tt4_9c_Tb
+            ht5_Tb = ht4_9c_Tb
+            st5_Tb = st4_9c_Tb
 
-            pt5_Pc = pt49c_Pc * pitn
-            Tt5_Pc = Tt49c_Pc
-            ht5_Pc = ht49c_Pc
-            st5_Pc = st49c_Pc
+            pt5_Pc = pt4_9c_Pc * pitn
+            Tt5_Pc = Tt4_9c_Pc
+            ht5_Pc = ht4_9c_Pc
+            st5_Pc = st4_9c_Pc
 
-            pt5_Mi = pt49c_Mi * pitn
-            Tt5_Mi = Tt49c_Mi
-            ht5_Mi = ht49c_Mi
-            st5_Mi = st49c_Mi
+            pt5_Mi = pt4_9c_Mi * pitn
+            Tt5_Mi = Tt4_9c_Mi
+            ht5_Mi = ht4_9c_Mi
+            st5_Mi = st4_9c_Mi
 
             # ===============================================================
             #---- fan nozzle exit state (for function outputs and downstream thrust)
@@ -1925,7 +1925,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #---- fan/LPC speed constraint  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
             trf = sqrt(Tt2 / Tref)
-            trl = sqrt(Tt19c / Tref)
+            trl = sqrt(Tt1_9c / Tref)
             r1, r1_Nf, r1_Nl = shaft_speed_residual(shaft_lp, Nf, Nl, trf, trl)
             res[1, 1] = r1
             a[1, 1] = r1_Nf * Nf_pf
@@ -1989,20 +1989,20 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #-------------------------------------------------------------------------
             #---- core nozzle mass flow, choked or unchoked
-            mdotc = (1.0 - fo + ff) * ml * sqrt(Tref / Tt19c) * pt19c / pref
-            mdotc_ml = (1.0 - fo + ff) * sqrt(Tref / Tt19c) * pt19c / pref
-            mdotc_fo = -ml * sqrt(Tref / Tt19c) * pt19c / pref
-            mdotc_ff = ml * sqrt(Tref / Tt19c) * pt19c / pref
-            mdotc_pt19c = (1.0 - fo + ff) * ml * sqrt(Tref / Tt19c) / pref
+            mdotc = (1.0 - fo + ff) * ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotc_ml = (1.0 - fo + ff) * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotc_fo = -ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotc_ff = ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotc_pt1_9c = (1.0 - fo + ff) * ml * sqrt(Tref / Tt1_9c) / pref
 
             mdotc_pl = mdotc_ff * ff_pl
             mdotc_ph = mdotc_ff * ff_ph
-            mdotc_mf = mdotc_ff * ff_mf + mdotc_fo * fo_mf + mdotc_pt19c * pt19c_mf
-            mdotc_ml = mdotc_ff * ff_ml + mdotc_fo * fo_ml + mdotc_pt19c * pt19c_ml +
+            mdotc_mf = mdotc_ff * ff_mf + mdotc_fo * fo_mf + mdotc_pt1_9c * pt1_9c_mf
+            mdotc_ml = mdotc_ff * ff_ml + mdotc_fo * fo_ml + mdotc_pt1_9c * pt1_9c_ml +
                        mdotc_ml
             mdotc_mh = mdotc_ff * ff_mh
             mdotc_Tb = mdotc_ff * ff_Tb
-            mdotc_Mi = mdotc_ff * ff_Mi + mdotc_fo * fo_Mi + mdotc_pt19c * pt19c_Mi
+            mdotc_Mi = mdotc_ff * ff_Mi + mdotc_fo * fo_Mi + mdotc_pt1_9c * pt1_9c_Mi
 
             res[5, 1], r5_pt5, r5_ht5, r5_st5, r5_Tt5,
                   p5_al, T5_al, h5_al, s5_al, cp5_al, R5_al =
@@ -2037,24 +2037,24 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #-------------------------------------------------------------------------
             #---- LPC mass flow = HPC mass flow + mass offtake
-            mdotl = ml * sqrt(Tref / Tt19c) * pt19c / pref
-            mdotl_ml = sqrt(Tref / Tt19c) * pt19c / pref
-            mdotl_pt19c = mdotl / pt19c
+            mdotl = ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotl_ml = sqrt(Tref / Tt1_9c) * pt1_9c / pref
+            mdotl_pt1_9c = mdotl / pt1_9c
 
-            mdotl_mf = mdotl_pt19c * pt19c_mf
-            mdotl_ml = mdotl_pt19c * pt19c_ml + mdotl_ml
-            mdotl_Mi = mdotl_pt19c * pt19c_Mi
+            mdotl_mf = mdotl_pt1_9c * pt1_9c_mf
+            mdotl_ml = mdotl_pt1_9c * pt1_9c_ml + mdotl_ml
+            mdotl_Mi = mdotl_pt1_9c * pt1_9c_Mi
 
 
-            mdoth = mh * sqrt(Tref / Tt25c) * pt25c / pref
-            mdoth_mh = sqrt(Tref / Tt25c) * pt25c / pref
-            mdoth_Tt25c = -0.5 * mdoth / Tt25c
-            mdoth_pt25c = mdoth / pt25c
+            mdoth = mh * sqrt(Tref / Tt2_5c) * pt2_5c / pref
+            mdoth_mh = sqrt(Tref / Tt2_5c) * pt2_5c / pref
+            mdoth_Tt2_5c = -0.5 * mdoth / Tt2_5c
+            mdoth_pt2_5c = mdoth / pt2_5c
 
-            mdoth_pl = mdoth_Tt25c * Tt25c_pl + mdoth_pt25c * pt25c_pl
-            mdoth_mf = mdoth_pt25c * pt25c_mf
-            mdoth_ml = mdoth_Tt25c * Tt25c_ml + mdoth_pt25c * pt25c_ml
-            mdoth_Mi = mdoth_pt25c * pt25c_Mi
+            mdoth_pl = mdoth_Tt2_5c * Tt2_5c_pl + mdoth_pt2_5c * pt2_5c_pl
+            mdoth_mf = mdoth_pt2_5c * pt2_5c_mf
+            mdoth_ml = mdoth_Tt2_5c * Tt2_5c_ml + mdoth_pt2_5c * pt2_5c_ml
+            mdoth_Mi = mdoth_pt2_5c * pt2_5c_Mi
 
             res[6, 1] = mdoth - mdotl + mofft
             a[6, 1] = 0.0
@@ -2182,11 +2182,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         u6_Mi = (ht5_Mi - h6_Mi) / u6tmp
                   end
 
-                  BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt19c =
-                      bypass_ratio(splitter, mf, ml, pt2, pt19c, Tt2, Tt19c)
-                  BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt19c * pt19c_mf
-                  BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt19c * pt19c_ml
-                  BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt19c * pt19c_Mi
+                  BPR, BPR_mf_dir, BPR_ml_dir, BPR_pt2, BPR_pt1_9c =
+                      bypass_ratio(splitter, mf, ml, pt2, pt1_9c, Tt2, Tt1_9c)
+                  BPR_mf = BPR_mf_dir + BPR_pt2 * pt2_mf + BPR_pt1_9c * pt1_9c_mf
+                  BPR_ml = BPR_ml_dir + BPR_pt2 * pt2_ml + BPR_pt1_9c * pt1_9c_ml
+                  BPR_Mi =              BPR_pt2 * pt2_Mi  + BPR_pt1_9c * pt1_9c_Mi
 
                   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                   #----- overall thrust
@@ -2251,40 +2251,40 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
             pt5h, Tt5h, ht5h, st5h, cpt5h, Rt5h,
-            pt5h_st45,
-            pt5h_pt45,
+            pt5h_st4_5,
+            pt5h_pt4_5,
             pt5h_epi,
-            pt5h_ht45, Tt5h_ht45, ht5h_ht45, st5h_ht45,
+            pt5h_ht4_5, Tt5h_ht4_5, ht5h_ht4_5, st5h_ht4_5,
             pt5h_dhlt, Tt5h_dhlt, ht5h_dhlt, st5h_dhlt,
             p_al, T_al, h_al, s_al,
             cp_al, R_al = gas_delhd(lambdap, nair,
-                  pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
+                  pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, dhlt, epi)
 
             pt5h_eplt = pt5h_epi * epi_eplt
 
             pt5h_pf = pt5h_eplt * eplt_pf +
                       pt5h_dhlt * dhlt_pf
-            pt5h_pl = pt5h_st45 * st45_pl +
-                      pt5h_pt45 * pt45_pl + pt5h_eplt * eplt_pl +
-                      pt5h_ht45 * ht45_pl + pt5h_dhlt * dhlt_pl
-            pt5h_ph = pt5h_st45 * st45_ph +
-                      pt5h_pt45 * pt45_ph + pt5h_eplt * eplt_ph +
-                      pt5h_ht45 * ht45_ph + pt5h_dhlt * dhlt_ph
-            pt5h_mf = pt5h_st45 * st45_mf +
-                      pt5h_pt45 * pt45_mf + pt5h_eplt * eplt_mf +
-                      pt5h_ht45 * ht45_mf + pt5h_dhlt * dhlt_mf
-            pt5h_ml = pt5h_st45 * st45_ml +
-                      pt5h_pt45 * pt45_ml + pt5h_eplt * eplt_ml +
-                      pt5h_ht45 * ht45_ml + pt5h_dhlt * dhlt_ml
-            pt5h_mh = pt5h_st45 * st45_mh +
-                      pt5h_pt45 * pt45_mh + pt5h_eplt * eplt_mh +
-                      pt5h_ht45 * ht45_mh + pt5h_dhlt * dhlt_mh
-            pt5h_Tb = pt5h_st45 * st45_Tb +
-                      pt5h_pt45 * pt45_Tb + pt5h_eplt * eplt_Tb +
-                      pt5h_ht45 * ht45_Tb + pt5h_dhlt * dhlt_Tb
-            pt5h_Mi = pt5h_st45 * st45_Mi +
-                      pt5h_pt45 * pt45_Mi + pt5h_eplt * eplt_Mi +
-                      pt5h_ht45 * ht45_Mi + pt5h_dhlt * dhlt_Mi
+            pt5h_pl = pt5h_st4_5 * st4_5_pl +
+                      pt5h_pt4_5 * pt4_5_pl + pt5h_eplt * eplt_pl +
+                      pt5h_ht4_5 * ht4_5_pl + pt5h_dhlt * dhlt_pl
+            pt5h_ph = pt5h_st4_5 * st4_5_ph +
+                      pt5h_pt4_5 * pt4_5_ph + pt5h_eplt * eplt_ph +
+                      pt5h_ht4_5 * ht4_5_ph + pt5h_dhlt * dhlt_ph
+            pt5h_mf = pt5h_st4_5 * st4_5_mf +
+                      pt5h_pt4_5 * pt4_5_mf + pt5h_eplt * eplt_mf +
+                      pt5h_ht4_5 * ht4_5_mf + pt5h_dhlt * dhlt_mf
+            pt5h_ml = pt5h_st4_5 * st4_5_ml +
+                      pt5h_pt4_5 * pt4_5_ml + pt5h_eplt * eplt_ml +
+                      pt5h_ht4_5 * ht4_5_ml + pt5h_dhlt * dhlt_ml
+            pt5h_mh = pt5h_st4_5 * st4_5_mh +
+                      pt5h_pt4_5 * pt4_5_mh + pt5h_eplt * eplt_mh +
+                      pt5h_ht4_5 * ht4_5_mh + pt5h_dhlt * dhlt_mh
+            pt5h_Tb = pt5h_st4_5 * st4_5_Tb +
+                      pt5h_pt4_5 * pt4_5_Tb + pt5h_eplt * eplt_Tb +
+                      pt5h_ht4_5 * ht4_5_Tb + pt5h_dhlt * dhlt_Tb
+            pt5h_Mi = pt5h_st4_5 * st4_5_Mi +
+                      pt5h_pt4_5 * pt4_5_Mi + pt5h_eplt * eplt_Mi +
+                      pt5h_ht4_5 * ht4_5_Mi + pt5h_dhlt * dhlt_Mi
 
             for i = 1:nair
                   pt5h_pl = pt5h_pl + p_al[i] * lamp_pl[i]
@@ -2296,17 +2296,17 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pt5h_Mi = pt5h_Mi + p_al[i] * lamp_Mi[i]
             end
 
-            res[8, 1] = pt49 - pt5h
-            a[8, 1] = pt49_pf - pt5h_pf
-            a[8, 2] = pt49_pl - pt5h_pl
-            a[8, 3] = pt49_ph - pt5h_ph
-            a[8, 4] = pt49_mf - pt5h_mf
-            a[8, 5] = pt49_ml - pt5h_ml
-            a[8, 6] = pt49_mh - pt5h_mh
-            a[8, 7] = pt49_Tb - pt5h_Tb
-            a[8, 8] = pt49_Pc
-            a[8, 9] = pt49_Mi - pt5h_Mi
-            rrel[8] = res[8, 1] / pt49
+            res[8, 1] = pt4_9 - pt5h
+            a[8, 1] = pt4_9_pf - pt5h_pf
+            a[8, 2] = pt4_9_pl - pt5h_pl
+            a[8, 3] = pt4_9_ph - pt5h_ph
+            a[8, 4] = pt4_9_mf - pt5h_mf
+            a[8, 5] = pt4_9_ml - pt5h_ml
+            a[8, 6] = pt4_9_mh - pt5h_mh
+            a[8, 7] = pt4_9_Tb - pt5h_Tb
+            a[8, 8] = pt4_9_Pc
+            a[8, 9] = pt4_9_Mi - pt5h_Mi
+            rrel[8] = res[8, 1] / pt4_9
             # ===========================================================================
             #---- inlet Mach - area constraint
             mfA = mf * sqrt(Tref / Tt2) * pt2 / pref / (rho2 * u2)
@@ -2315,11 +2315,11 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             mfA_ml = mfA * (pt2_ml / pt2 - rho2_ml / rho2)
             mfA_Mi = mfA * (pt2_Mi / pt2 - rho2_Mi / rho2 - u2_Mi / u2)
 
-            mlA = ml * sqrt(Tref / Tt19c) * pt19c / pref / (rho19c * u19c)
-            mlA_mf = mlA * (pt19c_mf / pt19c - rho19c_mf / rho19c)
-            mlA_ml = mlA * (pt19c_ml / pt19c - rho19c_ml / rho19c) +
-                     sqrt(Tt19c / Tref) * pref / pt19c / (rho19c * u19c)
-            mlA_Mi = mlA * (pt19c_Mi / pt19c - rho19c_Mi / rho19c - u19c_Mi / u19c)
+            mlA = ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref / (rho1_9c * u1_9c)
+            mlA_mf = mlA * (pt1_9c_mf / pt1_9c - rho1_9c_mf / rho1_9c)
+            mlA_ml = mlA * (pt1_9c_ml / pt1_9c - rho1_9c_ml / rho1_9c) +
+                     sqrt(Tt1_9c / Tref) * pref / pt1_9c / (rho1_9c * u1_9c)
+            mlA_Mi = mlA * (pt1_9c_Mi / pt1_9c - rho1_9c_Mi / rho1_9c - u1_9c_Mi / u1_9c)
 
             res[9, 1] = mfA + mlA - A2
             a[9, 1] = 0.0
@@ -2377,15 +2377,15 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   Tt4 = Tb
                   pt5 = Pc
-                  BPR = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
+                  BPR = mf / ml * sqrt(Tt1_9c / Tt2) * pt2 / pt1_9c
 
-                  println("pt18 Tt18 =", pt18, Tt18)
+                  println("pt1_8 Tt1_8 =", pt1_8, Tt1_8)
                   println("pt2  Tt2  =", pt2, Tt2)
-                  println("pt25 Tt25 =", pt25, Tt25)
+                  println("pt2_5 Tt2_5 =", pt2_5, Tt2_5)
                   println("pt3  Tt3  =", pt3, Tt3)
                   println("pt4  Tt4  =", pt4, Tt4)
-                  println("pt41 Tt41 =", pt41, Tt41)
-                  println("pt45 Tt45 =", pt45, Tt45)
+                  println("pt4_1 Tt4_1 =", pt4_1, Tt4_1)
+                  println("pt4_5 Tt4_5 =", pt4_5, Tt4_5)
                   println("pt5  Tt5  =", pt5, Tt5)
                   println("p5        =", p5)
                   println("FPR  BPR  =", pf, BPR)
@@ -2397,21 +2397,21 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   mbf, mblc, mbhc,
                   Nbf, Nblc, Nbhc,
                   Tt0, ht0, pt0, cpt0, Rt0,
-                  Tt18, ht18, pt18, cpt18, Rt18,
-                  Tt19, ht19, pt19, cpt19, Rt19,
+                  Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+                  Tt1_9, ht1_9, pt1_9, cpt1_9, Rt1_9,
                   Tt2, ht2, pt2, cpt2, Rt2,
-                  Tt21, ht21, pt21, cpt21, Rt21,
-                  Tt25, ht25, pt25, cpt25, Rt25,
+                  Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
+                  Tt2_5, ht2_5, pt2_5, cpt2_5, Rt2_5,
                   Tt3, ht3, pt3, cpt3, Rt3,
                   Tt4, ht4, pt4, cpt4, Rt4,
-                  Tt41, ht41, pt41, cpt41, Rt41,
-                  Tt45, ht45, pt45, cpt45, Rt45,
-                  Tt49, ht49, pt49, cpt49, Rt49,
+                  Tt4_1, ht4_1, pt4_1, cpt4_1, Rt4_1,
+                  Tt4_5, ht4_5, pt4_5, cpt4_5, Rt4_5,
+                  Tt4_9, ht4_9, pt4_9, cpt4_9, Rt4_9,
                   Tt5, ht5, pt5, cpt5, Rt5,
                   Tt7, ht7, pt7, cpt7, Rt7,
                   u0,
                   T2, u2, p2, cp2, R2, M2,
-                  T25c, u25c, p25c, cp25c, R25c, M25c,
+                  T2_5c, u2_5c, p2_5c, cp2_5c, R2_5c, M2_5c,
                   T5, u5, p5, cp5, R5, M5,
                   T6, u6, p6, cp6, R6, M6, A6,
                   T7, u7, p7, cp7, R7, M7,
@@ -2689,7 +2689,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pilc = pl
                   pihc = ph
 
-                  Nbf = Nl / Gearf * sqrt(Tt19c / Tt2)
+                  Nbf = Nl / Gearf * sqrt(Tt1_9c / Tt2)
                   Nblc = Nl
                   Nbhc = Nh
 
@@ -2697,8 +2697,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pt5 = Pc
 
                   #---- final core mass flow and bypass ratio
-                  mcore = ml * sqrt(Tref / Tt19c) * pt19c / pref
-                  BPR = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
+                  mcore = ml * sqrt(Tref / Tt1_9c) * pt1_9c / pref
+                  BPR = mf / ml * sqrt(Tt1_9c / Tt2) * pt2 / pt1_9c
 
                   #---- offtake mass ratio
                   fo = mofft / mcore
@@ -2709,8 +2709,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   hfuel = cpa * (Tt4 - Tt3 + ffb * (Tt4 - Ttf)) / (etab * ffb)
 
                   #---- effective fuel heating value, from states 3, 4.1  (just for info)
-                  #      cpa = 0.5*(cpt3+cpt41)
-                  #      hfuel = cpa*((1.0-fo)*(Tt41-Tt3) + ff*(Tt41-Ttf)) / (etab*ff)
+                  #      cpa = 0.5*(cpt3+cpt4_1)
+                  #      hfuel = cpa*((1.0-fo)*(Tt4_1-Tt3) + ff*(Tt4_1-Ttf)) / (etab*ff)
                   #- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
                   #---- overall effective thrust, including inlet defect credit
@@ -2758,32 +2758,32 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   etalt = 0.0
 
                   #---- fan
-                  pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha, nair,
+                  pt2_1i, Tt2_1i, ht2_1i, st2_1i, cpt2_1i, Rt2_1i = gas_prat(alpha, nair,
                         pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
-                  etaf = (ht21i - ht2) / (ht21 - ht2)
+                  etaf = (ht2_1i - ht2) / (ht2_1 - ht2)
 
                   #---- LP compressor
-                  pt25i, Tt25i, ht25i, st25i, cpt25i, Rt25i = gas_prat(alpha, nair,
-                        pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pilc, 1.0)
-                  etalc = (ht25i - ht19c) / (ht25 - ht19c)
+                  pt2_5i, Tt2_5i, ht2_5i, st2_5i, cpt2_5i, Rt2_5i = gas_prat(alpha, nair,
+                        pt1_9c, Tt1_9c, ht1_9c, st1_9c, cpt1_9c, Rt1_9c, pilc, 1.0)
+                  etalc = (ht2_5i - ht1_9c) / (ht2_5 - ht1_9c)
 
                   #---- HP compressor
 
                   pt3i, Tt3i, ht3i, st3i, cpt3i, Rt3i = gas_prat(alpha, nair,
-                        pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, pihc, 1.0)
-                  etahc = (ht3i - ht25c) / (ht3 - ht25c)
+                        pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, pihc, 1.0)
+                  etahc = (ht3i - ht2_5c) / (ht3 - ht2_5c)
 
                   #---- HP turbine
-                  piht = pt45 / pt41
-                  pt45i, Tt45i, ht45i, st45i, cpt45i, Rt45i = gas_prat(lambdap, nair,
-                        pt41, Tt41, ht41, st41, cpt41, Rt41, piht, 1.0)
-                  etaht = (ht45 - ht41) / (ht45i - ht41)
+                  piht = pt4_5 / pt4_1
+                  pt4_5i, Tt4_5i, ht4_5i, st4_5i, cpt4_5i, Rt4_5i = gas_prat(lambdap, nair,
+                        pt4_1, Tt4_1, ht4_1, st4_1, cpt4_1, Rt4_1, piht, 1.0)
+                  etaht = (ht4_5 - ht4_1) / (ht4_5i - ht4_1)
 
                   #---- LP turbine
-                  pilt = pt49 / pt45
-                  pt49i, Tt49i, ht49i, st49i, cpt49i, Rt49i = gas_prat(lambdap, nair,
-                        pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, 1.0)
-                  etalt = (ht5 - ht45) / (ht49i - ht45)
+                  pilt = pt4_9 / pt4_5
+                  pt4_9i, Tt4_9i, ht4_9i, st4_9i, cpt4_9i, Rt4_9i = gas_prat(lambdap, nair,
+                        pt4_5, Tt4_5, ht4_5, st4_5, cpt4_5, Rt4_5, pilt, 1.0)
+                  etalt = (ht5 - ht4_5) / (ht4_9i - ht4_5)
 
                   #--------------------------------------------------------------
                   #---- calculate fan-face static quantities from Mach number variable Mi
@@ -2794,28 +2794,28 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   #---- calculate HPC-face static quantities from core mass flow
                   #-    (first check for choking)
-                  M25s = 0.99
-                  p25s, T25s, h25s, s25s, cp25s, R25s = gas_mach(alpha, nair,
-                        pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, 0.0, M25s, 1.0)
-                  u25s = sqrt(2.0 * (ht25c - h25s))
-                  mdot25s = p25s / (R25s * T25s) * u25s * A25
+                  M2_5s = 0.99
+                  p2_5s, T2_5s, h2_5s, s2_5s, cp2_5s, R2_5s = gas_mach(alpha, nair,
+                        pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, 0.0, M2_5s, 1.0)
+                  u2_5s = sqrt(2.0 * (ht2_5c - h2_5s))
+                  mdot2_5s = p2_5s / (R2_5s * T2_5s) * u2_5s * A2_5
 
-                  if ((1.0 - fo) * mcore >= mdot25s)
+                  if ((1.0 - fo) * mcore >= mdot2_5s)
                         #----- HPC face is choked... artificially use sonic quantities
-                        u25c = u25s
-                        p25c = p25s
-                        T25c = T25s
-                        cp25c = cp25s
-                        R25c = R25s
-                        M25c = M25s
+                        u2_5c = u2_5s
+                        p2_5c = p2_5s
+                        T2_5c = T2_5s
+                        cp2_5c = cp2_5s
+                        R2_5c = R2_5s
+                        M2_5c = M2_5s
                   else
                         #----- normal case... set static quantities from prescribed mass flux
-                        Mguess = min(M25, 0.90)
-                        mp25 = (1.0 - fo) * mcore / A25
-                        p25c, T25c, h25c, s25c, cp25c, R25c = gas_mass(alpha, nair,
-                              pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, mp25, Mguess)
-                        u25c = sqrt(2.0 * (ht25c - h25c))
-                        M25c = u25c / sqrt(T25c * R25c * cp25c / (cp25c - R25c))
+                        Mguess = min(M2_5, 0.90)
+                        mp2_5 = (1.0 - fo) * mcore / A2_5
+                        p2_5c, T2_5c, h2_5c, s2_5c, cp2_5c, R2_5c = gas_mass(alpha, nair,
+                              pt2_5c, Tt2_5c, ht2_5c, st2_5c, cpt2_5c, Rt2_5c, mp2_5, Mguess)
+                        u2_5c = sqrt(2.0 * (ht2_5c - h2_5c))
+                        M2_5c = u2_5c / sqrt(T2_5c * R2_5c * cp2_5c / (cp2_5c - R2_5c))
                   end
 
                   if (ht5 < h5) #error if total enthalpy at nozzle inlet is lower than static enthalpy
@@ -2832,15 +2832,15 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                         # Tt4 = Tb
                         # pt5 = Pc
-                        # BPR = mf / ml * sqrt(Tt19c / Tt2) * pt2 / pt19c
+                        # BPR = mf / ml * sqrt(Tt1_9c / Tt2) * pt2 / pt1_9c
 
-                        # println("pt18 Tt18 =", pt18, Tt18)
+                        # println("pt1_8 Tt1_8 =", pt1_8, Tt1_8)
                         # println("pt2  Tt2  =", pt2, Tt2)
-                        # println("pt25 Tt25 =", pt25, Tt25)
+                        # println("pt2_5 Tt2_5 =", pt2_5, Tt2_5)
                         # println("pt3  Tt3  =", pt3, Tt3)
                         # println("pt4  Tt4  =", pt4, Tt4)
-                        # println("pt41 Tt41 =", pt41, Tt41)
-                        # println("pt45 Tt45 =", pt45, Tt45)
+                        # println("pt4_1 Tt4_1 =", pt4_1, Tt4_1)
+                        # println("pt4_5 Tt4_5 =", pt4_5, Tt4_5)
                         # println("pt5  Tt5  =", pt5, Tt5)
                         # println("p5        =", p5)
                         # println("FPR  BPR  =", pf, BPR)
@@ -2852,23 +2852,23 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   mbf, mblc, mbhc,
                   Nbf, Nblc, Nbhc,
                   Tt0, ht0, pt0, cpt0, Rt0,
-                  Tt18, ht18, pt18, cpt18, Rt18,
-                  Tt19, ht19, pt19, cpt19, Rt19,
-                  Tt19c, ht19c, pt19c, cpt19c, Rt19c,
+                  Tt1_8, ht1_8, pt1_8, cpt1_8, Rt1_8,
+                  Tt1_9, ht1_9, pt1_9, cpt1_9, Rt1_9,
+                  Tt1_9c, ht1_9c, pt1_9c, cpt1_9c, Rt1_9c,
                   Tt2, ht2, pt2, cpt2, Rt2,
-                  Tt21, ht21, pt21, cpt21, Rt21,
-                  Tt25, ht25, pt25, cpt25, Rt25,
-                  Tt25c, ht25c, pt25c, cpt25c, Rt25c,
+                  Tt2_1, ht2_1, pt2_1, cpt2_1, Rt2_1,
+                  Tt2_5, ht2_5, pt2_5, cpt2_5, Rt2_5,
+                  Tt2_5c, ht2_5c, pt2_5c, cpt2_5c, Rt2_5c,
                   Tt3, ht3, pt3, cpt3, Rt3,
                   Tt4, ht4, pt4, cpt4, Rt4,
-                  Tt41, ht41, pt41, cpt41, Rt41,
-                  Tt45, ht45, pt45, cpt45, Rt45,
-                  Tt49, ht49, pt49, cpt49, Rt49,
+                  Tt4_1, ht4_1, pt4_1, cpt4_1, Rt4_1,
+                  Tt4_5, ht4_5, pt4_5, cpt4_5, Rt4_5,
+                  Tt4_9, ht4_9, pt4_9, cpt4_9, Rt4_9,
                   Tt5, ht5, pt5, cpt5, Rt5,
                   Tt7, ht7, pt7, cpt7, Rt7,
                   u0,
                   T2, u2, p2, cp2, R2, M2,
-                  T25c, u25c, p25c, cp25c, R25c, M25c,
+                  T2_5c, u2_5c, p2_5c, cp2_5c, R2_5c, M2_5c,
                   T5, u5, p5, cp5, R5, M5,
                   T6, u6, p6, cp6, R6, M6, A6,
                   T7, u7, p7, cp7, R7, M7,

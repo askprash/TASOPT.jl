@@ -66,12 +66,12 @@ ducted-fan (electric or fuel-cell driven) at a single operating point.
 
 ## Flow stations
 
-| Field  | TASOPT # | Description                             |
+| Field  | ARP755 # | Description                             |
 |:-------|:--------:|:----------------------------------------|
 | `st0`  | 0        | Freestream (total + u)                  |
-| `st18` | 18       | Fan face, outer (total)                 |
+| `st18` | 1.8      | Fan face, outer (total)                 |
 | `st2`  | 2        | Fan face (total + static + A2 + mfan)  |
-| `st21` | 21       | Fan exit (total)                        |
+| `st21` | 2.1      | Fan exit (total)                        |
 | `st7`  | 7        | Fan nozzle throat (total + static + A7) |
 | `st8`  | 8        | Fan nozzle exit (static + A8 only)      |
 
@@ -124,9 +124,9 @@ mutable struct DuctedFanState{T<:AbstractFloat}
     # Flow stations
     # -----------------------------------------------------------------------
     st0  ::FlowStation{T}   # Freestream (total + u)
-    st18 ::FlowStation{T}   # FanFaceOuter (total)
+    st18  ::FlowStation{T}   # FanFaceOuter (total)
     st2  ::FlowStation{T}   # FanFace (total + static + A2 + mfan)
-    st21 ::FlowStation{T}   # FanExit (total)
+    st21  ::FlowStation{T}   # FanExit (total)
     st7  ::FlowStation{T}   # FanNozzle (total + static + A7)
     st8  ::FlowStation{T}   # FanNozzleExit (static + A8 only)
 end
@@ -213,7 +213,7 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     end
 
     # -----------------------------------------------------------------------
-    # Station 18 — FanFaceOuter (total only)
+    # Station 1.8 — FanFaceOuter (total only)
     # -----------------------------------------------------------------------
     let st = eng_ip.st18
         state.st18.Tt  = st.Tt
@@ -242,7 +242,7 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     state.st2.mdot = eng_ip.mfan
 
     # -----------------------------------------------------------------------
-    # Station 21 — FanExit (total only)
+    # Station 2.1 — FanExit (total only)
     # -----------------------------------------------------------------------
     let st = eng_ip.st21
         state.st21.Tt  = st.Tt
@@ -423,12 +423,12 @@ end
 
 # Stations serialised in flow-path order.
 const _DF_TOML_STATION_ORDER = (
-    ("0",  "Freestream",    :st0),
-    ("18", "FanFaceOuter",  :st18),
-    ("2",  "FanFace",       :st2),
-    ("21", "FanExit",       :st21),
-    ("7",  "FanNozzle",     :st7),
-    ("8",  "FanNozzleExit", :st8),
+    ("0",   "Freestream",    :st0),
+    ("1.8", "FanFaceOuter",  :st18),
+    ("2",   "FanFace",       :st2),
+    ("2.1", "FanExit",       :st21),
+    ("7",   "FanNozzle",     :st7),
+    ("8",   "FanNozzleExit", :st8),
 )
 
 """

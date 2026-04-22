@@ -184,7 +184,7 @@ for   i = 1:N
         if NPSS_PT
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             mdotf[i], deNOx_, EINOx1, EINOx2, FAR, Tt3, OPR,
-            Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4max,
+            Wc3, Tt4_1, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4max,
                 Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
         else
             Ftotal, η, P, Hrej, heatexcess,
@@ -291,7 +291,7 @@ for   i = 1:N
         if NPSS_PT
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             FFmaxcrz[i], deNOx, EINOx1, EINOx2, FAR, Tt3, OPR,
-            Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4,
+            Wc3, Tt4_1, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4,
                 Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
             # Tmetmax: NPSS_TEsysOD not yet wired to typed state — left as NaN
         else
