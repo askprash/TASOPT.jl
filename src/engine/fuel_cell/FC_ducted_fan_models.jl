@@ -34,7 +34,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
     if case == "design"
         #Design ducted fan for start of cruise
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
-        # eng_ip.design.{A2,A7,mbfD,pifD,NbfD} and eng_ip.{A7fac,Pfan} are current.
+        # eng_ip.design.{A2,A7,mb_fan_des,pi_fan_des,Nb_fan_des} and eng_ip.{A7fac,Pfan} are current.
 
         parg[igA7] = eng_ip.design.A7 / eng_ip.A7fac
 
@@ -42,9 +42,9 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         for pt in ac.missions[imission].points
             pt.engine.design.A2   = eng_ip.design.A2
             pt.engine.design.A7   = parg[igA7] * pt.engine.A7fac
-            pt.engine.design.mbfD = eng_ip.design.mbfD
-            pt.engine.design.pifD = eng_ip.design.pifD
-            pt.engine.design.NbfD = eng_ip.design.NbfD
+            pt.engine.design.mb_fan_des = eng_ip.design.mb_fan_des
+            pt.engine.design.pi_fan_des = eng_ip.design.pi_fan_des
+            pt.engine.design.Nb_fan_des = eng_ip.design.Nb_fan_des
         end
 
         #Design fuel cell for takeoff conditions

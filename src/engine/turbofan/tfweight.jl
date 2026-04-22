@@ -23,7 +23,7 @@ function tfweight(ac)
     engwgt = ac.engine.model.weight_model_name
     Gearf = ac.parg[igGearf]
     eng_ip = ac.missions[1].points[ip].engine
-    mdotc = eng_ip.design.mblcD * sqrt(Tref / TSL) * (pSL / pref)
+    mdotc = eng_ip.design.mb_lpc_des * sqrt(Tref / TSL) * (pSL / pref)
     BPR = eng_ip.BPR
     OPR = eng_ip.pilc * eng_ip.pihc
     dfan = ac.parg[igdfan]

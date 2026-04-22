@@ -3,9 +3,9 @@
       Phiinl, Kinl, eng_has_BLI_cores,
       pid, pib, pifn, pitn,
       Gearf,
-      pifD, pilcD, pihcD, pihtD, piltD,
-      mbfD, mblcD, mbhcD, mbhtD, mbltD,
-      NbfD, NblcD, NbhcD, NbhtD, NbltD,
+      pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
+      mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
+      Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
       A2, A25, A5, A7,
       opt_calc_call,
       Ttf, ifuel, etab,
@@ -44,23 +44,23 @@ The gas routines are described in [Gas Calculations](@ref)
     - `pifn`:    fan     nozzle pressure ratio  ( = `pt7/pt6.9`)
     - `pitn`:    turbine nozzle pressure ratio  ( = `pt5/pt4.9`)
     - `Gearf`:   fan gear ratio  ( = Nl/Nf )
-    - `pifD`:    design fan pressure ratio  ( = `pt21/pt2`)
-    - `pilcD`:   design LPC pressure ratio  ( = `pt25/pt19`)
-    - `pihcD`:   design HPC pressure ratio  ( = `pt3/pt25`)
-    - `pihtD`:   design HPT pressure ratio  ( = `pt45/pt41`)
-    - `piltD`:   design LPT pressure ratio  ( = `pt49/pt45`)
-    - `mbfD`:    design corrected fan mass flow ( = `mf*sqrt(Tt2/Tref)/(pt2/pref)` )
+    - `pi_fan_des`:    design fan pressure ratio  ( = `pt21/pt2`)
+    - `pi_lpc_des`:   design LPC pressure ratio  ( = `pt25/pt19`)
+    - `pi_hpc_des`:   design HPC pressure ratio  ( = `pt3/pt25`)
+    - `pi_hpt_des`:   design HPT pressure ratio  ( = `pt45/pt41`)
+    - `pi_lpt_des`:   design LPT pressure ratio  ( = `pt49/pt45`)
+    - `mb_fan_des`:    design corrected fan mass flow ( = `mf*sqrt(Tt2/Tref)/(pt2/pref)` )
       where `mf = mc*BPR`
-    - `mblcD`:   design corrected LPC mass flow ( = `mc*sqrt(Tt19/Tref)/(pt19/pref)` )
-    - `mbhcD`:   design corrected HLC mass flow ( = `mc*sqrt(Tt25/Tref)/(pt25/pref)` )
-    - `mbhtD`:   design corrected HPT mass flow ( = `mt*sqrt(Tt41/Tref)/(pt41/pref)` )
+    - `mb_lpc_des`:   design corrected LPC mass flow ( = `mc*sqrt(Tt19/Tref)/(pt19/pref)` )
+    - `mb_hpc_des`:   design corrected HLC mass flow ( = `mc*sqrt(Tt25/Tref)/(pt25/pref)` )
+    - `mb_hpt_des`:   design corrected HPT mass flow ( = `mt*sqrt(Tt41/Tref)/(pt41/pref)` )
       where `mt = mc*(1+ff)`
-    - `mbltD`:   design corrected LPT mass flow ( = `mt*sqrt(Tt45/Tref)/(pt45/pref)` )
-    - `NbfD`:    design corrected fan speed ( = `Nf/sqrt(Tt2/Tref)` )
-    - `NblcD`:   design corrected LPC speed ( = `Nl/sqrt(Tt19/Tref)` )
-    - `NbhcD`:   design corrected HPC speed ( = `Nh/sqrt(Tt25/Tref)` )
-    - `NbhtD`:   design corrected HPT speed ( = `Nh/sqrt(Tt41/Tref)` )
-    - `NbltD`:   design corrected LPT speed ( = `Nl/sqrt(Tt45/Tref)` )
+    - `mb_lpt_des`:   design corrected LPT mass flow ( = `mt*sqrt(Tt45/Tref)/(pt45/pref)` )
+    - `Nb_fan_des`:    design corrected fan speed ( = `Nf/sqrt(Tt2/Tref)` )
+    - `Nb_lpc_des`:   design corrected LPC speed ( = `Nl/sqrt(Tt19/Tref)` )
+    - `Nb_hpc_des`:   design corrected HPC speed ( = `Nh/sqrt(Tt25/Tref)` )
+    - `Nb_hpt_des`:   design corrected HPT speed ( = `Nh/sqrt(Tt41/Tref)` )
+    - `Nb_lpt_des`:   design corrected LPT speed ( = `Nl/sqrt(Tt45/Tref)` )
     - `A2`:      fan-face area [m^2]
     - `A25`:     HPC-face area [m^2]
     - `A5`:      core nozzle area [m^2]
@@ -150,9 +150,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       Phiinl, Kinl, eng_has_BLI_cores,
       pid, pib, pifn, pitn,
       Gearf,
-      pifD, pilcD, pihcD, pihtD, piltD,
-      mbfD, mblcD, mbhcD, mbhtD, mbltD,
-      NbfD, NblcD, NbhcD, NbhtD, NbltD,
+      pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
+      mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
+      Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
       A2, A25, A5, A7,
       opt_calc_call,
       Ttf, ifuel, hvap, etab,
@@ -176,9 +176,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
       # Determine whether we are in AD...
       prod = gee * M0 * T0 * p0 * a0 * Tref * pref * Phiinl * Kinl * pid * pib * pifn * pitn * Gearf
-      prod *= pifD * pilcD * pihcD * pihtD * piltD
-      prod *= mbfD * mblcD * mbhcD * mbhtD * mbltD
-      prod *= NbfD * NblcD * NbhcD * NbhtD * NbltD
+      prod *= pi_fan_des * pi_lpc_des * pi_hpc_des * pi_hpt_des * pi_lpt_des
+      prod *= mb_fan_des * mb_lpc_des * mb_hpc_des * mb_hpt_des * mb_lpt_des
+      prod *= Nb_fan_des * Nb_lpc_des * Nb_hpc_des * Nb_hpt_des * Nb_lpt_des
       prod *= A2 * A25 * A5 * A7
       prod *= Ttf * ifuel * etab
       prod *= epf0 * eplc0 * ephc0 * epht0 * eplt0
@@ -189,9 +189,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       T = typeof(prod)
 
       #---- typed turbine component instances (used by turbine_efficiency and turbine_mb_residual)
-      turb_hp = Turbine(pihtD, mbhtD, NbhtD, epht0;
+      turb_hp = Turbine(pi_hpt_des, mb_hpt_des, Nb_hpt_des, epht0;
                         map = TurbineMap{T}(T(Tmaph[1]), T(Tmaph[2])))
-      turb_lp = Turbine(piltD, mbltD, NbltD, eplt0;
+      turb_lp = Turbine(pi_lpt_des, mb_lpt_des, Nb_lpt_des, eplt0;
                         map = TurbineMap{T}(T(Tmapl[1]), T(Tmapl[2])))
 
       #---- Newton system arrays
@@ -242,9 +242,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       epfmin = 0.60
 
       #---- typed compressor component instances (used by compressor_efficiency and compressor_Nb_residual)
-      comp_fan = Compressor(pifD,  mbfD,  NbfD,  epf0,  T(0.60), FanMap, windmilling=true)
-      comp_lpc = Compressor(pilcD, mblcD, NblcD, eplc0, T(0.70), LPCMap)
-      comp_hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
+      comp_fan = Compressor(pi_fan_des,  mb_fan_des,  Nb_fan_des,  epf0,  T(0.60), FanMap, windmilling=true)
+      comp_lpc = Compressor(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, T(0.70), LPCMap)
+      comp_hpc = Compressor(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, T(0.70), HPCMap)
 
       #---- typed shaft component instances (used by hp_shaft_work, lp_shaft_work, shaft_speed_residual)
       shaft_hp = Shaft(epsh, T(1.0))
@@ -351,22 +351,22 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       Mi = M2
 
       if (pf == 0.0)
-            pf = pifD
+            pf = pi_fan_des
       end
       if (pl == 0.0)
-            pl = pilcD
+            pl = pi_lpc_des
       end
       if (ph == 0.0)
-            ph = pihcD
+            ph = pi_hpc_des
       end
       if (mf == 0.0)
-            mf = mbfD
+            mf = mb_fan_des
       end
       if (ml == 0.0)
-            ml = mblcD
+            ml = mb_lpc_des
       end
       if (mh == 0.0)
-            mh = mbhcD
+            mh = mb_hpc_des
       end
       if (Mi == 0.0)
             Mi = 0.6
@@ -1951,7 +1951,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             a[2, 7] = mblt_Tb
             a[2, 8] = 0.0
             a[2, 9] = mblt_Mi
-            rrel[2] = res[2] / mbltD
+            rrel[2] = res[2] / mb_lpt_des
 
             #-------------------------------------------------------------------------
             #---- fixed corrected mass flow at HPT IGV (vertical-line HPT map)
@@ -1965,7 +1965,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             a[3, 7] = mbht_Tb
             a[3, 8] = 0.0
             a[3, 9] = mbht_Mi
-            rrel[3] = res[3, 1] / mbhtD
+            rrel[3] = res[3, 1] / mb_hpt_des
 
             #-------------------------------------------------------------------------
             #---- fan nozzle mass flow, choked or unchoked

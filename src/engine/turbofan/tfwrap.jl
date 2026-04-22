@@ -51,21 +51,21 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             eng_jp.design.A25   = eng_ip.design.A25
             eng_jp.design.A5    = parg[igA5] * eng_jp.A5fac
             eng_jp.design.A7    = parg[igA7] * eng_jp.A7fac
-            eng_jp.design.NbfD  = eng_ip.design.NbfD
-            eng_jp.design.NblcD = eng_ip.design.NblcD
-            eng_jp.design.NbhcD = eng_ip.design.NbhcD
-            eng_jp.design.NbhtD = eng_ip.design.NbhtD
-            eng_jp.design.NbltD = eng_ip.design.NbltD
-            eng_jp.design.mbfD  = eng_ip.design.mbfD
-            eng_jp.design.mblcD = eng_ip.design.mblcD
-            eng_jp.design.mbhcD = eng_ip.design.mbhcD
-            eng_jp.design.mbhtD = eng_ip.design.mbhtD
-            eng_jp.design.mbltD = eng_ip.design.mbltD
-            eng_jp.design.pifD  = eng_ip.design.pifD
-            eng_jp.design.pilcD = eng_ip.design.pilcD
-            eng_jp.design.pihcD = eng_ip.design.pihcD
-            eng_jp.design.pihtD = eng_ip.design.pihtD
-            eng_jp.design.piltD = eng_ip.design.piltD
+            eng_jp.design.Nb_fan_des  = eng_ip.design.Nb_fan_des
+            eng_jp.design.Nb_lpc_des = eng_ip.design.Nb_lpc_des
+            eng_jp.design.Nb_hpc_des = eng_ip.design.Nb_hpc_des
+            eng_jp.design.Nb_hpt_des = eng_ip.design.Nb_hpt_des
+            eng_jp.design.Nb_lpt_des = eng_ip.design.Nb_lpt_des
+            eng_jp.design.mb_fan_des  = eng_ip.design.mb_fan_des
+            eng_jp.design.mb_lpc_des = eng_ip.design.mb_lpc_des
+            eng_jp.design.mb_hpc_des = eng_ip.design.mb_hpc_des
+            eng_jp.design.mb_hpt_des = eng_ip.design.mb_hpt_des
+            eng_jp.design.mb_lpt_des = eng_ip.design.mb_lpt_des
+            eng_jp.design.pi_fan_des  = eng_ip.design.pi_fan_des
+            eng_jp.design.pi_lpc_des = eng_ip.design.pi_lpc_des
+            eng_jp.design.pi_hpc_des = eng_ip.design.pi_hpc_des
+            eng_jp.design.pi_hpt_des = eng_ip.design.pi_hpt_des
+            eng_jp.design.pi_lpt_des = eng_ip.design.pi_lpt_des
         end
         
     elseif case == "off_design"

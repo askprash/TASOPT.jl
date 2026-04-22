@@ -36,7 +36,7 @@ using StaticArrays
         Kinl = 0
         iBLIc = 0
         Phiinl = 0
-        pifD = 1.5
+        pi_fan_des = 1.5
         pid = 1.0
         pifn = 1.0
         epf0 = 0.9
@@ -46,7 +46,7 @@ using StaticArrays
 
         out_size = TASOPT.ductedfansize!(gee, M0, T0, p0, a0, M2,
             Fe, Phiinl, Kinl, iBLIc,
-            pifD,
+            pi_fan_des,
             pid, pifn, 
             epf0,
             Δh_radiator,
@@ -73,23 +73,23 @@ using StaticArrays
             @test item ≈ out_size_check[i]
         end
 
-        mbfD = mfan * sqrt(Tt2 / TASOPT.Tref) / (pt2 / TASOPT.pref)
+        mb_fan_des = mfan * sqrt(Tt2 / TASOPT.Tref) / (pt2 / TASOPT.pref)
         Nf = 1.0 #Arbitrarily set to 1 as only ratios matter
         Nbf = Nf / sqrt(Tt2 / TASOPT.Tref)
-        NbfD = Nbf
+        Nb_fan_des = Nbf
 
         #__ Test ducted fan operation function __
         #First check that it provides the desired values at the design point
         out_opr_des  = TASOPT.ductedfanoper!(M0, T0, p0, a0, Tref, pref,
                     Phiinl, Kinl, iBLIc,
                     pid, pifn, 
-                    pifD, 
-                    mbfD,
-                    NbfD, 
+                    pi_fan_des, 
+                    mb_fan_des,
+                    Nb_fan_des, 
                     A2, A7,
                     epf0,
                     Fe, 0,
-                    M2, pifD, 0, 
+                    M2, pi_fan_des, 0, 
                     Δh_radiator, Δp_radiator,
                     false)
 
@@ -102,7 +102,7 @@ using StaticArrays
         @test Fe2 ≈ Fe
         @test Pf2 ≈ Pfan
         @test mfan2 ≈ mfan
-        @test pif2 ≈ pifD
+        @test pif2 ≈ pi_fan_des
 
         #Now check conditions at takeoff 
         atmos_state = TASOPT.atmos(0.0)
@@ -117,13 +117,13 @@ using StaticArrays
         out_opr_takeoff  = TASOPT.ductedfanoper!(M0, T0, p0, a0, Tref, pref,
                     Phiinl, Kinl, iBLIc,
                     pid, pifn, 
-                    pifD, 
-                    mbfD,
-                    NbfD, 
+                    pi_fan_des, 
+                    mb_fan_des,
+                    Nb_fan_des, 
                     A2, A7,
                     epf0,
                     0, Pf_takeoff,
-                    M2, pifD, 0, 
+                    M2, pi_fan_des, 0, 
                     Δh_radiator, Δp_radiator,
                     true)
         

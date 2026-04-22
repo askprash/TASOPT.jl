@@ -2,8 +2,8 @@
     ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         Phiinl, Kinl, iBLIc,
         pid, pifn, 
-        pifD, 
-        mbfD, 
+        pi_fan_des, 
+        mb_fan_des, 
         A2, A7,
         epf0,
         Feng, Peng,
@@ -32,8 +32,8 @@ Ducted fan operation routine
     - `iBLIc`:   0=core in clear flow, 1=core sees Phiinl
     - `pid`:     diffuser pressure ratio  ( = pt2/pt0)
     - `pifn`:    fan     nozzle pressure ratio  ( = pt7/pt6.9)
-    - `pifD`:    design fan pressure ratio  ( = pt21/pt2 )
-    - `mbfD`:    design corrected fan mass flow ( = mf*sqrt(Tt2 /Tref)/(pt2 /pref) )
+    - `pi_fan_des`:    design fan pressure ratio  ( = pt21/pt2 )
+    - `mb_fan_des`:    design corrected fan mass flow ( = mf*sqrt(Tt2 /Tref)/(pt2 /pref) )
     - `A2`:      fan-face area [m^2]                mf = mc*BPR, mt = mc*(1+ff)
     - `A7`:      fan  nozzle area [m^2]
     - `epf0`:    max fan polytropic efficiency
@@ -60,9 +60,9 @@ Ducted fan operation routine
 function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
       Phiinl, Kinl, iBLIc,
       pid, pifn, 
-      pifD, 
-      mbfD,
-      NbfD, 
+      pi_fan_des, 
+      mb_fan_des,
+      Nb_fan_des, 
       A2, A7,
       epf0,
       Feng, Peng,
@@ -76,10 +76,10 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     mf = mbf
     Mi = M2
     if (pf == 0.0)
-        pf = pifD
+        pf = pi_fan_des
     end
     if (mf == 0.0)
-        mf = mbfD
+        mf = mb_fan_des
     end
     if (Mi == 0.0)
         Mi = 0.6
@@ -96,10 +96,10 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     # Inlet component (diffuser pressure ratio + BLI parameters); captured by closure.
     _inl = Inlet(pid; Kinl=Float64(Kinl), eng_has_BLI_cores=(iBLIc != 0))
 
-    # Fan compressor component — off-design map anchors: pifD, mbfD, NbD=1.
+    # Fan compressor component — off-design map anchors: pi_fan_des, mb_fan_des, NbD=1.
     # epol_min=0.60 matches ductedfansize! and applies the intended efficiency floor.
     # windmilling=true handles the pf<1 efficiency inversion inside compressor_efficiency.
-    _comp_fan = Compressor(pifD, mbfD, 1.0, epf0, 0.60, FanMap; windmilling=true)
+    _comp_fan = Compressor(pi_fan_des, mb_fan_des, 1.0, epf0, 0.60, FanMap; windmilling=true)
 
     #This function returns the residual of the non-linear engine problem. it
     #can also return the engine performance results.
@@ -231,7 +231,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
             pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
             etaf = (ht21i - ht2) / (ht21 - ht2)
 
-            Nbf, _, _ = Ncmap(pf, mf, pifD, mbfD, NbfD, Cmapf)
+            Nbf, _, _ = Ncmap(pf, mf, pi_fan_des, mb_fan_des, Nb_fan_des, Cmapf)
 
             #---- overall Fsp
             if (u0 == 0.0)

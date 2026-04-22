@@ -865,21 +865,21 @@ isGradient = false
         pifn = 0.97999999999999998
         pitn = 0.98899999999999999
         Gearf = 1.0000000000000000
-        pifD = 1.6850000000000001
-        pilcD = 8.0000000000000000
-        pihcD = 3.7500000000000000
-        pihtD = 2.1601257635200488
-        piltD = 6.2886975330083716
-        mbfD = 235.16225770724063
-        mblcD = 46.110246609262873
-        mbhcD = 7.8056539219349039
-        mbhtD = 4.3594697284253883
-        mbltD = 8.7016090343744406
-        NbfD = 1.0790738309310697
-        NblcD = 1.0790738309310697
-        NbhcD = 0.77137973563891493
-        NbhtD = 0.44698693289691338
-        NbltD = 0.48396724306758404
+        pi_fan_des = 1.6850000000000001
+        pi_lpc_des = 8.0000000000000000
+        pi_hpc_des = 3.7500000000000000
+        pi_hpt_des = 2.1601257635200488
+        pi_lpt_des = 6.2886975330083716
+        mb_fan_des = 235.16225770724063
+        mb_lpc_des = 46.110246609262873
+        mb_hpc_des = 7.8056539219349039
+        mb_hpt_des = 4.3594697284253883
+        mb_lpt_des = 8.7016090343744406
+        Nb_fan_des = 1.0790738309310697
+        Nb_lpc_des = 1.0790738309310697
+        Nb_hpc_des = 0.77137973563891493
+        Nb_hpt_des = 0.44698693289691338
+        Nb_lpt_des = 0.48396724306758404
         A2 = 1.3863121762890294
         A25 = 3.8585338087708761E-002
         A5 = 0.19210855588408102
@@ -970,9 +970,9 @@ isGradient = false
             Phiinl, Kinl, eng_has_BLI_cores,
             pid, pib, pifn, pitn,
             Gearf,
-            pifD, pilcD, pihcD, pihtD, piltD,
-            mbfD, mblcD, mbhcD, mbhtD, mbltD,
-            NbfD, NblcD, NbhcD, NbhtD, NbltD,
+            pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
+            mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
+            Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
             A2, A25, A5, A7,
             opt_calc_call,
             Ttf, ifuel, hvap, etab,
@@ -1030,21 +1030,21 @@ isGradient = false
         pifn = 0.97999999999999998
         pitn = 0.98899999999999999
         Gearf = 1.0000000000000000
-        pifD = 1.6850000000000001
-        pilcD = 8.0000000000000000
-        pihcD = 3.7500000000000000
-        pihtD = 2.1601257635200488
-        piltD = 6.2886975330083716
-        mbfD = 235.16225770724063
-        mblcD = 46.110246609262873
-        mbhcD = 7.8056539219349039
-        mbhtD = 4.3594697284253883
-        mbltD = 8.7016090343744406
-        NbfD = 1.0790738309310697
-        NblcD = 1.0790738309310697
-        NbhcD = 0.77137973563891493
-        NbhtD = 0.44698693289691338
-        NbltD = 0.48396724306758404
+        pi_fan_des = 1.6850000000000001
+        pi_lpc_des = 8.0000000000000000
+        pi_hpc_des = 3.7500000000000000
+        pi_hpt_des = 2.1601257635200488
+        pi_lpt_des = 6.2886975330083716
+        mb_fan_des = 235.16225770724063
+        mb_lpc_des = 46.110246609262873
+        mb_hpc_des = 7.8056539219349039
+        mb_hpt_des = 4.3594697284253883
+        mb_lpt_des = 8.7016090343744406
+        Nb_fan_des = 1.0790738309310697
+        Nb_lpc_des = 1.0790738309310697
+        Nb_hpc_des = 0.77137973563891493
+        Nb_hpt_des = 0.44698693289691338
+        Nb_lpt_des = 0.48396724306758404
         A2 = 1.3863121762890294
         A25 = 3.8585338087708761E-002
         A5 = 0.19210855588408102
@@ -1136,9 +1136,9 @@ isGradient = false
             Phiinl, Kinl, eng_has_BLI_cores,
             pid, pib, pifn, pitn,
             Gearf,
-            pifD, pilcD, pihcD, pihtD, piltD,
-            mbfD, mblcD, mbhcD, mbhtD, mbltD,
-            NbfD, NblcD, NbhcD, NbhtD, NbltD,
+            pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
+            mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
+            Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
             A2, A25, A5, A7,
             opt_calc_call,
             Ttf, ifuel, hvap, etab,
@@ -1177,7 +1177,7 @@ isGradient = false
         eng_ip = ac.missions[1].points[ip].engine
 
         ac.parg[igGearf] = 1.0
-        eng_ip.design.mblcD = 46.110246609262873
+        eng_ip.design.mb_lpc_des = 46.110246609262873
         eng_ip.BPR  = 5.0999999999999996
         eng_ip.pilc = 3.0
         eng_ip.pihc = 10.000000000000000
@@ -1343,9 +1343,9 @@ isGradient = false
         @test ds isa DS{Float64}
 
         # All scalar fields are zero
-        for fname in (:pifD, :pilcD, :pihcD, :pihtD, :piltD,
-                      :mbfD, :mblcD, :mbhcD, :mbhtD, :mbltD,
-                      :NbfD, :NblcD, :NbhcD, :NbhtD, :NbltD,
+        for fname in (:pi_fan_des, :pi_lpc_des, :pi_hpc_des, :pi_hpt_des, :pi_lpt_des,
+                      :mb_fan_des, :mb_lpc_des, :mb_hpc_des, :mb_hpt_des, :mb_lpt_des,
+                      :Nb_fan_des, :Nb_lpc_des, :Nb_hpc_des, :Nb_hpt_des, :Nb_lpt_des,
                       :A2, :A25, :A5, :A7,
                       :fc, :ruc, :M4a)
             @test getfield(ds, fname) == 0.0
@@ -1362,51 +1362,51 @@ isGradient = false
         # ------------------------------------------------------------------
         ds64 = DS{Float64}()
         @test ds64 isa DS{Float64}
-        @test ds64.pifD === 0.0
+        @test ds64.pi_fan_des === 0.0
 
         # ------------------------------------------------------------------
         # Float32 typed constructor
         # ------------------------------------------------------------------
         ds32 = DS{Float32}()
         @test ds32 isa DS{Float32}
-        @test ds32.pifD === 0.0f0
+        @test ds32.pi_fan_des === 0.0f0
         @test ds32.epsrow isa StaticArrays.SVector{4,Float32}
         @test all(==(0.0f0), ds32.epsrow)
 
         # ------------------------------------------------------------------
         # Mutation: map scalars round-trip
         # ------------------------------------------------------------------
-        ds.pifD  = 1.6
-        ds.pilcD = 3.0
-        ds.pihcD = 12.0
-        ds.pihtD = 4.5
-        ds.piltD = 2.0
+        ds.pi_fan_des  = 1.6
+        ds.pi_lpc_des = 3.0
+        ds.pi_hpc_des = 12.0
+        ds.pi_hpt_des = 4.5
+        ds.pi_lpt_des = 2.0
 
-        @test ds.pifD  == 1.6
-        @test ds.pilcD == 3.0
-        @test ds.pihcD == 12.0
-        @test ds.pihtD == 4.5
-        @test ds.piltD == 2.0
+        @test ds.pi_fan_des  == 1.6
+        @test ds.pi_lpc_des == 3.0
+        @test ds.pi_hpc_des == 12.0
+        @test ds.pi_hpt_des == 4.5
+        @test ds.pi_lpt_des == 2.0
 
-        ds.mbfD  = 210.0
-        ds.mblcD = 55.0
-        ds.mbhcD = 50.0
-        ds.mbhtD = 12.0
-        ds.mbltD = 45.0
+        ds.mb_fan_des  = 210.0
+        ds.mb_lpc_des = 55.0
+        ds.mb_hpc_des = 50.0
+        ds.mb_hpt_des = 12.0
+        ds.mb_lpt_des = 45.0
 
-        @test ds.mbfD  == 210.0
-        @test ds.mblcD == 55.0
-        @test ds.mbhcD == 50.0
-        @test ds.mbhtD == 12.0
-        @test ds.mbltD == 45.0
+        @test ds.mb_fan_des  == 210.0
+        @test ds.mb_lpc_des == 55.0
+        @test ds.mb_hpc_des == 50.0
+        @test ds.mb_hpt_des == 12.0
+        @test ds.mb_lpt_des == 45.0
 
-        ds.NbfD  = 1.0
-        ds.NblcD = 1.0
-        ds.NbhcD = 1.0
-        ds.NbhtD = 1.0
-        ds.NbltD = 1.0
+        ds.Nb_fan_des  = 1.0
+        ds.Nb_lpc_des = 1.0
+        ds.Nb_hpc_des = 1.0
+        ds.Nb_hpt_des = 1.0
+        ds.Nb_lpt_des = 1.0
 
-        @test ds.NbfD == 1.0
+        @test ds.Nb_fan_des == 1.0
 
         # ------------------------------------------------------------------
         # Mutation: component areas round-trip
@@ -1451,7 +1451,7 @@ isGradient = false
         # ------------------------------------------------------------------
         # @inferred: field access should not allocate or lose type info
         # ------------------------------------------------------------------
-        @test @inferred(Float64, getproperty(ds, :pifD)) == ds.pifD
+        @test @inferred(Float64, getproperty(ds, :pi_fan_des)) == ds.pi_fan_des
         @test @inferred(Float64, getproperty(ds, :A2))  == ds.A2
         @test @inferred(Float64, getproperty(ds, :ruc)) == ds.ruc
         @test @inferred(Float64, getproperty(ds, :M4a)) == ds.M4a
@@ -2086,8 +2086,8 @@ isGradient = false
         # Design field is a zero-initialised DesignState
         # ------------------------------------------------------------------
         @test eng.design isa DS{Float64}
-        @test eng.design.pifD  === 0.0
-        @test eng.design.pilcD === 0.0
+        @test eng.design.pi_fan_des  === 0.0
+        @test eng.design.pi_lpc_des === 0.0
         @test eng.design.A2    === 0.0
 
         # ------------------------------------------------------------------
@@ -2119,11 +2119,11 @@ isGradient = false
         # ------------------------------------------------------------------
         # Setting design-state fields
         # ------------------------------------------------------------------
-        eng2.design.pifD  = 1.6
-        eng2.design.pihcD = 10.0
+        eng2.design.pi_fan_des  = 1.6
+        eng2.design.pi_hpc_des = 10.0
         eng2.design.A2    = 0.5
-        @test eng2.design.pifD  ≈ 1.6
-        @test eng2.design.pihcD ≈ 10.0
+        @test eng2.design.pi_fan_des  ≈ 1.6
+        @test eng2.design.pi_hpc_des ≈ 10.0
         @test eng2.design.A2    ≈ 0.5
 
         # ------------------------------------------------------------------
@@ -3073,17 +3073,17 @@ isGradient = false
         # ------------------------------------------------------------------
         # HPT design parameters from tfwrap.jl (tasopt-j9l.25 reference values)
         # ------------------------------------------------------------------
-        pihtD  = 2.1601257635200488
-        mbhtD  = 4.3594697284253883
-        NbhtD  = 0.44698693289691338
+        pi_hpt_des  = 2.1601257635200488
+        mb_hpt_des  = 4.3594697284253883
+        Nb_hpt_des  = 0.44698693289691338
         epht0  = 0.889
         pcon_h = 0.15
         Ncon_h = 0.15
 
         # LPT design parameters
-        piltD  = 6.2886975330083716
-        mbltD  = 8.7016090343744406
-        NbltD  = 0.48396724306758404
+        pi_lpt_des  = 6.2886975330083716
+        mb_lpt_des  = 8.7016090343744406
+        Nb_lpt_des  = 0.48396724306758404
         eplt0  = 0.899
 
         # Standard 5-species hot gas composition after combustion
@@ -3122,16 +3122,16 @@ isGradient = false
         # ------------------------------------------------------------------
         # 2. Turbine struct and constructors
         # ------------------------------------------------------------------
-        hpt = Turb(pihtD, mbhtD, NbhtD, epht0; map=TMap(pcon_h, Ncon_h))
-        @test hpt.piD ≈ pihtD
-        @test hpt.mbD ≈ mbhtD
-        @test hpt.NbD ≈ NbhtD
+        hpt = Turb(pi_hpt_des, mb_hpt_des, Nb_hpt_des, epht0; map=TMap(pcon_h, Ncon_h))
+        @test hpt.piD ≈ pi_hpt_des
+        @test hpt.mbD ≈ mb_hpt_des
+        @test hpt.NbD ≈ Nb_hpt_des
         @test hpt.ep0 ≈ epht0
         @test hpt.map.pcon ≈ pcon_h
         @test hpt.map.Ncon ≈ Ncon_h
 
         # Default map constants (0.15, 0.15)
-        lpt = Turb(piltD, mbltD, NbltD, eplt0)
+        lpt = Turb(pi_lpt_des, mb_lpt_des, Nb_lpt_des, eplt0)
         @test lpt.map.pcon ≈ 0.15
         @test lpt.map.Ncon ≈ 0.15
 
@@ -3145,18 +3145,18 @@ isGradient = false
         #   Trat = piD^(Rt·ep0/cpt)
         #   dh   = cpt · Tt · (1/Trat - 1)   (< 0)
         # ------------------------------------------------------------------
-        Trat_dp = pihtD^(Rt41 * epht0 / cpt41)
+        Trat_dp = pi_hpt_des^(Rt41 * epht0 / cpt41)
         dh_dp   = cpt41 * Tt41 * (1.0 / Trat_dp - 1.0)
         @test dh_dp < 0.0   # work extracted → negative enthalpy change
 
-        ept_dp, _ = turb_eff(hpt, dh_dp, mbhtD, NbhtD, Tt41, cpt41, Rt41)
+        ept_dp, _ = turb_eff(hpt, dh_dp, mb_hpt_des, Nb_hpt_des, Tt41, cpt41, Rt41)
         @test ept_dp ≈ epht0  rtol=1e-12   # exact identity at design point
 
         # ------------------------------------------------------------------
         # 4. turbine_efficiency: off-design penalty
         # ------------------------------------------------------------------
-        mb_off = 0.6 * mbhtD   # significantly off design-point flow
-        Nb_off = 0.7 * NbhtD
+        mb_off = 0.6 * mb_hpt_des   # significantly off design-point flow
+        Nb_off = 0.7 * Nb_hpt_des
         ept_off, _ = turb_eff(hpt, dh_dp, mb_off, Nb_off, Tt41, cpt41, Rt41)
         @test ept_off < epht0   # efficiency degrades off design
 
@@ -3169,13 +3169,13 @@ isGradient = false
         Tmap_vec = [pcon_h, Ncon_h]
         ept_ref, ept_ref_dh, ept_ref_mb, ept_ref_Nb,
         ept_ref_Tt, ept_ref_cpt, ept_ref_Rt = etmap(
-            dh_dp, mbhtD, NbhtD,
-            pihtD, mbhtD, NbhtD, epht0, Tmap_vec,
+            dh_dp, mb_hpt_des, Nb_hpt_des,
+            pi_hpt_des, mb_hpt_des, Nb_hpt_des, epht0, Tmap_vec,
             Tt41, cpt41, Rt41,
         )
 
         ept_c, ept_c_dh, ept_c_mb, ept_c_Nb,
-        ept_c_Tt, ept_c_cpt, ept_c_Rt = turb_eff(hpt, dh_dp, mbhtD, NbhtD, Tt41, cpt41, Rt41)
+        ept_c_Tt, ept_c_cpt, ept_c_Rt = turb_eff(hpt, dh_dp, mb_hpt_des, Nb_hpt_des, Tt41, cpt41, Rt41)
 
         @test ept_c      ≈ ept_ref      rtol=1e-14
         @test ept_c_dh   ≈ ept_ref_dh   rtol=1e-14
@@ -3259,48 +3259,48 @@ isGradient = false
         turb_mb_res = TASOPT.engine.turbine_mb_residual
 
         # Representative HPT and LPT design values (typical TASOPT turbofan)
-        pihtD = 3.5;  mbhtD = 60.0;  NbhtD = 1.0;  epht0 = 0.89
-        piltD = 5.0;  mbltD = 70.0;  NbltD = 1.0;  eplt0 = 0.90
+        pi_hpt_des = 3.5;  mb_hpt_des = 60.0;  Nb_hpt_des = 1.0;  epht0 = 0.89
+        pi_lpt_des = 5.0;  mb_lpt_des = 70.0;  Nb_lpt_des = 1.0;  eplt0 = 0.90
 
-        turb_hp = TASOPT.engine.Turbine(pihtD, mbhtD, NbhtD, epht0)
-        turb_lp = TASOPT.engine.Turbine(piltD, mbltD, NbltD, eplt0)
+        turb_hp = TASOPT.engine.Turbine(pi_hpt_des, mb_hpt_des, Nb_hpt_des, epht0)
+        turb_lp = TASOPT.engine.Turbine(pi_lpt_des, mb_lpt_des, Nb_lpt_des, eplt0)
 
         # 1. Design-point identity: r = 0, dr_dmb = 1
-        r_hp, dr_hp = turb_mb_res(turb_hp, mbhtD)
+        r_hp, dr_hp = turb_mb_res(turb_hp, mb_hpt_des)
         @test r_hp == 0.0
         @test dr_hp == 1.0
 
-        r_lp, dr_lp = turb_mb_res(turb_lp, mbltD)
+        r_lp, dr_lp = turb_mb_res(turb_lp, mb_lpt_des)
         @test r_lp == 0.0
         @test dr_lp == 1.0
 
         # 2. Below-design: r < 0
-        r_low, dr_low = turb_mb_res(turb_hp, 0.95 * mbhtD)
+        r_low, dr_low = turb_mb_res(turb_hp, 0.95 * mb_hpt_des)
         @test r_low < 0.0
         @test dr_low == 1.0
 
         # 3. Above-design: r > 0
-        r_high, dr_high = turb_mb_res(turb_hp, 1.05 * mbhtD)
+        r_high, dr_high = turb_mb_res(turb_hp, 1.05 * mb_hpt_des)
         @test r_high > 0.0
         @test dr_high == 1.0
 
         # 4. Derivative is always 1 for any mb (including far off-design)
         for mb_frac in (0.5, 0.8, 1.0, 1.2, 2.0)
-            _, dr = turb_mb_res(turb_lp, mb_frac * mbltD)
+            _, dr = turb_mb_res(turb_lp, mb_frac * mb_lpt_des)
             @test dr == 1.0
         end
 
         # 5. Round-trip: residual equals mb - turb.mbD exactly
         for mb_frac in (0.7, 0.9, 1.0, 1.1, 1.3)
-            mb = mb_frac * mbhtD
+            mb = mb_frac * mb_hpt_des
             r, _ = turb_mb_res(turb_hp, mb)
             @test r == mb - turb_hp.mbD
         end
 
         # 6. Type preservation: Float32 in → Float32 out
-        turb32 = TASOPT.engine.Turbine(Float32(pihtD), Float32(mbhtD),
-                                        Float32(NbhtD),  Float32(epht0))
-        r32, dr32 = turb_mb_res(turb32, Float32(mbhtD))
+        turb32 = TASOPT.engine.Turbine(Float32(pi_hpt_des), Float32(mb_hpt_des),
+                                        Float32(Nb_hpt_des),  Float32(epht0))
+        r32, dr32 = turb_mb_res(turb32, Float32(mb_hpt_des))
         @test r32 isa Float32
         @test dr32 isa Float32
         @test r32 == 0.0f0
@@ -3509,17 +3509,17 @@ isGradient = false
         # ------------------------------------------------------------------
         # Design parameters from tfoper.jl mode-1 test (baseline aircraft)
         # ------------------------------------------------------------------
-        pifD   = 1.6850000000000001
-        pilcD  = 8.0000000000000000
-        pihcD  = 3.7500000000000000
+        pi_fan_des   = 1.6850000000000001
+        pi_lpc_des  = 8.0000000000000000
+        pi_hpc_des  = 3.7500000000000000
 
-        mbfD   = 235.16225770724063
-        mblcD  = 46.110246609262873
-        mbhcD  = 7.8056539219349039
+        mb_fan_des   = 235.16225770724063
+        mb_lpc_des  = 46.110246609262873
+        mb_hpc_des  = 7.8056539219349039
 
-        NbfD   = 1.0790738309310697
-        NblcD  = 1.0790738309310697
-        NbhcD  = 0.77137973563891493
+        Nb_fan_des   = 1.0790738309310697
+        Nb_lpc_des  = 1.0790738309310697
+        Nb_hpc_des  = 0.77137973563891493
 
         epf0   = 0.89480000000000004
         eplc0  = 0.88000000000000000
@@ -3546,23 +3546,23 @@ isGradient = false
         # ------------------------------------------------------------------
         # 1. Compressor struct and constructor invariants
         # ------------------------------------------------------------------
-        fan = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
-        @test fan.piD      ≈ pifD
-        @test fan.mbD      ≈ mbfD
-        @test fan.NbD      ≈ NbfD
+        fan = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, epfmin, FanMap)
+        @test fan.piD      ≈ pi_fan_des
+        @test fan.mbD      ≈ mb_fan_des
+        @test fan.NbD      ≈ Nb_fan_des
         @test fan.epol0    ≈ epf0
         @test fan.epol_min ≈ epfmin
         @test fan.map      === FanMap
         @test fan.Ng       ≈ 0.5    # default warm-start speed
         @test fan.Rg       ≈ 2.0    # default warm-start R-line
 
-        lpc = Comp(pilcD, mblcD, NblcD, eplc0, elpcmin, LPCMap)
-        @test lpc.piD  ≈ pilcD
-        @test lpc.mbD  ≈ mblcD
+        lpc = Comp(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, elpcmin, LPCMap)
+        @test lpc.piD  ≈ pi_lpc_des
+        @test lpc.mbD  ≈ mb_lpc_des
 
-        hpc = Comp(pihcD, mbhcD, NbhcD, ephc0, ephcmin, HPCMap)
-        @test hpc.piD  ≈ pihcD
-        @test hpc.mbD  ≈ mbhcD
+        hpc = Comp(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, ephcmin, HPCMap)
+        @test hpc.piD  ≈ pi_hpc_des
+        @test hpc.mbD  ≈ mb_hpc_des
 
         # ------------------------------------------------------------------
         # 2. compressor_efficiency: design-point evaluation
@@ -3573,8 +3573,8 @@ isGradient = false
         # the value at the design (Nc, Rline) point, so epol_dp ≠ epol0
         # in general.  The constraint we can assert is: epol_dp ∈ (epfmin, 1).
         # ------------------------------------------------------------------
-        fan_dp = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
-        Nb_dp, epol_dp, _, _, _, _ = comp_eff(fan_dp, pifD, mbfD)
+        fan_dp = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, epfmin, FanMap)
+        Nb_dp, epol_dp, _, _, _, _ = comp_eff(fan_dp, pi_fan_des, mb_fan_des)
 
         @test epol_dp > epfmin    # above the efficiency floor
         @test epol_dp < 1.0       # physically sub-unity
@@ -3585,8 +3585,8 @@ isGradient = false
         # ------------------------------------------------------------------
         # 3. compressor_efficiency: off-design operating point
         # ------------------------------------------------------------------
-        mb_off = 0.8 * mbfD   # mass flow 20% below design
-        Nb_off, epol_off, _, _, _, _ = comp_eff(fan_dp, pifD, mb_off)
+        mb_off = 0.8 * mb_fan_des   # mass flow 20% below design
+        Nb_off, epol_off, _, _, _, _ = comp_eff(fan_dp, pi_fan_des, mb_off)
 
         # Efficiency must remain physically positive
         @test epol_off > 0.0
@@ -3601,16 +3601,16 @@ isGradient = false
         # ------------------------------------------------------------------
         # 4. compressor_efficiency round-trip: matches direct calc call
         # ------------------------------------------------------------------
-        fan_rt = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
-        pi_test = pifD * 0.95   # slightly off design-point pressure ratio
-        mb_test = mbfD * 0.95   # slightly off design-point mass flow
+        fan_rt = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, epfmin, FanMap)
+        pi_test = pi_fan_des * 0.95   # slightly off design-point pressure ratio
+        mb_test = mb_fan_des * 0.95   # slightly off design-point mass flow
 
         Nb_c, epol_c, Nb_pi_c, Nb_mb_c, epol_pi_c, epol_mb_c =
             comp_eff(fan_rt, pi_test, mb_test)
 
         # Direct call (no floor/windmill correction since nominal efficiency > floor)
         Nb_ref, epol_ref, Nb_pi_ref, Nb_mb_ref, epol_pi_ref, epol_mb_ref, _, _ =
-            calc_cse(FanMap, pi_test, mb_test, pifD, mbfD, NbfD, epf0)
+            calc_cse(FanMap, pi_test, mb_test, pi_fan_des, mb_fan_des, Nb_fan_des, epf0)
 
         @test Nb_c      ≈ Nb_ref      rtol=1e-12
         @test epol_c    ≈ epol_ref    rtol=1e-12
@@ -3622,10 +3622,10 @@ isGradient = false
         # ------------------------------------------------------------------
         # 5. compressor_efficiency: warm-start hints updated after each call
         # ------------------------------------------------------------------
-        fan_ws = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap)
+        fan_ws = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, epfmin, FanMap)
         Ng_before = fan_ws.Ng
         Rg_before = fan_ws.Rg
-        comp_eff(fan_ws, pifD, mbfD)
+        comp_eff(fan_ws, pi_fan_des, mb_fan_des)
         # After a call the hints should be updated (map solver returns converged N, R)
         @test fan_ws.Ng != Ng_before || fan_ws.Rg != Rg_before  # at least one changes
 
@@ -3635,8 +3635,8 @@ isGradient = false
         # Set epol_min = 0.999 (above any realistic map output).
         # The returned efficiency must equal epol_min and derivatives = 0.
         # ------------------------------------------------------------------
-        fan_floor = Comp(pifD, mbfD, NbfD, epf0, 0.999, FanMap)
-        _, epol_fl, _, _, epol_pi_fl, epol_mb_fl = comp_eff(fan_floor, pifD, mbfD)
+        fan_floor = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.999, FanMap)
+        _, epol_fl, _, _, epol_pi_fl, epol_mb_fl = comp_eff(fan_floor, pi_fan_des, mb_fan_des)
         @test epol_fl    ≈ 0.999  atol=1e-12
         @test epol_pi_fl ≈ 0.0   atol=1e-14
         @test epol_mb_fl ≈ 0.0   atol=1e-14
@@ -3648,16 +3648,16 @@ isGradient = false
         # reverse-flow / braking mode).  The inverted value must be > 1
         # (since original epol ∈ (0,1) implies 1/epol > 1).
         # ------------------------------------------------------------------
-        fan_wm = Comp(pifD, mbfD, NbfD, epf0, epfmin, FanMap, windmilling=true)
+        fan_wm = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, epfmin, FanMap, windmilling=true)
         pi_wm  = 0.9   # below unity → windmilling
-        mb_wm  = 0.5 * mbfD
+        mb_wm  = 0.5 * mb_fan_des
         _, epol_wm, _, _, epol_pi_wm, epol_mb_wm = comp_eff(fan_wm, pi_wm, mb_wm)
         @test epol_wm > 1.0   # inverted efficiency exceeds 1
 
         # Derivative consistency: epol_pi_wm should have opposite sign to raw derivative
         # (chain rule: d(1/epol)/dpi = -1/epol² * depol/dpi; for positive depol/dpi,
         # the inverted derivative is negative)
-        _, _, _, _, epol_pi_raw, _ = calc_cse(FanMap, pi_wm, mb_wm, pifD, mbfD, NbfD, epf0)
+        _, _, _, _, epol_pi_raw, _ = calc_cse(FanMap, pi_wm, mb_wm, pi_fan_des, mb_fan_des, Nb_fan_des, epf0)
         epol_wm_raw = 1.0  # dummy: check sign consistency
         # Just verify derivative has the expected sign (opposite to raw)
         if epol_pi_raw > 0.0
@@ -3667,15 +3667,15 @@ isGradient = false
         end
 
         # Verify LPC/HPC do NOT apply windmilling (upstream fan-only behaviour)
-        lpc_nowm = Comp(pilcD, mblcD, NblcD, eplc0, 0.70, LPCMap)
-        _, epol_lpc_nowm, _, _, _, _ = comp_eff(lpc_nowm, 0.9, 0.5 * mblcD)
+        lpc_nowm = Comp(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, 0.70, LPCMap)
+        _, epol_lpc_nowm, _, _, _, _ = comp_eff(lpc_nowm, 0.9, 0.5 * mb_lpc_des)
         @test epol_lpc_nowm < 1.0   # no inversion: raw efficiency stays < 1
 
         # ------------------------------------------------------------------
         # 8. compressor_exit!: physical invariants
         # ------------------------------------------------------------------
         epol_test = epf0   # use design-point efficiency
-        pi_exit   = pifD
+        pi_exit   = pi_fan_des
 
         st21 = FS{Float64}()
         comp_exit!(st21, st2, pi_exit, epol_test)
@@ -3720,8 +3720,8 @@ isGradient = false
         # ------------------------------------------------------------------
         # 10. compressor_exit! monotonicity: larger pi → higher Tt and pt
         # ------------------------------------------------------------------
-        pi_lo = pifD * 0.8
-        pi_hi = pifD * 1.2
+        pi_lo = pi_fan_des * 0.8
+        pi_hi = pi_fan_des * 1.2
 
         st21_lo = FS{Float64}()
         st21_hi = FS{Float64}()
@@ -3740,7 +3740,7 @@ isGradient = false
         # ------------------------------------------------------------------
         # Use the outer convenience constructor (infers T=Float32, adds Ng/Rg defaults)
         fan32 = Comp(
-            Float32(pifD), Float32(mbfD), Float32(NbfD),
+            Float32(pi_fan_des), Float32(mb_fan_des), Float32(Nb_fan_des),
             Float32(epf0), Float32(epfmin), FanMap,
         )
         @test fan32 isa Comp{Float32}
@@ -3766,13 +3766,13 @@ isGradient = false
         HPCMap      = TASOPT.engine.HPCMap
 
         # Design parameters (same as Compressor testset for consistency)
-        pifD  = 1.6850000000000001;  mbfD  = 235.16225770724063;  NbfD  = 1.0790738309310697;  epf0  = 0.89480000000000004
-        pilcD = 8.0000000000000000;  mblcD = 46.110246609262873;  NblcD = 1.0790738309310697;  eplc0 = 0.88000000000000000
-        pihcD = 3.7500000000000000;  mbhcD = 7.8056539219349039;  NbhcD = 0.77137973563891493;  ephc0 = 0.87000000000000000
+        pi_fan_des  = 1.6850000000000001;  mb_fan_des  = 235.16225770724063;  Nb_fan_des  = 1.0790738309310697;  epf0  = 0.89480000000000004
+        pi_lpc_des = 8.0000000000000000;  mb_lpc_des = 46.110246609262873;  Nb_lpc_des = 1.0790738309310697;  eplc0 = 0.88000000000000000
+        pi_hpc_des = 3.7500000000000000;  mb_hpc_des = 7.8056539219349039;  Nb_hpc_des = 0.77137973563891493;  ephc0 = 0.87000000000000000
 
-        fan = Comp(pifD,  mbfD,  NbfD,  epf0,  0.60, FanMap)
-        lpc = Comp(pilcD, mblcD, NblcD, eplc0, 0.70, LPCMap)
-        hpc = Comp(pihcD, mbhcD, NbhcD, ephc0, 0.70, HPCMap)
+        fan = Comp(pi_fan_des,  mb_fan_des,  Nb_fan_des,  epf0,  0.60, FanMap)
+        lpc = Comp(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, 0.70, LPCMap)
+        hpc = Comp(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, 0.70, HPCMap)
 
         # ------------------------------------------------------------------
         # 1. Design-point identity: r ≈ 0 when Nb_target = NbD
@@ -3781,38 +3781,38 @@ isGradient = false
         # fan map returns it exactly due to its grid layout; LPC and HPC
         # may have O(ε_machine) rounding in the interpolation step).
         # ------------------------------------------------------------------
-        r_fan, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD)
+        r_fan, _, _ = comp_Nb_res(fan, pi_fan_des, mb_fan_des, Nb_fan_des)
         @test r_fan ≈ 0.0  atol=1e-12
 
-        r_lpc, _, _ = comp_Nb_res(lpc, pilcD, mblcD, NblcD)
+        r_lpc, _, _ = comp_Nb_res(lpc, pi_lpc_des, mb_lpc_des, Nb_lpc_des)
         @test r_lpc ≈ 0.0  atol=1e-12
 
-        r_hpc, _, _ = comp_Nb_res(hpc, pihcD, mbhcD, NbhcD)
+        r_hpc, _, _ = comp_Nb_res(hpc, pi_hpc_des, mb_hpc_des, Nb_hpc_des)
         @test r_hpc ≈ 0.0  atol=1e-12
 
         # ------------------------------------------------------------------
         # 2. Sign: r > 0 when Nb_target is below the map speed
         # ------------------------------------------------------------------
-        r_high, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD * 0.95)
-        @test r_high > 0.0   # Nb_map = NbfD > 0.95*NbfD = Nb_target
+        r_high, _, _ = comp_Nb_res(fan, pi_fan_des, mb_fan_des, Nb_fan_des * 0.95)
+        @test r_high > 0.0   # Nb_map = Nb_fan_des > 0.95*Nb_fan_des = Nb_target
 
         # ------------------------------------------------------------------
         # 3. Sign: r < 0 when Nb_target is above the map speed
         # ------------------------------------------------------------------
-        r_low, _, _ = comp_Nb_res(fan, pifD, mbfD, NbfD * 1.05)
-        @test r_low < 0.0    # Nb_map = NbfD < 1.05*NbfD = Nb_target
+        r_low, _, _ = comp_Nb_res(fan, pi_fan_des, mb_fan_des, Nb_fan_des * 1.05)
+        @test r_low < 0.0    # Nb_map = Nb_fan_des < 1.05*Nb_fan_des = Nb_target
 
         # ------------------------------------------------------------------
         # 4. Round-trip: r = Nb_map - Nb_target exactly, derivatives match
         #    compressor_efficiency
         # ------------------------------------------------------------------
-        pi_test = pifD * 0.97
-        mb_test = mbfD * 0.98
-        Nb_t    = NbfD * 0.99
+        pi_test = pi_fan_des * 0.97
+        mb_test = mb_fan_des * 0.98
+        Nb_t    = Nb_fan_des * 0.99
 
         r_rt, Nb_pi_rt, Nb_mb_rt = comp_Nb_res(fan, pi_test, mb_test, Nb_t)
 
-        fan_rt = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_rt = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         Nb_eff, _, Nb_pi_eff, Nb_mb_eff, _, _ = comp_eff(fan_rt, pi_test, mb_test)
 
         @test r_rt     ≈ Nb_eff - Nb_t   rtol=1e-14
@@ -3823,19 +3823,19 @@ isGradient = false
         # 5. Derivative self-consistency: dr/dpi matches finite-difference
         #    Nb_target is held constant, so dr/dpi = dNb_map/dpi.
         # ------------------------------------------------------------------
-        eps_fd = 1e-5 * pifD
-        r_fwd, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+        eps_fd = 1e-5 * pi_fan_des
+        r_fwd, _, _ = comp_Nb_res(Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap),
                                    pi_test + eps_fd, mb_test, Nb_t)
-        r_bwd, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+        r_bwd, _, _ = comp_Nb_res(Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap),
                                    pi_test - eps_fd, mb_test, Nb_t)
         Nb_pi_fd = (r_fwd - r_bwd) / (2 * eps_fd)
         @test Nb_pi_rt ≈ Nb_pi_fd  rtol=1e-4
 
         # dr/dmb finite-difference
-        eps_mb = 1e-5 * mbfD
-        r_fwd_mb, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+        eps_mb = 1e-5 * mb_fan_des
+        r_fwd_mb, _, _ = comp_Nb_res(Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap),
                                       pi_test, mb_test + eps_mb, Nb_t)
-        r_bwd_mb, _, _ = comp_Nb_res(Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap),
+        r_bwd_mb, _, _ = comp_Nb_res(Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap),
                                       pi_test, mb_test - eps_mb, Nb_t)
         Nb_mb_fd = (r_fwd_mb - r_bwd_mb) / (2 * eps_mb)
         @test Nb_mb_rt ≈ Nb_mb_fd  rtol=1e-4
@@ -3844,23 +3844,23 @@ isGradient = false
         # 6. Monotonicity: increasing pi (above design) increases Nb_map
         #    for fixed mb, so r increases for fixed Nb_target.
         # ------------------------------------------------------------------
-        Nb_tgt_fixed = NbfD
-        fan_mono = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        r_lo, _, _ = comp_Nb_res(fan_mono, pifD * 0.90, mbfD, Nb_tgt_fixed)
-        r_md, _, _ = comp_Nb_res(fan_mono, pifD * 1.00, mbfD, Nb_tgt_fixed)
-        r_hi, _, _ = comp_Nb_res(fan_mono, pifD * 1.10, mbfD, Nb_tgt_fixed)
+        Nb_tgt_fixed = Nb_fan_des
+        fan_mono = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        r_lo, _, _ = comp_Nb_res(fan_mono, pi_fan_des * 0.90, mb_fan_des, Nb_tgt_fixed)
+        r_md, _, _ = comp_Nb_res(fan_mono, pi_fan_des * 1.00, mb_fan_des, Nb_tgt_fixed)
+        r_hi, _, _ = comp_Nb_res(fan_mono, pi_fan_des * 1.10, mb_fan_des, Nb_tgt_fixed)
         @test r_lo < r_md
         @test r_md < r_hi
 
         # ------------------------------------------------------------------
         # 7. LPC and HPC at design: r = 0 (same invariant as fan)
         # ------------------------------------------------------------------
-        r_lpc2, Nb_pi_lpc, Nb_mb_lpc = comp_Nb_res(lpc, pilcD, mblcD, NblcD)
+        r_lpc2, Nb_pi_lpc, Nb_mb_lpc = comp_Nb_res(lpc, pi_lpc_des, mb_lpc_des, Nb_lpc_des)
         @test r_lpc2 ≈ 0.0  atol=1e-12
         @test Nb_pi_lpc isa Float64
         @test Nb_mb_lpc isa Float64
 
-        r_hpc2, Nb_pi_hpc, Nb_mb_hpc = comp_Nb_res(hpc, pihcD, mbhcD, NbhcD)
+        r_hpc2, Nb_pi_hpc, Nb_mb_hpc = comp_Nb_res(hpc, pi_hpc_des, mb_hpc_des, Nb_hpc_des)
         @test r_hpc2 ≈ 0.0  atol=1e-12
         @test Nb_pi_hpc isa Float64
         @test Nb_mb_hpc isa Float64
@@ -3899,9 +3899,9 @@ isGradient = false
         gas_pratd_fn = TASOPT.engine.gas_pratd
 
         # Design parameters (consistent with rest of engine testset)
-        pifD  = 1.6850000000000001;  mbfD  = 235.16225770724063;  NbfD  = 1.0790738309310697;  epf0  = 0.89480000000000004
-        pilcD = 8.0000000000000000;  mblcD = 46.110246609262873;  NblcD = 1.0790738309310697;  eplc0 = 0.88000000000000000
-        pihcD = 3.7500000000000000;  mbhcD = 7.8056539219349039;  NbhcD = 0.77137973563891493;  ephc0 = 0.87000000000000000
+        pi_fan_des  = 1.6850000000000001;  mb_fan_des  = 235.16225770724063;  Nb_fan_des  = 1.0790738309310697;  epf0  = 0.89480000000000004
+        pi_lpc_des = 8.0000000000000000;  mb_lpc_des = 46.110246609262873;  Nb_lpc_des = 1.0790738309310697;  eplc0 = 0.88000000000000000
+        pi_hpc_des = 3.7500000000000000;  mb_hpc_des = 7.8056539219349039;  Nb_hpc_des = 0.77137973563891493;  ephc0 = 0.87000000000000000
 
         air_alpha = TASOPT.engine.AIR_ALPHA
         nair = 5
@@ -3914,15 +3914,15 @@ isGradient = false
         cpt_in = 1004.0     # J/kg·K
         Rt_in  = 287.0      # J/kg·K
 
-        fan = Comp(pifD,  mbfD,  NbfD,  epf0,  0.60, FanMap)
-        lpc = Comp(pilcD, mblcD, NblcD, eplc0, 0.70, LPCMap)
-        hpc = Comp(pihcD, mbhcD, NbhcD, ephc0, 0.70, HPCMap)
+        fan = Comp(pi_fan_des,  mb_fan_des,  Nb_fan_des,  epf0,  0.60, FanMap)
+        lpc = Comp(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, 0.70, LPCMap)
+        hpc = Comp(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, 0.70, HPCMap)
 
         # ------------------------------------------------------------------
         # 1. Design-point pressure identity: pt_out = pi * pt_in
         # ------------------------------------------------------------------
-        pi_test = pifD * 0.97
-        mb_test = mbfD * 0.99
+        pi_test = pi_fan_des * 0.97
+        mb_test = mb_fan_des * 0.99
 
         pt_out, Tt_out, ht_out, st_out, cpt_out, Rt_out,
         pt_out_pt_in,
@@ -3952,8 +3952,8 @@ isGradient = false
         # 4. FD verification: ∂pt_out/∂pi   (rtol=1e-4; map solver limits precision)
         # ------------------------------------------------------------------
         eps_pi = 1e-5 * pi_test
-        fan_fwd = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        fan_bwd = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_fwd = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        fan_bwd = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         pt_fwd, = comp_pratd(fan_fwd, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in,
             pi_test + eps_pi, mb_test)
@@ -3967,8 +3967,8 @@ isGradient = false
         # 5. FD verification: ∂Tt_out/∂pi
         #    rtol=5e-4: Tt derivatives are noisier than pt (gas_pratd Newton ttol=1e-6)
         # ------------------------------------------------------------------
-        fan_fwd2 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        fan_bwd2 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_fwd2 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        fan_bwd2 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         _, Tt_fwd, = comp_pratd(fan_fwd2, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in,
             pi_test + eps_pi, mb_test)
@@ -3982,8 +3982,8 @@ isGradient = false
         # 6. FD verification: ∂pt_out/∂mb  (efficiency-chain only)
         # ------------------------------------------------------------------
         eps_mb = 1e-5 * mb_test
-        fan_fwd3 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        fan_bwd3 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_fwd3 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        fan_bwd3 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         pt_fwd_mb, = comp_pratd(fan_fwd3, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in,
             pi_test, mb_test + eps_mb)
@@ -3998,8 +3998,8 @@ isGradient = false
         #    rtol=1e-3: derivative goes through gas_pratd Newton (ttol=1e-6)
         # ------------------------------------------------------------------
         eps_st = 1e-5 * st_in
-        fan_fwd4 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        fan_bwd4 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_fwd4 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        fan_bwd4 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         _, Tt_fwd_st, = comp_pratd(fan_fwd4, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in + eps_st, cpt_in, Rt_in,
             pi_test, mb_test)
@@ -4013,8 +4013,8 @@ isGradient = false
         # 8. FD verification: ∂pt_out/∂pt_in  (trivially = pi; tighter tol)
         # ------------------------------------------------------------------
         eps_pt = 1e-5 * pt_in
-        fan_fwd5 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
-        fan_bwd5 = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_fwd5 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
+        fan_bwd5 = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         pt_fwd_pt, = comp_pratd(fan_fwd5, air_alpha, nair,
             pt_in + eps_pt, Tt_in, ht_in, st_in, cpt_in, Rt_in,
             pi_test, mb_test)
@@ -4028,7 +4028,7 @@ isGradient = false
         # 9. Round-trip: Nb, Nb_pi, Nb_mb, epol, epol_pi, epol_mb match
         #    direct compressor_efficiency call (same operating point)
         # ------------------------------------------------------------------
-        fan_rt = Comp(pifD, mbfD, NbfD, epf0, 0.60, FanMap)
+        fan_rt = Comp(pi_fan_des, mb_fan_des, Nb_fan_des, epf0, 0.60, FanMap)
         Nb_eff, epol_eff, Nb_pi_eff, Nb_mb_eff, epol_pi_eff, epol_mb_eff =
             comp_eff(fan_rt, pi_test, mb_test)
 
@@ -4042,13 +4042,13 @@ isGradient = false
         # ------------------------------------------------------------------
         pt_lpc, Tt_lpc = comp_pratd(lpc, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in,
-            pilcD * 0.98, mblcD * 0.99)[1:2]
+            pi_lpc_des * 0.98, mb_lpc_des * 0.99)[1:2]
         @test pt_lpc > pt_in
         @test Tt_lpc > Tt_in
 
         pt_hpc, Tt_hpc = comp_pratd(hpc, air_alpha, nair,
             pt_in, Tt_in, ht_in, st_in, cpt_in, Rt_in,
-            pihcD * 0.98, mbhcD * 0.99)[1:2]
+            pi_hpc_des * 0.98, mb_hpc_des * 0.99)[1:2]
         @test pt_hpc > pt_in
         @test Tt_hpc > Tt_in
 

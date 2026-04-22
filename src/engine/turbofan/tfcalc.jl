@@ -263,23 +263,23 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 Nblt = N1 / sqrt(Tt45 / Tref)
 
                 #----- set quantities fixed by this design case for all operating points
-                mbfD = mbf
-                mblcD = mblc
-                mbhcD = mbhc
-                mbhtD = mbht
-                mbltD = mblt
+                mb_fan_des = mbf
+                mb_lpc_des = mblc
+                mb_hpc_des = mbhc
+                mb_hpt_des = mbht
+                mb_lpt_des = mblt
 
-                pifD = pif
-                pilcD = pilc
-                pihcD = pihc
-                pihtD = pt41 / pt45
-                piltD = pt45 / pt49
+                pi_fan_des = pif
+                pi_lpc_des = pilc
+                pi_hpc_des = pihc
+                pi_hpt_des = pt41 / pt45
+                pi_lpt_des = pt45 / pt49
 
-                NbfD = Nbf
-                NblcD = Nblc
-                NbhcD = Nbhc
-                NbhtD = Nbht
-                NbltD = Nblt
+                Nb_fan_des = Nbf
+                Nb_lpc_des = Nblc
+                Nb_hpc_des = Nbhc
+                Nb_hpt_des = Nbht
+                Nb_lpt_des = Nblt
 
                 #----- but recalculate turbine pressure ratios using slightly approximate form,
                 #-      to be fuly consistent with TFOPER's turbine efficiency function
@@ -287,8 +287,8 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 Trl = Tt45 / (Tt45 + (ht49 - ht45) / cpt45)
                 gexh = cpt41 / (Rt41 * epolht)
                 gexl = cpt45 / (Rt45 * epollt)
-                pihtD = Trh^gexh
-                piltD = Trl^gexl
+                pi_hpt_des = Trh^gexh
+                pi_lpt_des = Trl^gexl
 
                 # ── EXIT: populate EngineState with sizing results ───────────
                 # Station total states
@@ -364,15 +364,15 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 eng_design.st9.u   = u9;   eng_design.st9.A   = A9
 
                 # DesignState — frozen scalars needed by every off-design call
-                eng_design.design.pifD  = pifD;  eng_design.design.pilcD = pilcD
-                eng_design.design.pihcD = pihcD; eng_design.design.pihtD = pihtD
-                eng_design.design.piltD = piltD
-                eng_design.design.mbfD  = mbfD;  eng_design.design.mblcD = mblcD
-                eng_design.design.mbhcD = mbhcD; eng_design.design.mbhtD = mbhtD
-                eng_design.design.mbltD = mbltD
-                eng_design.design.NbfD  = NbfD;  eng_design.design.NblcD = NblcD
-                eng_design.design.NbhcD = NbhcD; eng_design.design.NbhtD = NbhtD
-                eng_design.design.NbltD = NbltD
+                eng_design.design.pi_fan_des  = pi_fan_des;  eng_design.design.pi_lpc_des = pi_lpc_des
+                eng_design.design.pi_hpc_des = pi_hpc_des; eng_design.design.pi_hpt_des = pi_hpt_des
+                eng_design.design.pi_lpt_des = pi_lpt_des
+                eng_design.design.mb_fan_des  = mb_fan_des;  eng_design.design.mb_lpc_des = mb_lpc_des
+                eng_design.design.mb_hpc_des = mb_hpc_des; eng_design.design.mb_hpt_des = mb_hpt_des
+                eng_design.design.mb_lpt_des = mb_lpt_des
+                eng_design.design.Nb_fan_des  = Nb_fan_des;  eng_design.design.Nb_lpc_des = Nb_lpc_des
+                eng_design.design.Nb_hpc_des = Nb_hpc_des; eng_design.design.Nb_hpt_des = Nb_hpt_des
+                eng_design.design.Nb_lpt_des = Nb_lpt_des
                 eng_design.design.A2    = A2;    eng_design.design.A25   = A25
                 eng_design.design.A5    = A5;    eng_design.design.A7    = A7
                 eng_design.design.epsrow = SVector{4,Float64}(epsrow[1], epsrow[2], epsrow[3], epsrow[4])
@@ -458,23 +458,23 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                 A7  = eng_offdes.design.A7
 
                 # tasopt-j9l.23: read map anchors from typed DesignState
-                NbfD  = eng_offdes.design.NbfD
-                NblcD = eng_offdes.design.NblcD
-                NbhcD = eng_offdes.design.NbhcD
-                NbhtD = eng_offdes.design.NbhtD
-                NbltD = eng_offdes.design.NbltD
+                Nb_fan_des  = eng_offdes.design.Nb_fan_des
+                Nb_lpc_des = eng_offdes.design.Nb_lpc_des
+                Nb_hpc_des = eng_offdes.design.Nb_hpc_des
+                Nb_hpt_des = eng_offdes.design.Nb_hpt_des
+                Nb_lpt_des = eng_offdes.design.Nb_lpt_des
 
-                mbfD  = eng_offdes.design.mbfD
-                mblcD = eng_offdes.design.mblcD
-                mbhcD = eng_offdes.design.mbhcD
-                mbhtD = eng_offdes.design.mbhtD
-                mbltD = eng_offdes.design.mbltD
+                mb_fan_des  = eng_offdes.design.mb_fan_des
+                mb_lpc_des = eng_offdes.design.mb_lpc_des
+                mb_hpc_des = eng_offdes.design.mb_hpc_des
+                mb_hpt_des = eng_offdes.design.mb_hpt_des
+                mb_lpt_des = eng_offdes.design.mb_lpt_des
 
-                pifD  = eng_offdes.design.pifD
-                pilcD = eng_offdes.design.pilcD
-                pihcD = eng_offdes.design.pihcD
-                pihtD = eng_offdes.design.pihtD
-                piltD = eng_offdes.design.piltD
+                pi_fan_des  = eng_offdes.design.pi_fan_des
+                pi_lpc_des = eng_offdes.design.pi_lpc_des
+                pi_hpc_des = eng_offdes.design.pi_hpc_des
+                pi_hpt_des = eng_offdes.design.pi_hpt_des
+                pi_lpt_des = eng_offdes.design.pi_lpt_des
 
                 if (initializes_engine)
                         #------ force TFOPER to initialize these state variables
@@ -555,9 +555,9 @@ function tfcalc!(wing, engine, parg::Vector{Float64}, para, eng_hx::EngineState,
                         Phiinl, Kinl, eng_has_BLI_cores,
                         pid, pib, pifn, pitn,
                         Gearf,
-                        pifD, pilcD, pihcD, pihtD, piltD,
-                        mbfD, mblcD, mbhcD, mbhtD, mbltD,
-                        NbfD, NblcD, NbhcD, NbhtD, NbltD,
+                        pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des,
+                        mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des,
+                        Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des,
                         A2, A25, A5, A7,
                         opt_calc_call,
                         Tfuel, ifuel, hvap, etab,

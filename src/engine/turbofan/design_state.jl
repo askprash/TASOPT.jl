@@ -47,25 +47,25 @@ mutable struct DesignState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Map scalars — design-point pressure ratios (dimensionless)
     # -----------------------------------------------------------------------
-    pifD  ::T   # fan design total-pressure ratio
-    pilcD ::T   # LPC design total-pressure ratio
-    pihcD ::T   # HPC design total-pressure ratio
-    pihtD ::T   # HPT design total-pressure ratio
-    piltD ::T   # LPT design total-pressure ratio
+    pi_fan_des  ::T   # fan design total-pressure ratio
+    pi_lpc_des ::T   # LPC design total-pressure ratio
+    pi_hpc_des ::T   # HPC design total-pressure ratio
+    pi_hpt_des ::T   # HPT design total-pressure ratio
+    pi_lpt_des ::T   # LPT design total-pressure ratio
 
     # Map scalars — design-point corrected mass flows [kg/s · √K / kPa]
-    mbfD  ::T   # fan
-    mblcD ::T   # LPC
-    mbhcD ::T   # HPC
-    mbhtD ::T   # HPT
-    mbltD ::T   # LPT
+    mb_fan_des  ::T   # fan
+    mb_lpc_des ::T   # LPC
+    mb_hpc_des ::T   # HPC
+    mb_hpt_des ::T   # HPT
+    mb_lpt_des ::T   # LPT
 
     # Map scalars — design-point corrected spool speeds (normalised)
-    NbfD  ::T   # fan / LP spool speed at design
-    NblcD ::T   # LPC design-point corrected speed
-    NbhcD ::T   # HPC design-point corrected speed
-    NbhtD ::T   # HPT design-point corrected speed
-    NbltD ::T   # LPT design-point corrected speed
+    Nb_fan_des  ::T   # fan / LP spool speed at design
+    Nb_lpc_des ::T   # LPC design-point corrected speed
+    Nb_hpc_des ::T   # HPC design-point corrected speed
+    Nb_hpt_des ::T   # HPT design-point corrected speed
+    Nb_lpt_des ::T   # LPT design-point corrected speed
 
     # -----------------------------------------------------------------------
     # Component flow areas [m²]
@@ -169,9 +169,9 @@ function DesignState{T}() where {T<:AbstractFloat}
     z = zero(T)
     zv = @SVector zeros(T, 4)
     DesignState{T}(
-        z, z, z, z, z,   # pifD, pilcD, pihcD, pihtD, piltD
-        z, z, z, z, z,   # mbfD, mblcD, mbhcD, mbhtD, mbltD
-        z, z, z, z, z,   # NbfD, NblcD, NbhcD, NbhtD, NbltD
+        z, z, z, z, z,   # pi_fan_des, pi_lpc_des, pi_hpc_des, pi_hpt_des, pi_lpt_des
+        z, z, z, z, z,   # mb_fan_des, mb_lpc_des, mb_hpc_des, mb_hpt_des, mb_lpt_des
+        z, z, z, z, z,   # Nb_fan_des, Nb_lpc_des, Nb_hpc_des, Nb_hpt_des, Nb_lpt_des
         z, z, z, z,      # A2, A25, A5, A7
         zv, zv,          # epsrow, Tmrow
         z,               # fc

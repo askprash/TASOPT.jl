@@ -115,8 +115,8 @@ function ductedfansize!(gee, M0, T0, p0, a0, M2,
       pt2 = pt18
       Tt2 = Tt18
 
-      # Fan compressor component — design anchors: pifD = pif (sizing point IS design point),
-      # mbfD = 1.0 (corrected flow normalised to design), NbD = 1.0.
+      # Fan compressor component — design anchors: pi_fan_des = pif (sizing point IS design point),
+      # mb_fan_des = 1.0 (corrected flow normalised to design), NbD = 1.0.
       _comp_fan = Compressor(pif, 1.0, 1.0, epf0, 0.60, FanMap)
 
       npass = 60

@@ -21,9 +21,9 @@ floor, and a reference to a composed `CompressorMap` subtype.
 Instantiate one `Compressor` per spool stage:
 
 ```julia
-fan = Compressor(pifD,  mbfD,  NbfD,  epf0,  T(0.60), FanMap)
-lpc = Compressor(pilcD, mblcD, NblcD, eplc0, T(0.70), LPCMap)
-hpc = Compressor(pihcD, mbhcD, NbhcD, ephc0, T(0.70), HPCMap)
+fan = Compressor(pi_fan_des,  mb_fan_des,  Nb_fan_des,  epf0,  T(0.60), FanMap)
+lpc = Compressor(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, T(0.70), LPCMap)
+hpc = Compressor(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, T(0.70), HPCMap)
 ```
 
 ## Fields

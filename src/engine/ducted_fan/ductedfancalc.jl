@@ -108,29 +108,29 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
         mbf = mfan * sqrt(Tt2 / Tref) / (pt2 / pref)
         M7 = u7 / sqrt(T7 * R7 * cp7 / (cp7 - R7))
 
-        pifD = pif
-        mbfD = mbf
+        pi_fan_des = pif
+        mb_fan_des = mbf
 
         Nf = 1.0 #Arbitrarily set to 1 as only ratios matter
         Nbf = Nf / sqrt(Tt2 / Tref)
-        NbfD = Nbf
+        Nb_fan_des = Nbf
 
         #----- store design-point parameters
         eng_ip.design.A2  = A2
         eng_ip.design.A7  = A7
 
-        eng_ip.design.mbfD = mbfD
-        eng_ip.design.pifD = pifD
-        eng_ip.design.NbfD = Nbf
+        eng_ip.design.mb_fan_des = mb_fan_des
+        eng_ip.design.pi_fan_des = pi_fan_des
+        eng_ip.design.Nb_fan_des = Nbf
 
     else
         #----- fixed parameters
         A2   = eng_ip.design.A2
         A7   = eng_ip.design.A7
 
-        mbfD = eng_ip.design.mbfD
-        pifD = eng_ip.design.pifD
-        NbfD = eng_ip.design.NbfD
+        mb_fan_des = eng_ip.design.mb_fan_des
+        pi_fan_des = eng_ip.design.pi_fan_des
+        Nb_fan_des = eng_ip.design.Nb_fan_des
 
         if initializes_engine
                 #------ initialize these state variables
@@ -162,8 +162,8 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             epf, etaf = ductedfanoper!(M0, T0, p0, a0, Tref, pref,
                             Phiinl, Kinl, iBLIc,
                             pid, pifn,
-                            pifD,
-                            mbfD, NbfD,
+                            pi_fan_des,
+                            mb_fan_des, Nb_fan_des,
                             A2, A7,
                             epolf,
                             Feng, Peng,
@@ -190,8 +190,8 @@ function ductedfancalc!(ac, case::String, imission::Int64, ip::Int64, initialize
             epf, etaf = ductedfanoper!(M0, T0, p0, a0, Tref, pref,
                             Phiinl, Kinl, iBLIc,
                             pid, pifn,
-                            pifD,
-                            mbfD, NbfD,
+                            pi_fan_des,
+                            mb_fan_des, Nb_fan_des,
                             A2, A7,
                             epolf,
                             Feng, Peng,

@@ -89,9 +89,9 @@ end
         # Station field names (mirrors _station_to_dict in engine_harness.jl)
         _st_fields = (:Tt, :ht, :pt, :cpt, :Rt, :Ts, :ps, :cps, :Rs, :u, :A, :mdot)
         # DesignState scalar fields with bare-pare backing
-        _ds_fields = (:pifD, :pilcD, :pihcD, :pihtD, :piltD,
-                      :mbfD, :mblcD, :mbhcD, :mbhtD, :mbltD,
-                      :NbfD, :NblcD, :NbhcD, :NbhtD, :NbltD,
+        _ds_fields = (:pi_fan_des, :pi_lpc_des, :pi_hpc_des, :pi_hpt_des, :pi_lpt_des,
+                      :mb_fan_des, :mb_lpc_des, :mb_hpc_des, :mb_hpt_des, :mb_lpt_des,
+                      :Nb_fan_des, :Nb_lpc_des, :Nb_hpc_des, :Nb_hpt_des, :Nb_lpt_des,
                       :A2, :A25, :A5, :A7,
                       :fc, :ruc, :M4a,
                       :pid, :pib, :pifn, :pitn,

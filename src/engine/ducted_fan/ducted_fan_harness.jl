@@ -58,9 +58,9 @@ ducted-fan (electric or fuel-cell driven) at a single operating point.
 
 | Field  | Unit          | Description                    |
 |:-------|:--------------|:-------------------------------|
-| `pifD` | —             | Design fan pressure ratio      |
-| `mbfD` | kg/s corrected| Design fan corrected flow      |
-| `NbfD` | —             | Design fan corrected speed     |
+| `pi_fan_des` | —             | Design fan pressure ratio      |
+| `mb_fan_des` | kg/s corrected| Design fan corrected flow      |
+| `Nb_fan_des` | —             | Design fan corrected speed     |
 | `A2`   | m²            | Fan-face area                  |
 | `A7`   | m²            | Fan-nozzle throat area         |
 
@@ -114,9 +114,9 @@ mutable struct DuctedFanState{T<:AbstractFloat}
     # -----------------------------------------------------------------------
     # Design anchors (frozen at sizing point)
     # -----------------------------------------------------------------------
-    pifD ::T   # design fan pressure ratio          [—]
-    mbfD ::T   # design fan corrected flow          [kg/s corrected]
-    NbfD ::T   # design fan corrected speed         [—]
+    pi_fan_des ::T   # design fan pressure ratio          [—]
+    mb_fan_des ::T   # design fan corrected flow          [kg/s corrected]
+    Nb_fan_des ::T   # design fan corrected speed         [—]
     A2   ::T   # fan-face area                      [m²]
     A7   ::T   # fan-nozzle throat area             [m²]
 
@@ -194,9 +194,9 @@ function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     # -----------------------------------------------------------------------
     # Design anchors
     # -----------------------------------------------------------------------
-    state.pifD = eng_ip.design.pifD
-    state.mbfD = eng_ip.design.mbfD
-    state.NbfD = eng_ip.design.NbfD
+    state.pi_fan_des = eng_ip.design.pi_fan_des
+    state.mb_fan_des = eng_ip.design.mb_fan_des
+    state.Nb_fan_des = eng_ip.design.Nb_fan_des
     state.A2   = eng_ip.design.A2
     state.A7   = eng_ip.design.A7
 

@@ -63,8 +63,8 @@ Parametric turbine component holding design-point anchors and a composed
 Instantiate one `Turbine` per spool stage:
 
 ```julia
-hpt = Turbine(pihtD, mbhtD, NbhtD, epht0; map=TurbineMap(Tmaph))
-lpt = Turbine(piltD, mbltD, NbltD, eplt0; map=TurbineMap(Tmapl))
+hpt = Turbine(pi_hpt_des, mb_hpt_des, Nb_hpt_des, epht0; map=TurbineMap(Tmaph))
+lpt = Turbine(pi_lpt_des, mb_lpt_des, Nb_lpt_des, eplt0; map=TurbineMap(Tmapl))
 ```
 
 ## Fields

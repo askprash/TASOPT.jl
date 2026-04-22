@@ -307,12 +307,12 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
             # ===============================================================
             #---- fan flow 2-7
-            pifD = pif
-            mbfD = 1.0
+            pi_fan_des = pif
+            mb_fan_des = 1.0
             mf = 1.0
 
             _, epf, _, _, _, _, _, _ = 
-                  calculate_compressor_speed_and_efficiency(FanMap, pif, mf, pifD, mbfD, 1.0, epf0, Ng = 1.0, Rg = 2.0)
+                  calculate_compressor_speed_and_efficiency(FanMap, pif, mf, pi_fan_des, mb_fan_des, 1.0, epf0, Ng = 1.0, Rg = 2.0)
 
             pt21, Tt21, ht21, st21, cpt21, Rt21 = gas_prat(alpha, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pif, epf)
@@ -337,12 +337,12 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             #
             # ===============================================================
             #---- LP compressor flow 19c - 25
-            pilcD = pilc
-            mblcD = 1.0
+            pi_lpc_des = pilc
+            mb_lpc_des = 1.0
             ml = 1.0
             
             _, eplc, _, _, _, _, _, _ = 
-                  calculate_compressor_speed_and_efficiency(LPCMap, pilc, ml, pilcD, mblcD, 1.0, eplc0, Ng = 1.0, Rg = 2.0)
+                  calculate_compressor_speed_and_efficiency(LPCMap, pilc, ml, pi_lpc_des, mb_lpc_des, 1.0, eplc0, Ng = 1.0, Rg = 2.0)
 
             pt25, Tt25, ht25, st25, cpt25, Rt25 = gas_prat(alpha, nair,
                   pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pilc, eplc)
@@ -356,12 +356,12 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
 
             # ===============================================================
             #---- HP compressor flow 25c - 3
-            pihcD = pihc
-            mbhcD = 1.0
+            pi_hpc_des = pihc
+            mb_hpc_des = 1.0
             mh = 1.0
 
             _, ephc, _, _, _, _, _, _ = 
-                  calculate_compressor_speed_and_efficiency(HPCMap, pihc, mh, pihcD, mbhcD, 1.0, ephc0, Ng = 1.0, Rg = 2.0)
+                  calculate_compressor_speed_and_efficiency(HPCMap, pihc, mh, pi_hpc_des, mb_hpc_des, 1.0, ephc0, Ng = 1.0, Rg = 2.0)
 
             pt3, Tt3, ht3, st3, cpt3, Rt3 = gas_prat(alpha, nair,
                   pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, pihc, ephc)
@@ -502,7 +502,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M25,
             #---- HPT flow
             #     Trh =  Tt41/(Tt41 + dhht/cpt41)
             #     gexh = cpt41/(Rt41*epht0)
-            #     pihtD = Trh^gexh
+            #     pi_hpt_des = Trh^gexh
             epht1 = epht0 #Assume same as design point prior to cooling
 
             #Find cooled HPT efficiency
