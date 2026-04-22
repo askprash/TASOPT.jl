@@ -27,7 +27,8 @@ function _size_aircraft!(ac; itermax=35,
 
     # Unpack data storage arrays and components
     imission = 1 #Design mission
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear  = unpack_ac(ac, imission)
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
 
     # Initialize variables
     ichoke5 = zeros(iptotal)
@@ -112,7 +113,7 @@ function _size_aircraft!(ac; itermax=35,
     xfuel = ltank = 0.0
 
     # Set up fuel storage parameters (wing vs fuselage)
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, ac.missions[imission].points)
 
     # -------------------------------------------------------
     ## Initial guess section [Section 3.2 of TASOPT docs]
@@ -199,7 +200,7 @@ function _size_aircraft!(ac; itermax=35,
 
         # Max Δp (fuselage pressure) at end of cruise-climb
         wcd = para[iafracW, ipcruisen] / para[iafracW, ipcruise1]
-        Δp = parg[igpcabin] - pare[iep0, ipcruise1] * wcd
+        Δp = parg[igpcabin] - get_eng(ipcruise1).p0 * wcd
         parg[igdeltap] = Δp
 
        # Engine weight mounted on tailcone, if any
@@ -252,8 +253,8 @@ function _size_aircraft!(ac; itermax=35,
             xeng)
 
         # Use cabin volume to get actual buoyancy weight
-        ρcab = max(parg[igpcabin], pare[iep0, ipcruise1]) / (RSL * TSL)
-        WbuoyCR = (ρcab - pare[ierho0, ipcruise1]) * gee * parg[igcabVol]
+        ρcab = max(parg[igpcabin], get_eng(ipcruise1).p0) / (RSL * TSL)
+        WbuoyCR = (ρcab - get_eng(ipcruise1).rho0) * gee * parg[igcabVol]
 
         if (iterw == 1 && initwgt == 0)
 
@@ -312,8 +313,8 @@ function _size_aircraft!(ac; itermax=35,
         ip = ipcruise1
         We = WMTO * para[iafracW, ip]
         CL = para[iaCL, ip]
-        ρ0 = pare[ierho0, ip]
-        u0 = pare[ieu0, ip]
+        ρ0 = get_eng(ip).rho0
+        u0 = get_eng(ip).u0
         qinf = 0.5 * ρ0 * u0^2
         BW = We + WbuoyCR # Weight including buoyancy
 
@@ -456,13 +457,13 @@ function _size_aircraft!(ac; itermax=35,
             htail.volume = Sh * lhtail / (wing.layout.S * wing.mean_aero_chord)
         end
 
-        # Vertical tail sizing 
+        # Vertical tail sizing
         ip = iprotate
-        qstall = 0.5 * pare[ierho0, ip] * (pare[ieu0, ip] / 1.2)^2
+        qstall = 0.5 * get_eng(ip).rho0 * (get_eng(ip).u0 / 1.2)^2
         dfan = parg[igdfan]
         CDAe = parg[igcdefan] * 0.25π * dfan^2
         De = qstall * CDAe
-        Fe = pare[ieFe, ip]
+        Fe = get_eng(ip).Fe
 
         # Calculate max eng out moment
         Me = (Fe + De) * yeng
@@ -558,9 +559,12 @@ function _size_aircraft!(ac; itermax=35,
         if iterw > 2 #Only include heat exchangers after second iteration
             if eng.model.model_name == "fuel_cell_with_ducted_fan"
                 ipdes = iprotate #Design point: takeoff rotation
-                pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
-                pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
-                pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
+                for ip in eachindex(ac.missions[imission].points)
+                    pt = ac.missions[imission].points[ip]
+                    pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]
+                    pt.engine.RadCoolantP = eng.data.FC_pressure[ip, imission]
+                    pt.engine.Qradiator   = eng.data.FC_heat[ip, imission]
+                end
             end
             eng.heat_exchangers = hxdesign!(ac, ipdes, imission, rlx = 0.5) #design and off-design HX performance
 
@@ -621,7 +625,8 @@ function _size_aircraft!(ac; itermax=35,
         BW = We + WbuoyCR
         Fdes = BW * (1 / LoD + gamV)
 
-        pare[ieFe, ip] = Fdes / neng
+        Fdes_per_eng = Fdes / neng
+        get_eng(ip).Fe = Fdes_per_eng
 
         # Size engine for TOC
         case = "design" #Design the engine for this mission point
@@ -635,8 +640,6 @@ function _size_aircraft!(ac; itermax=35,
         # this calculated fuel is the design-mission fuel 
         parg[igWfuel] = parm[imWfuel]
         
-        # Store all OPRs for diagnostics
-        pare[ieOPR, :] .= pare[iepilc, :] .* pare[iepihc, :]
         # size cooling mass flow at takeoff rotation condition (at Vstall)
         ip = iprotate
 
@@ -720,7 +723,7 @@ function _size_aircraft!(ac; itermax=35,
                         Ldebug = Ldebug)
 
     #Check if all engine points have converged, warn if not
-    check_engine_convergence_failure(pare)
+    check_engine_convergence_failure(ac, imission)
     
     #Warn user if HX effectiveness is overwritten
     check_HX_overwriting(eng.heat_exchangers) 
@@ -849,15 +852,16 @@ function set_ambient_conditions!(ac, ip, Mach=NaN; im = 1)
     if Mach === NaN
         Mach = ac.para[iaMach, ip, im]
     end
-    ac.pare[iep0, ip, im] = p0
-    ac.pare[ieT0, ip, im] = T0
-    ac.pare[iea0, ip, im] = a0
-    ac.pare[ierho0, ip, im] = ρ0
-    ac.pare[iemu0, ip, im] = μ0
-    ac.pare[ieM0, ip, im] = Mach
-    ac.pare[ieu0, ip, im] = Mach * a0
     ac.para[iaReunit, ip, im] = Mach * a0 * ρ0 / μ0
 
+    eng = ac.missions[im].points[ip].engine
+    eng.p0   = p0
+    eng.T0   = T0
+    eng.a0   = a0
+    eng.rho0 = ρ0
+    eng.mu0  = μ0
+    eng.M0   = Mach
+    eng.u0   = Mach * a0
 end  # function set_ambient_conditions
 
 """
@@ -883,7 +887,7 @@ function update_wing_pitching_moments!(para, ip_range, wing)
 end
 
 """
-    setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+    setup_fuel_storage!(options, fuse, fuse_tank, parg, mission_points)
 
 Initializes fuel storage parameters based on whether fuel is stored in the
 wings or fuselage. For fuselage storage, computes fuel properties from the
@@ -893,7 +897,7 @@ necessarily true.
 
 Also resets heat exchanger values for the engine.
 """
-function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
+function setup_fuel_storage!(options, fuse, fuse_tank, parg, mission_points)
     if options.has_wing_fuel
         xftank = xftankaft = 0.0
     else
@@ -909,8 +913,9 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
         hvap = fuel_mix.hvap
 
         # Set fuel properties in parameter arrays and tank struct
-        pare[ieTft, :] .= Tfuel
-        pare[ieTfuel, :] .= Tfuel
+        for mp in mission_points   # mirror to typed state (tasopt-fgs)
+            mp.engine.Tfuel_tank = Tfuel
+        end
         parg[igrhofuel] = fuel_mix.ρ
         fuse_tank.rhofuel = ρliq
         fuse_tank.Tfuel = Tfuel
@@ -923,7 +928,7 @@ function setup_fuel_storage!(options, fuse, fuse_tank, parg, pare)
     parg[igxftankaft] = xftankaft
 
     # Reset engine values for heat exchangers
-    resetHXs(pare)
+    resetHXs(mission_points)
 
     return nothing
 end

@@ -9,8 +9,8 @@ include(__TASOPTindices__)
 # List of the parameters you want to update as symbols
     params = [
     :(ac.parg[igetas]),
-    :(ac.pare[ieepolf,:,:]),
-    :(ac.pare[iepihc,ipclimbn:ipcruise1,1]),
+    :(ac.missions[1].points[1].engine.design.epolf),
+    :(ac.missions[1].points[ipcruise1].engine.pihc),
     :(ac.fuselage.layout.cross_section.radius)
 ]
 epsilon = 1e-5

@@ -131,7 +131,7 @@ function obj(x, grad)
     push!(PFEIarray, ac.parm[imPFEI])
     push!(xarray, x)
     push!(CDarray, ac.para[iaCD, ipcruise1, 1])
-    push!(OPRarray, ac.pare[iept3]/ac.pare[iept2])
+    push!(OPRarray, ac.missions[1].points[ipcruise1].engine.pt3 / ac.missions[1].points[ipcruise1].engine.pt2)
     
     # Ensure aircraft weight makes sense
     WTOmax = ac.parg[igWMTO]
@@ -147,7 +147,7 @@ function obj(x, grad)
     penfac = 10*ac.parg[igWpay]
     f = f + penfac*max(0.0, constraint)^2
     
-    println("X̄ = $x  ⇨  PFEI = $(ac.parm[imPFEI]) f = $f, OPR = $(ac.pare[iept3]/ac.pare[iept2]),")
+    println("X̄ = $x  ⇨  PFEI = $(ac.parm[imPFEI]) f = $f, OPR = $(ac.missions[1].points[ipcruise1].engine.pt3 / ac.missions[1].points[ipcruise1].engine.pt2),")
     push!(farray, f)
     
     return f

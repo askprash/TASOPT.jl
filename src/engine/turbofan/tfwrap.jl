@@ -21,7 +21,7 @@ basic engine inputs to those required by the function and storing the outputs.
 """
 function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engine::Bool, iterw::Int64 = 0)
     #Unpack data storage arrays
-    parg, _, para, pare, options, _, _, wing, _, _, engine = unpack_ac(ac, imission)
+    parg, _, para, options, _, _, wing, _, _, engine, _ = unpack_ac(ac, imission)
     
     if case == "design"
         opt_calc_call = CalcMode.Sizing
@@ -34,35 +34,39 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
             initializes_engine_firstiter  = false
         end
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, 
-            options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine_firstiter)
 
-        # store engine design-point parameters for all operating points
-        parg[igA5] = pare[ieA5, ip] / pare[ieA5fac, ip]
-        parg[igA7] = pare[ieA7, ip] / pare[ieA7fac, ip]
-        
-        pare[ieA2, :] .= pare[ieA2, ip]
-        pare[ieA25, :] .= pare[ieA25, ip]
-        pare[ieA5, :] .= parg[igA5] .* pare[ieA5fac, :]
-        pare[ieA7, :] .= parg[igA7] .* pare[ieA7fac, :]
+        # Propagate design-point scalars to all per-point typed EngineStates.
+        # ruc/M4a are intentionally excluded (written only for the design point
+        # inside tfcalc!).
+        eng_ip = ac.missions[imission].points[ip].engine
+        parg[igA5] = eng_ip.design.A8 / eng_ip.A5fac
+        parg[igA7] = eng_ip.design.A18 / eng_ip.A7fac
 
-        pare[ieNbfD, :] .= pare[ieNbfD, ip]
-        pare[ieNblcD, :] .= pare[ieNblcD, ip]
-        pare[ieNbhcD, :] .= pare[ieNbhcD, ip]
-        pare[ieNbhtD, :] .= pare[ieNbhtD, ip]
-        pare[ieNbltD, :] .= pare[ieNbltD, ip]
-
-        pare[iembfD, :] .= pare[iembfD, ip]
-        pare[iemblcD, :] .= pare[iemblcD, ip]
-        pare[iembhcD, :] .= pare[iembhcD, ip]
-        pare[iembhtD, :] .= pare[iembhtD, ip]
-        pare[iembltD, :] .= pare[iembltD, ip]
-
-        pare[iepifD, :] .= pare[iepifD, ip]
-        pare[iepilcD, :] .= pare[iepilcD, ip]
-        pare[iepihcD, :] .= pare[iepihcD, ip]
-        pare[iepihtD, :] .= pare[iepihtD, ip]
-        pare[iepiltD, :] .= pare[iepiltD, ip]
+        for jp = 1:iptotal
+            eng_jp = ac.missions[imission].points[jp].engine
+            eng_jp.design.A2    = eng_ip.design.A2
+            eng_jp.design.A25   = eng_ip.design.A25
+            eng_jp.design.A8    = parg[igA5] * eng_jp.A5fac
+            eng_jp.design.A18   = parg[igA7] * eng_jp.A7fac
+            eng_jp.design.Nb_fan_des  = eng_ip.design.Nb_fan_des
+            eng_jp.design.Nb_lpc_des = eng_ip.design.Nb_lpc_des
+            eng_jp.design.Nb_hpc_des = eng_ip.design.Nb_hpc_des
+            eng_jp.design.Nb_hpt_des = eng_ip.design.Nb_hpt_des
+            eng_jp.design.Nb_lpt_des = eng_ip.design.Nb_lpt_des
+            eng_jp.design.mb_fan_des  = eng_ip.design.mb_fan_des
+            eng_jp.design.mb_lpc_des = eng_ip.design.mb_lpc_des
+            eng_jp.design.mb_hpc_des = eng_ip.design.mb_hpc_des
+            eng_jp.design.mb_hpt_des = eng_ip.design.mb_hpt_des
+            eng_jp.design.mb_lpt_des = eng_ip.design.mb_lpt_des
+            eng_jp.design.pi_fan_des  = eng_ip.design.pi_fan_des
+            eng_jp.design.pi_lpc_des = eng_ip.design.pi_lpc_des
+            eng_jp.design.pi_hpc_des = eng_ip.design.pi_hpc_des
+            eng_jp.design.pi_hpt_des = eng_ip.design.pi_hpt_des
+            eng_jp.design.pi_lpt_des = eng_ip.design.pi_lpt_des
+        end
         
     elseif case == "off_design"
         #assume operating at max allowable temp if during TO and climb
@@ -74,21 +78,23 @@ function tfwrap!(ac, case::String, imission::Int64, ip::Int64, initializes_engin
         end
         opt_cooling = CoolingOpt.FixedCoolingFlowRatio
 
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
-        
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
     elseif case == "cooling_sizing"
         opt_calc_call = CalcMode.FixedTt4OffDes
         opt_cooling = CoolingOpt.FixedTmetal
-        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip), view(pare, :, ip), ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
+        ichoke5, ichoke7 = tfcalc!(wing, engine, parg, view(para, :, ip),
+            ac.missions[imission].points[ip].engine,
+            ip, options.ifuel, opt_calc_call, opt_cooling, initializes_engine)
 
-        # Tmetal was specified... set blade row cooling flow ratios for all points
+        # Tmetal was specified... propagate blade-row cooling fractions to all points.
+        eng_ip = ac.missions[imission].points[ip].engine
         for jp = 1:iptotal
-            for icrow = 1:ncrowx
-                pare[ieepsc1+icrow-1, jp] = pare[ieepsc1+icrow-1, ip]
-            end
-            # also set first estimate of total cooling mass flow fraction
-            pare[iefc, jp] = pare[iefc, ip]
+            eng_jp = ac.missions[imission].points[jp].engine
+            eng_jp.design.epsrow = eng_ip.design.epsrow
+            eng_jp.design.fc     = eng_ip.design.fc
         end
     end
 end

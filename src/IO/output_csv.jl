@@ -31,7 +31,9 @@ Output is customizable by:
     **Outputs:**
     - `newfilepath::String`: actual output filepath; updates in case of header conflicts. same as input filepath if `overwrite = true`.
 """
-function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(), 
+
+
+function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     filepath::String=joinpath(TASOPT.__TASOPTroot__, "IO/default_output.csv");
     overwrite::Bool = false, indices::Dict = default_output_indices,
     includeMissions::Union{AbstractVector,Colon,Bool,Integer} = false, 
@@ -43,7 +45,7 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     csv_row = []
     #initalize header row to assess compatibility, and maybe write out
     header = ["Model Name","Description","Sized?"]
-    par_array_names = ["parg", "parm", "para", "pare"] #used for checking/populating indices Dict, deleting from struct
+    par_array_names = ["parg", "parm", "para"] #used for checking/populating indices Dict, deleting from struct
 
     #pull name and description, removing line breaks and commas
     append!(csv_row, [ac.name, 
@@ -129,15 +131,11 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
     if (indices["para"]==Colon()) || !isempty(indices["para"])    #explicit check required, lest an empty [] be appended
         append!(csv_row,array2nestedvectors(ac.para[indices["para"], includeFlightPoints , includeMissions]))
     end
-    if (indices["pare"]==Colon()) || !isempty(indices["pare"])    # ( " )
-        append!(csv_row,array2nestedvectors(ac.pare[indices["pare"], includeFlightPoints , includeMissions]))
-    end
-
     #jUlIa iS cOluMn MaJoR
-    csv_row=reshape(csv_row,1,:) 
+    csv_row=reshape(csv_row,1,:)
 
     #get lookup dict for column names from variable indices in indices Dict()
-    suffixes = ["g","m","a","e"]
+    suffixes = ["g","m","a"]
     par_indname_dict = generate_par_indname(suffixes) #gets dictionary with all index var names via global scope
 
     #get column names in order
@@ -151,7 +149,7 @@ function output_csv(ac::TASOPT.aircraft=TASOPT.load_default_model(),
         bool_append = false
         if isfile(filepath)
             rm(filepath)
-            @info "overwriting "*filepath
+            @debug "overwriting "*filepath
         end
 
     # else, assign new filepath, checking header append-compatibility
@@ -215,7 +213,7 @@ function check_file_headers(filepath, header)
     #does file already exist?
     #if not
     if !isfile(filepath)    
-        @info "output to .csv creating new file: "*basename(filepath)
+        @debug "output to .csv creating new file: "*basename(filepath)
         return filepath, false  #write to the given filepath, append = false
     else #if file already exists
         #check if headers match, 
@@ -224,7 +222,7 @@ function check_file_headers(filepath, header)
                                r"Column\d+" .=> "")
         
         if header == header_old #if so, simple append to given filepath, append = true
-            @info "output to .csv appending to: "*basename(filepath)
+            @debug "output to .csv appending to: "*basename(filepath)
             return filepath, true
         else    #if not, add a suffix to the filename
             #split filepath into components
@@ -269,44 +267,24 @@ For example:
 2 : `default_output_indices["para"] = Colon() #NOT [Colon()]`
         > when submitted to `output_csv()`, will output all indices of `para` (whether all flights or missions are included is controlled by a separate parameter)
 """
-default_output_indices = 
+default_output_indices =
     Dict("parg" => [#weights
                     igWMTO, igWfuel, igWpay, igWpaymax,
-                    igWtesys, igWftank, 
+                    igWtesys, igWftank,
                     #other
                     igdfan, igGearf,
                     #performance, different from im?
                     igRange
                     ],
-        "parm" => [imRange, imWpay, imWTO, imWfuel, imPFEI, 
+        "parm" => [imRange, imWpay, imWTO, imWfuel, imPFEI,
                     ],
         "para" => [iaalt, iaMach, iaReunit,iagamV,      #flight conditions
                     iaCL, iaCD, iaCDi, iaCLh,iaspaneff, #performance
                     iaxCG, iaxCP,                       #balance
-                    ],
-        "pare" => [iehfuel, ieTfuel, ieff, ieTSFC, ieBPR, ieOPR, iepif, iepilc, iepihc
-        ])
+                    ])
 
 output_indices_wEngine = deepcopy(default_output_indices)
-#append engine params
-pareinds = output_indices_wEngine["pare"]
-pare_toadd = [
-            ieFe, ieFsp,
-            ieN1, ieN2,#spool speeds
-            #core flow
-            ieTt0,ieTt19,ieTt3,ieTt4,ieTt45, ieTt49, ieTt5, 
-            iept0,iept19,iept3,iept4,iept45, iept49, iept5, 
-            #bypass flow
-            ieTt2, ieTt21, ieTt9,
-            iept2, iept21, iept9,
-            
-            iedeNOx, iemdotf, ieEINOx1, ieEINOx2,
-            ieFAR, ieOPR
-            ]
-append!(pareinds, pare_toadd)
-output_indices_wEngine["pare"] = pareinds
 
 output_indices_all =  Dict("parg" => Colon(),
                             "parm" => Colon(),
-                            "para" => Colon(),
-                            "pare" => Colon())
+                            "para" => Colon())

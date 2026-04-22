@@ -1,6 +1,6 @@
 function ductedfanweight(ac)
     Dfan   = ac.parg[igdfan]
-    Nmech  = maximum(ac.pared[ieNf, :])
+    Nmech  = maximum(ac.missions[1].points[ip].engine.Nf for ip in 1:iptotal)
     fpylon = ac.parg[igfpylon]
     neng = ac.parg[igneng]
     rSnace = ac.parg[igrSnace]

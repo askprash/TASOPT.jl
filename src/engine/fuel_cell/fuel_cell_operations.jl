@@ -62,13 +62,12 @@ This function uses the `PEMoper` function to simulate the fuel cell behavior.
 
     **Output:**
     No direct outputs. The following fields in the `ac` object are modified:
-    - `pare[iemfuel]` → fuel mass flow rate [kg/s]
+    - `engine.mfuel` → fuel mass flow rate [kg/s]
     - `fcdata.stack_voltage[ip, imission]` → fuel cell stack voltage [V]
     - `fcdata.FC_heat[ip, imission]` → heat rejected by the fuel cell [W]
     - `fcdata.current_density[ip, imission]` → current density [A/m²]
 """
 function operate_fuel_cell!(ac, ip, imission)
-    pare = view(ac.pare, :, ip, imission)
     fcdata = ac.engine.data
     
     u_FC = engine.PEMFC_inputs()
@@ -100,7 +99,7 @@ function operate_fuel_cell!(ac, ip, imission)
     I = P / V_stack #Current
     mfuel = I * M_h2 / (2*F) #Molar flux of hydrogen gas
 
-    pare[iemfuel] = mfuel * ac.parg[igneng]
+    ac.missions[imission].points[ip].engine.mfuel = mfuel * ac.parg[igneng]
     fcdata.stack_voltage[ip, imission] = V_stack
     fcdata.FC_heat[ip, imission] = Q
     fcdata.current_density[ip, imission] = I/A_cell

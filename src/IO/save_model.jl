@@ -15,7 +15,7 @@ The same value is applied for all flight segments/points for:
     - parm[] parameters
     - excrescence_drag_factors, wing overspeeds, wing/stabilizer Re_refs
 The same value is applied for all missions and flight segments for:
-    - parg[] and pare[] parameters
+    - parg[] and typed EngineState fields (via missions[1].points[ip].engine)
     - fuel temperature
 
 Said value is the first entry in the corresponding array axis, 
@@ -33,8 +33,15 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
 
     #unpack aircraft struct
     imission = 1 #design mission for now
-    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission) 
+    parg, parm, para, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
     #TODO: fuse_tank fields are not saved
+
+    # Alias for typed engine state at the design cruise point (ip=1, tasopt-sxv).
+    # read_input.jl populates all fields read below directly into typed state
+    # (BPR/pif/pilc/pihc, design.*, Tfuel, st4.Tt, st25off.Tt/pt, A5fac/A7fac);
+    # size_aircraft!/fly_mission! keep typed state current thereafter.
+    # No bare-pare sync needed (tasopt-j9l.45.14.5).
+    eng = ac.missions[imission].points[1].engine
 
     #Save everything in a dict() of dicts()
     d_out = Dict()
@@ -61,7 +68,7 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_fuel["fuel_in_wingcen"] = options.has_centerbox_fuel
         d_fuel["fuel_usability_factor"] = parg[igrWfmax]
 
-        d_fuel["fuel_temp"] = pare[ieTfuel,1,1]             
+        d_fuel["fuel_temp"] = eng.Tfuel
 
         d_fuel["fuel_density"] = parg[igrhofuel]
     d_out["Fuel"] = d_fuel
@@ -405,61 +412,65 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop["Tt4_frac_bottom_of_climb"] = parg[igfTt4CL1]
         d_prop["Tt4_frac_top_of_climb"] = parg[igfTt4CLn]
         
-        d_prop["Tt4_cruise"] = pare[ieTt4,ipcruise1,:]
-        d_prop["Tt4_takeoff"] =  pare[ieTt4,ipstatic,:]
+        # Tt4 at cruise and takeoff across all missions (tasopt-dw7).
+        # eng.Tt4 == eng.st4.Tt; populated by read_input.jl and kept current by
+        # size_aircraft!/fly_mission!; no bare-pare sync needed (tasopt-j9l.45.14.5).
+        nmissions = length(ac.missions)
+        d_prop["Tt4_cruise"]  = [ac.missions[im].points[ipcruise1].engine.Tt4 for im in 1:nmissions]
+        d_prop["Tt4_takeoff"] = [ac.missions[im].points[ipstatic].engine.Tt4   for im in 1:nmissions]
 
         d_prop["core_in_clean_flow"] = !engine.model.has_BLI_cores
             #expression negates bool, see read_input.jl
         
     #Turbomachinery
     d_prop_turb = Dict()
-        d_prop_turb["BPR"] = pare[ieBPR, 1, 1]
-        d_prop_turb["Fan_PR"] = pare[iepif, 1, 1]
-        d_prop_turb["LPC_PR"] = pare[iepilc, 1, 1]
-        d_prop_turb["OPR"] = d_prop_turb["LPC_PR"]*pare[iepihc, 1, 1]
+        d_prop_turb["BPR"] = eng.BPR
+        d_prop_turb["Fan_PR"] = eng.pif
+        d_prop_turb["LPC_PR"] = eng.pilc
+        d_prop_turb["OPR"] = eng.pilc * eng.pihc
         
-        d_prop_turb["diffuser_PR"] = pare[iepid, 1, 1]
-        d_prop_turb["burner_PR"] = pare[iepib, 1, 1]
-        d_prop_turb["fan_nozzle_PR"] = pare[iepifn, 1, 1]
-        d_prop_turb["core_nozzle_PR"] = pare[iepitn, 1, 1]
-        
-        d_prop_turb["fan_eta_poly"] = pare[ieepolf, 1, 1]
-        d_prop_turb["LPC_eta_poly"] = pare[ieepollc, 1, 1]
-        d_prop_turb["HPC_eta_poly"] = pare[ieepolhc, 1, 1]
-        d_prop_turb["HPT_eta_poly"] = pare[ieepolht, 1, 1]
-        d_prop_turb["LPT_eta_poly"] = pare[ieepollt, 1, 1]
-        
-        d_prop_turb["FPR0"] = pare[iepifK, 1, 1]
-        d_prop_turb["Kf_polyeff"] = pare[ieepfK, 1, 1]
-        
-        d_prop_turb["M2"] = pare[ieM2, 1, 1]
-        d_prop_turb["M25"] = pare[ieM25, 1, 1]
-        
-        d_prop_turb["low_spool_loss"] = pare[ieepsl, 1, 1]
-        d_prop_turb["high_spool_loss"] = pare[ieepsh, 1, 1]
+        d_prop_turb["diffuser_PR"] = eng.design.pid
+        d_prop_turb["burner_PR"] = eng.design.pib
+        d_prop_turb["fan_nozzle_PR"] = eng.design.pifn
+        d_prop_turb["core_nozzle_PR"] = eng.design.pitn
 
-        d_prop_turb["gear_ratio"] = parg[igGearf]
-        d_prop_turb["HTR_fan"] = parg[igHTRf]
-        d_prop_turb["HTR_LPC"] = parg[igHTRlc]
-        d_prop_turb["HTR_HPC"] = parg[igHTRhc]
+        d_prop_turb["fan_eta_poly"] = eng.design.epolf
+        d_prop_turb["LPC_eta_poly"] = eng.design.epollc
+        d_prop_turb["HPC_eta_poly"] = eng.design.epolhc
+        d_prop_turb["HPT_eta_poly"] = eng.design.epolht
+        d_prop_turb["LPT_eta_poly"] = eng.design.epollt
+
+        d_prop_turb["FPR0"] = eng.design.pifK
+        d_prop_turb["Kf_polyeff"] = eng.design.epfK
+
+        d_prop_turb["M2"] = eng.design.M2
+        d_prop_turb["M25"] = eng.design.M25
+
+        d_prop_turb["low_spool_loss"] = eng.design.epsl
+        d_prop_turb["high_spool_loss"] = eng.design.epsh
+
+        d_prop_turb["gear_ratio"] = eng.design.Gearf
+        d_prop_turb["HTR_fan"] = eng.design.HTRf
+        d_prop_turb["HTR_LPC"] = eng.design.HTRlc
+        d_prop_turb["HTR_HPC"] = eng.design.HTRhc
     d_prop["Turbomachinery"] = d_prop_turb
 
     #Combustor
     d_prop_comb = Dict()
-        d_prop_comb["combustion_efficiency"] = pare[ieetab,1,1]
+        d_prop_comb["combustion_efficiency"] = eng.design.etab
     d_prop["Combustor"] = d_prop_comb
 
     #Cooling
     d_prop_cool = Dict()
-        d_prop_cool["hot_streak_T_allowance"] = pare[iedTstrk,1,1]
-        d_prop_cool["M_turbine_blade_exit"] = pare[ieMtexit,1,1]
-        d_prop_cool["St"] = pare[ieStA,1,1]
+        d_prop_cool["hot_streak_T_allowance"] = eng.design.dTstrk
+        d_prop_cool["M_turbine_blade_exit"] = eng.design.Mtexit
+        d_prop_cool["St"] = eng.design.StA
 
-        d_prop_cool["e_film_cooling"] = pare[ieefilm,1,1]
-        d_prop_cool["t_film_cooling"] = pare[ietfilm,1,1]
+        d_prop_cool["e_film_cooling"] = eng.design.efilm
+        d_prop_cool["t_film_cooling"] = eng.design.tfilm
         
-        d_prop_cool["M41"] = pare[ieM4a,1,1]
-        d_prop_cool["cooling_air_V_ratio"] = pare[ieruc,1,1]
+        d_prop_cool["M41"] = eng.design.M4a
+        d_prop_cool["cooling_air_V_ratio"] = eng.design.ruc
     d_prop["Cooling"] = d_prop_cool
 
     #Offtakes
@@ -472,31 +483,35 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_offt["Low_spool_power_offtake_per_pax"] = parg[igPofWpay]*parm[imWperpax, 1]
         d_prop_offt["Low_spool_power_offtake_per_max_mass"] = parg[igPofWMTO]*gee
 
-        d_prop_offt["Tt_offtake_air"] = pare[ieTt9,1,1]
-        d_prop_offt["Pt_offtake_air"] = pare[iept9,1,1]
+        d_prop_offt["Tt_offtake_air"] = eng.st25off.Tt
+        d_prop_offt["Pt_offtake_air"] = eng.st25off.pt
     d_prop["Offtakes"] = d_prop_offt
 
     #Nozzles
     d_prop_nozz = Dict()
+        # A5fac/A7fac are populated by read_input.jl into typed per-point engine
+        # state; no bare-pare sync needed (tasopt-j9l.45.14.5).
+        _noz_eng(ip) = ac.missions[imission].points[ip].engine
+
         #core nozzle
         d_prop_cnoz = Dict()
-            d_prop_cnoz["static"] = pare[ieA5fac, ipstatic,1]
-            d_prop_cnoz["rotation"] = pare[ieA5fac, iprotate,1]
-            d_prop_cnoz["cutback"] = pare[ieA5fac, ipcutback,1]
-            d_prop_cnoz["climbstart"] = pare[ieA5fac,ipclimb1,1]
-            d_prop_cnoz["climbend"] = pare[ieA5fac,ipclimbn,1]
-            d_prop_cnoz["descentstart"] = pare[ieA5fac,ipdescent1,1]
-            d_prop_cnoz["descentend"] = pare[ieA5fac,ipdescentn,1]
+            d_prop_cnoz["static"]       = _noz_eng(ipstatic).A5fac
+            d_prop_cnoz["rotation"]     = _noz_eng(iprotate).A5fac
+            d_prop_cnoz["cutback"]      = _noz_eng(ipcutback).A5fac
+            d_prop_cnoz["climbstart"]   = _noz_eng(ipclimb1).A5fac
+            d_prop_cnoz["climbend"]     = _noz_eng(ipclimbn).A5fac
+            d_prop_cnoz["descentstart"] = _noz_eng(ipdescent1).A5fac
+            d_prop_cnoz["descentend"]   = _noz_eng(ipdescentn).A5fac
         d_prop_nozz["core_nozzle_area"] = d_prop_cnoz
         #fan nozzle
         d_prop_fnoz = Dict()
-            d_prop_fnoz["static"] = pare[ieA7fac, ipstatic,1]
-            d_prop_fnoz["rotation"] = pare[ieA7fac, iprotate,1]
-            d_prop_fnoz["cutback"] = pare[ieA7fac, ipcutback,1]
-            d_prop_fnoz["climbstart"] = pare[ieA7fac,ipclimb1,1]
-            d_prop_fnoz["climbend"] = pare[ieA7fac,ipclimbn,1]
-            d_prop_fnoz["descentstart"] = pare[ieA7fac,ipdescent1,1]
-            d_prop_fnoz["descentend"] = pare[ieA7fac,ipdescentn,1]
+            d_prop_fnoz["static"]       = _noz_eng(ipstatic).A7fac
+            d_prop_fnoz["rotation"]     = _noz_eng(iprotate).A7fac
+            d_prop_fnoz["cutback"]      = _noz_eng(ipcutback).A7fac
+            d_prop_fnoz["climbstart"]   = _noz_eng(ipclimb1).A7fac
+            d_prop_fnoz["climbend"]     = _noz_eng(ipclimbn).A7fac
+            d_prop_fnoz["descentstart"] = _noz_eng(ipdescent1).A7fac
+            d_prop_fnoz["descentend"]   = _noz_eng(ipdescentn).A7fac
         d_prop_nozz["fan_nozzle_area"] = d_prop_fnoz
     d_prop["Nozzles"] = d_prop_nozz
     
@@ -512,6 +527,17 @@ function save_aircraft_model(ac::TASOPT.aircraft=TASOPT.read_aircraft_model(),
         d_prop_weight["pylon_weight_fraction"] = parg[igfpylon]
         d_prop_weight["weight_model"] = engine.model.weight_model_name
     d_prop["Weight"] = d_prop_weight
+
+    # TSFC schedule — written only for constant_TSFC engine (tasopt-j9l.44).
+    # For turbofan models TSFC is computed, not an input parameter; only the
+    # constant_TSFC model reads these keys from TOML on load.
+    if options.opt_prop_sys_arch == PropSysArch.ConstantTSFC
+        d_prop["climb_TSFC"]   = ac.missions[imission].points[ipclimb1].engine.TSFC
+        d_prop["cruise_TSFC"]  = ac.missions[imission].points[ipcruise1].engine.TSFC
+        d_prop["descent_TSFC"] = ac.missions[imission].points[ipdescent1].engine.TSFC
+        # rate_of_climb is in aero state [m/s]; Speed() is a no-op for plain floats.
+        d_prop["rate_of_climb"] = para[iaROCdes, ipclimb1, imission]
+    end
 
     d_out["Propulsion"] = d_prop
     #--end Propulsion----------------
@@ -591,53 +617,6 @@ function make_dict_singletons(dict::Dict{K, V}) where {K, V}
 end
 
 
-# a very outdated function to save the model contents to a file (formerly, the par array contents)
-# Store label names
-iglabels = ["igFOpt     ", "igPFEI     ","igRange    ","igWMTO     ","igWpay     ","igWfix     ","igWfuel    ","igWfmax    ","igrWfmax   ","igWshell   ","igWwindow  ","igWinsul   ","igWfloor   ","igWcone    ","igWhbend   ","igWvbend   ","igWfuse    ","igWweb     ","igWcap     ","igWwing    ","igWebare   ","igWnace    ","igWeng     ","igWhtail   ","igWvtail   ","igWstrut   ","igxWfuse   ","igdxWfuel  ","igdxWwing  ","igdxWstrut ","igdxWhtail ","igdxWvtail ","igWinn     ","igWout     ","igdyWinn   ","igdyWout   ","igxCGfwd   ","igxCGaft   ","igfreserve ","igfpadd    ","igfseat    ","igfeadd    ","igfpylon   ","igfnace    ","igfflap    ","igfslat    ","igfaile    ","igflete    ","igfribs    ","igfspoi    ","igfwatt    ","igfhadd    ","igfvadd    ","igfapu     ","igfhpesys  ","igflgnose  ","igflgmain  ","igfstring  ","igfframe   ","igffadd    ","igWpwindow ","igWppinsul ","igWppfloor ","igNlift    ","igNland    ","igVne      ","igneng     ","igGearf    ","igfTt4CL1  ","igfTt4CLn  ","igHTRf     ","igHTRlc    ","igHTRhc    ","igrSnace   ","igrVnace   ","igrVstrut  ","igfSnace   ","igpcabin   ","igdeltap   ","iganose    ","igbtail    ","igxnose    ","igxend     ","igxblend1  ","igxblend2  ","igxshell1  ","igxshell2  ","igxconend  ","igxhbend   ","igxvbend   ","igxhtail   ","igxvtail   ","igxeng     ","igxwing    ","igxwbox    ","igxhbox    ","igxvbox    ","igxfix     ","igxapu     ","igxhpesys  ","igxlgnose  ","igdxlgmain ","igyeng     ","igzwing    ","igzhtail   ","ignfweb    ","igwfb      ","igRfuse    ","igdRfuse   ","ighfloor   ","iglambdac  ","igcabVol   ","igcosLs    ","igSstrut   ","igrpayfwd  ","igrpayaft  ","igxNP      ","igCMVf1    ","igCLMf0    ","igdepsda   ","igdCLnda   ","igdCLhdCL  ","igdCLndCL  ","igCLhspec  ","igCLhCGfwd ","igCLveout  ","igCLhmax   ","igCLvmax   ","igfCDhcen  ","igSMmin    ","igrMh      ","igrMv      ","igXaxis    ","igwbox     ","ighboxo    ","ighboxs    ","igrh       ","igwboxh    ","ighboxh    ","igrhh      ","igwboxv    ","ighboxv    ","igrhv      ","igsigfac   ","igsigskin  ","igsigbend  ","igsigcap   ","igtauweb   ","igsigstrut ","igrEshell  ","igEcap     ","igEstrut   ","igrhoskin  ","igrhobend  ","igrhocap   ","igrhoweb   ","igrhostrut ","igrhofuel  ","igrcls     ","igrclt     ","igCLhNrat  ","igSomax    ","igMomax    ","igSsmax    ","igMsmax    ","igtbcapo   ","igtbwebo   ","igtbcaps   ","igtbwebs   ","igtbcaph   ","igtbwebh   ","igtbcapv   ","igtbwebv   ","igEIco     ","igEIno     ","igGJo      ","igEIcs     ","igEIns     ","igGJs      ","igEIch     ","igEInh     ","igGJh      ","igEIcv     ","igEInv     ","igGJv      ","igtskin    ","igtcone    ","igtfweb    ","igtfloor   ","igEIhshell ","igEIhbend  ","igEIvshell ","igEIvbend  ","igGJshell  ","igGJcone   ","igfLo      ","igfLt      ","igfLn      ","igcma      ","igAR       ","igS        ","igb        ","igbo       ","igbs       ","igetas     ","iglambdat  ","iglambdas  ","igco       ","igsweep    ","igVh       ","igARh      ","igSh       ","igbh       ","igboh      ","iglambdah  ","igcoh      ","igsweeph   ","igVv       ","igARv      ","igSv       ","igbv       ","igbov      ","iglambdav  ","igcov      ","igsweepv   ","ignvtail   ","igzs       ","ighstrut   ","igAstrut   ","igcstrut   ","igfBLIw    ","igfBLIf    ","igdfan     ","igdlcomp   ","igdhcomp   ","iglnace    ","igA5       ","igA7       ","igTmetal   ","igcdefan   ","igCDgear   ","igCDspoil  ","igmuroll   ","igmubrake  ","ighobst    ","iglBFmax   ","igbmax     ","iggtocmin  ","igdBSLmax  ","igdBCBmax  ","igmofWpay  ","igmofWMTO  ","igPofWpay  ","igPofWMTO  ","igWtshaft  ","igWgen     ","igWinv     ","igWmot     ","igWfan     ","igWftank   ","igxtshaft  ","igxgen     ","igxinv     ","igxmot     ","igxfan     ","igxftank   ","igxcables  ","igWcables  ","igxcat     ","igWcat     ","igWtesys   ","igxWtesys  ","iglftank   ","igWinsftank","igxWftank  ","igRftank   ","igWc3des   ", "igdaftfan", "lnaceaft", "igfuseVol", "igneout", "igyeout", "igyeinn", "iglftankin", "igLHVfuel", "igWfburn", "igWaftfan", "igWfanGB", "igWaftfanGB", "igWrect", "igWtms"] 
-function savemodel(fname, parg, parm, para, pare)
-    open(fname, "w") do io
-
-        @printf(io, "# --------------------------------\n")
-        @printf(io, "# Geometry - stored in parg array:\n")
-        @printf(io, "# --------------------------------\n")
-        for (i,val) in enumerate(parg)
-            @printf(io, "parg[%d] = %20.20f # %s\n", i, val, i<291 ? iglabels[i] : "" )
-        end
-
-        @printf(io, "# --------------------------------\n")
-        @printf(io, "# Mission  - stored in parm array:\n")
-        @printf(io, "# --------------------------------\n")
-        for (i,val) in enumerate(parm)
-            @printf(io, "parm[%d] = %20.20f \n", i, val)
-        end
-
-        @printf(io, "# --------------------------------\n")
-        @printf(io, "# Aero     - stored in para array:\n")
-        @printf(io, "# --------------------------------\n")
-        l = size(para)[1]
-        m = size(para)[2]
-        for i = 1:l
-            @printf(io, "para[%d, :] .= [", i)
-            for j = 1:m
-                @printf(io, "%20.20f, ", para[i, j])
-            end
-            @printf(io, "]\n")
-        end
-        @printf(io, "# --------------------------------\n")
-        @printf(io, "# Engine   - stored in pare array:\n")
-        @printf(io, "# --------------------------------\n")
-        l = size(pare)[1]
-        m = size(pare)[2]
-        for i = 1:l
-            @printf(io, "pare[%d, :] .= [", i)
-            for j = 1:m
-                @printf(io, "%20.20f, ", pare[i, j])
-            end
-            @printf(io, "]\n")
-        end
-    end #open() io
-end #savemodel()
-
 #TODO: Update to output ac.options (now that pari is dead)
 function reset_regression_test(ac)
     options = ac.options
@@ -647,8 +626,7 @@ function reset_regression_test(ac)
     open(joinpath(__TASOPTroot__,"../test/default_sized.jl"), "w") do io
         @printf(io, "parg = zeros(Float64, igtotal)\n")
         @printf(io, "parm = zeros(Float64, imtotal)\n")
-        @printf(io, "para = zeros(Float64, (iatotal, iptotal))\n")
-        @printf(io, "pare = zeros(Float64, (ietotal, iptotal))\n \n")
+        @printf(io, "para = zeros(Float64, (iatotal, iptotal))\n\n")
 
         @printf(io, "# --------------------------------\n")
         @printf(io, "# Geometry - stored in parg array:\n")
@@ -677,18 +655,9 @@ function reset_regression_test(ac)
             end
             @printf(io, "]\n")
         end
-        @printf(io, "# --------------------------------\n")
-        @printf(io, "# Engine   - stored in pare array:\n")
-        @printf(io, "# --------------------------------\n")
-        l = size(ac.pare)[1]
-        m = size(ac.pare)[2]
-        for i = 1:l
-            @printf(io, "pare[%d, :] .= [", i)
-            for j = 1:m
-                @printf(io, "%20.20f, ", ac.pare[i, j,1])
-            end
-            @printf(io, "]\n")
-        end
+        # Engine state is now serialized via reset_regression_test_engine_state
+        # (typed EngineState → test/fixtures/default_sized_engine_state.toml).
+        # Bare-pare serialization deleted (tasopt-j9l.45.14.7.6).
     end
     open(joinpath(__TASOPTroot__,"../test/default_structures.jl"), "w") do io
         @printf(io,"ac_test = load_default_model()\n")
@@ -945,6 +914,160 @@ function reset_regression_test(ac)
     end
 end
 
+"""
+    reset_regression_test_engine_state(ac)
+
+Write `test/fixtures/default_sized_engine_state.toml` — a typed-state regression
+baseline for the "Propulsion (typed EngineState)" testset in
+`test/regression_test_size_aircraft.jl`.
+
+Serialises every field of `ac.missions[1].points[ip].engine` for each of the
+`nip` mission points.
+
+## Usage
+```julia
+ac = load_default_model()
+size_aircraft!(ac; printiter=false)
+TASOPT.reset_regression_test_engine_state(ac)
+```
+"""
+function reset_regression_test_engine_state(ac)
+    path = joinpath(__TASOPTroot__, "../test/fixtures/default_sized_engine_state.toml")
+    mission = ac.missions[1]
+    nip = length(mission.points)
+
+    # Station field names serialised (mirrors _station_to_dict in engine_harness.jl)
+    _st_fields = (:Tt, :ht, :pt, :cpt, :Rt, :Ts, :ps, :cps, :Rs, :u, :A, :mdot)
+
+    points = Vector{Dict{String,Any}}(undef, nip)
+    for ip in 1:nip
+        eng = mission.points[ip].engine
+        ds  = eng.design
+
+        # ---- DesignState fields with bare-pare backing ----
+        design_dict = Dict{String,Any}(
+            "pi_fan_des"    => Float64(ds.pi_fan_des),    "pi_lpc_des" => Float64(ds.pi_lpc_des),
+            "pi_hpc_des"   => Float64(ds.pi_hpc_des),   "pi_hpt_des" => Float64(ds.pi_hpt_des),
+            "pi_lpt_des"   => Float64(ds.pi_lpt_des),
+            "mb_fan_des"    => Float64(ds.mb_fan_des),    "mb_lpc_des" => Float64(ds.mb_lpc_des),
+            "mb_hpc_des"   => Float64(ds.mb_hpc_des),   "mb_hpt_des" => Float64(ds.mb_hpt_des),
+            "mb_lpt_des"   => Float64(ds.mb_lpt_des),
+            "Nb_fan_des"    => Float64(ds.Nb_fan_des),    "Nb_lpc_des" => Float64(ds.Nb_lpc_des),
+            "Nb_hpc_des"   => Float64(ds.Nb_hpc_des),   "Nb_hpt_des" => Float64(ds.Nb_hpt_des),
+            "Nb_lpt_des"   => Float64(ds.Nb_lpt_des),
+            "A2"      => Float64(ds.A2),       "A25"   => Float64(ds.A25),
+            "A8"      => Float64(ds.A8),       "A18"   => Float64(ds.A18),
+            "epsrow"  => collect(Float64, ds.epsrow),
+            "Tmrow"   => collect(Float64, ds.Tmrow),
+            "fc"      => Float64(ds.fc),
+            "ruc"     => Float64(ds.ruc),      "M4a"   => Float64(ds.M4a),
+            "pid"     => Float64(ds.pid),      "pib"   => Float64(ds.pib),
+            "pifn"    => Float64(ds.pifn),     "pitn"  => Float64(ds.pitn),
+            "epolf"   => Float64(ds.epolf),    "epollc" => Float64(ds.epollc),
+            "epolhc"  => Float64(ds.epolhc),  "epolht" => Float64(ds.epolht),
+            "epollt"  => Float64(ds.epollt),
+            "pifK"    => Float64(ds.pifK),    "epfK"  => Float64(ds.epfK),
+            "M2"      => Float64(ds.M2),       "M25"   => Float64(ds.M25),
+            "epsl"    => Float64(ds.epsl),     "epsh"  => Float64(ds.epsh),
+            "etab"    => Float64(ds.etab),
+            "dTstrk"  => Float64(ds.dTstrk),  "Mtexit" => Float64(ds.Mtexit),
+            "StA"     => Float64(ds.StA),      "efilm" => Float64(ds.efilm),
+            "tfilm"   => Float64(ds.tfilm),
+            "fc0"     => Float64(ds.fc0),      "dehtdfc" => Float64(ds.dehtdfc),
+        )
+
+        # ---- FlowStation fields ----
+        stations = Dict{String,Any}()
+        for (_, _, stfld) in engine._TOML_STATION_ORDER
+            st = getfield(eng, stfld)
+            stations[String(stfld)] = Dict{String,Any}(
+                String(f) => Float64(getproperty(st, f)) for f in _st_fields
+            )
+        end
+
+        # ---- EngineState scalar fields with bare-pare backing ----
+        pt = Dict{String,Any}(
+            "ip" => ip,
+            # ambient
+            "M0"          => Float64(eng.M0),
+            "T0"          => Float64(eng.T0),
+            "p0"          => Float64(eng.p0),
+            "a0"          => Float64(eng.a0),
+            "rho0"        => Float64(eng.rho0),
+            "mu0"         => Float64(eng.mu0),
+            "Tfuel"       => Float64(eng.Tfuel),
+            "Tfuel_tank"  => Float64(eng.Tfuel_tank),
+            "RadCoolantT" => Float64(eng.RadCoolantT),
+            "RadCoolantP" => Float64(eng.RadCoolantP),
+            "Qradiator"   => Float64(eng.Qradiator),
+            "hfuel"       => Float64(eng.hfuel),
+            # cycle outputs
+            "ff"          => Float64(eng.ff),
+            "mofft"       => Float64(eng.mofft),
+            "Pofft"       => Float64(eng.Pofft),
+            "Phiinl"      => Float64(eng.Phiinl),
+            "Kinl"        => Float64(eng.Kinl),
+            # spool speeds
+            "Nf"          => Float64(eng.Nf),
+            "N1"          => Float64(eng.N1),
+            "N2"          => Float64(eng.N2),
+            "Nbf"         => Float64(eng.Nbf),
+            "Nblc"        => Float64(eng.Nblc),
+            "Nbhc"        => Float64(eng.Nbhc),
+            # polytropic losses
+            "epf"         => Float64(eng.epf),
+            "eplc"        => Float64(eng.eplc),
+            "ephc"        => Float64(eng.ephc),
+            "epht"        => Float64(eng.epht),
+            "eplt"        => Float64(eng.eplt),
+            # performance rollup
+            "TSFC"        => Float64(eng.TSFC),
+            "Fe"          => Float64(eng.Fe),
+            "Fsp"         => Float64(eng.Fsp),
+            "BPR"         => Float64(eng.BPR),
+            "mfuel"       => Float64(eng.mfuel),
+            # ducted-fan outputs
+            "Pfan"        => Float64(eng.Pfan),
+            "TSEC"        => Float64(eng.TSEC),
+            "mfan"        => Float64(eng.mfan),
+            "Pfanmax"     => Float64(eng.Pfanmax),
+            # map operating points
+            "mbf"         => Float64(eng.mbf),
+            "mblc"        => Float64(eng.mblc),
+            "mbhc"        => Float64(eng.mbhc),
+            "pif"         => Float64(eng.pif),
+            "pilc"        => Float64(eng.pilc),
+            "pihc"        => Float64(eng.pihc),
+            # component efficiencies
+            "etaf"        => Float64(eng.etaf),
+            "etalc"       => Float64(eng.etalc),
+            "etahc"       => Float64(eng.etahc),
+            "etaht"       => Float64(eng.etaht),
+            "etalt"       => Float64(eng.etalt),
+            # derived overall efficiencies
+            "eta_thermal" => Float64(eng.eta_thermal),
+            "eta_prop"    => Float64(eng.eta_prop),
+            "eta_overall" => Float64(eng.eta_overall),
+            # sub-tables
+            "design"      => design_dict,
+            "stations"    => stations,
+        )
+        points[ip] = pt
+    end
+
+    data = Dict{String,Any}(
+        "meta" => Dict{String,Any}(
+            "description" => "Typed EngineState regression baseline — default TASOPT aircraft post-sizing.",
+            "generated_by" => "reset_regression_test_engine_state",
+            "n_points"     => nip,
+        ),
+        "points" => points,
+    )
+    open(path, "w") do io
+        TOML.print(io, data)
+    end
+    return path
+end
 
 
 #NOTE:  the following functions are not currently used in the codebase, 

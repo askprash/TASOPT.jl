@@ -72,6 +72,10 @@ using .aerodynamics
 using .structures
 using .engine
 
+# Typed mission containers (MissionPoint, Mission) — depends on EngineState
+include(joinpath(__TASOPTroot__,"mission/mission_types.jl"))
+export MissionPoint, Mission
+
 # Load primary aircraft structure
 include(joinpath(__TASOPTroot__,"data_structs/landing_gear.jl"))
 include(joinpath(__TASOPTroot__,"data_structs/options.jl"))
@@ -94,8 +98,10 @@ include(joinpath(__TASOPTroot__,"IO/output_texts.jl"))
 # Plotting functions
 include(joinpath(__TASOPTroot__,"IO/plotting/output_plots.jl"))
 include(joinpath(__TASOPTroot__,"IO/plotting/trefftz_plots.jl"))
-export  stickfig, plot_details, plot_drag_breakdown, 
+include(joinpath(__TASOPTroot__,"IO/plotting/engine_plots.jl"))
+export  stickfig, plot_details, plot_drag_breakdown,
         PayloadRange, DragPolar
+export  plot_engine_station_profiles, plot_engine_performance
 include(joinpath(__TASOPTroot__,"IO/save_model.jl"))
 
 include(joinpath(__TASOPTroot__,"IO/quicksave_load.jl"))

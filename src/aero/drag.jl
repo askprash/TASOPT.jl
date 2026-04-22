@@ -43,7 +43,6 @@ function aircraft_drag!(ac, imission::Int, ip::Int, computes_wing_direct::Bool; 
       #Unpack data storage
       parg = ac.parg
       para = view(ac.para, :, ip, imission)
-      pare = view(ac.pare, :, ip, imission)
       wing = ac.wing
       htail = ac.htail
       vtail = ac.vtail
@@ -186,7 +185,7 @@ function aircraft_drag!(ac, imission::Int, ip::Int, computes_wing_direct::Bool; 
 
 #---- set Mnac on outside of nacelle, using vortex sheet model of nacelle,
 #-     (Mnac+M2)/2 = Mach*rVnace
-      rVnLE = max( 2.0*rVnace - pare[ieM2] / max(Mach,0.001) , 0.0 )
+      rVnLE = max( 2.0*rVnace - ac.missions[imission].points[ip].engine.design.M2 / max(Mach,0.001) , 0.0 )
       rVnsurf3 = 0.25*(rVnLE+rVnace)*(rVnLE^2+rVnace^2)
       CDnace = fSnace * Cfnace * rVnsurf3
       para[iaCDnace] = CDnace

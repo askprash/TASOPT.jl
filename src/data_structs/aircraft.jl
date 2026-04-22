@@ -12,10 +12,9 @@ Overloads Base.summary to print a summary of the `aircraft` model.
 - `name::String` : Aircraft name (eg: "Boeing 777")      
 - `description::String` : A brief description of the aircraft
 - `options::TASOPT.Options` : Configuration options for the aircraft
-- `parg::AbstractArray{Float64}` : Geometry parameters                   
-- `parm::AbstractArray{Float64}` : Mission parameters                    
-- `para::AbstractArray{Float64}` : Aero parameters                       
-- `pare::AbstractArray{Float64}` : Engine parameters 
+- `parg::AbstractArray{Float64}` : Geometry parameters
+- `parm::AbstractArray{Float64}` : Mission parameters
+- `para::AbstractArray{Float64}` : Aero parameters
 - `fuse_tank::fuselage_tank`: fuselage fuel tank object
 - `fuselage::Fuselage`: fuselage fuel tank object
 - `wing::Wing`: wing object
@@ -44,9 +43,11 @@ Refer to the docs for a summary of the main `struct`s.
     parg::Vector{Float64}
     parm::Array{Float64, 2}
     para::Array{Float64, 3}
-    pare::Array{Float64, 3}
 
     is_sized::Vector{Bool} = [false]
+
+    missions       ::Vector{Mission{Float64}} = Mission{Float64}[]
+    design_mission ::Int                      = 1
 
     fuselage::Fuselage = Fuselage()
     fuse_tank::fuselage_tank = fuselage_tank()
@@ -66,7 +67,6 @@ function aircraft(
     parg::Vector{Float64},
     parm::Array{Float64, 2},
     para::Array{Float64, 3},
-    pare::Array{Float64, 3},
     is_sized::Vector{Bool},
     fuselage::Fuselage,
     fuse_tank::fuselage_tank,
@@ -74,7 +74,9 @@ function aircraft(
     htail::Tail,
     vtail::Tail,
     engine::Engine,
-    landing_gear::LandingGear
+    landing_gear::LandingGear,
+    missions::Vector{Mission{Float64}} = Mission{Float64}[],
+    design_mission::Int = 1
 )
     # Create placeholder WakeSystem with correct size for type stability
     # This will be rebuilt with actual geometry in induced_drag!
@@ -83,7 +85,8 @@ function aircraft(
     # Construct the aircraft with the type parameter
     return aircraft{typeof(wake_system)}(
         name, description, options,
-        parg, parm, para, pare, is_sized,
+        parg, parm, para, is_sized,
+        missions, design_mission,
         fuselage, fuse_tank,
         wing, htail, vtail,
         engine, landing_gear,
@@ -93,11 +96,11 @@ end
 
 function Base.getproperty(ac::aircraft, sym::Symbol)
     if sym === :parad #Design para
-        return view(getfield(ac, :para), :, : , 1) 
-    elseif sym === :pared #Design pare
-        return view(getfield(ac, :pare), :, : , 1) 
+        return view(getfield(ac, :para), :, : , 1)
     elseif sym === :parmd #Design parm
-        return view(getfield(ac, :parm), :, 1) 
+        return view(getfield(ac, :parm), :, 1)
+    elseif sym === :design_mission_state
+        return getfield(ac, :missions)[getfield(ac, :design_mission)]
     else
         return getfield(ac, sym)
     end

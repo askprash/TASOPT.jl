@@ -14,7 +14,6 @@ Inputs:
 function init_par_arrays(;n_flight_pts::Int, n_missions::Int)
     global parg = Array{Float64, 1}(undef, igtotal)
     global parm = Array{Float64, 2}(undef, imtotal, n_missions)
-    global pare = Array{Float64, 3}(undef, ietotal, n_flight_pts, n_missions)
     global para = Array{Float64, 3}(undef, iatotal, n_flight_pts, n_missions)
 
 end

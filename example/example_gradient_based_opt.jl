@@ -45,7 +45,7 @@ end
 
 function tt3_fn(ac)
     maxtt3 = 900
-    return maximum(ac.pare[ieTt3, :, 1])/maxtt3
+    return maximum(p.engine.Tt3 for p in ac.missions[1].points)/maxtt3
 end
 
 # Create an array that stores above functions

@@ -20,7 +20,8 @@ They are updated and returned in the same para[iagamV,ip] array.
 """
 function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #Unpack aircraft
-      parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission) 
+      parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng, landing_gear = unpack_ac(ac, imission)
+      mission = ac.missions[imission]  # typed per-mission state (Mission{Float64})
 
       ifirst = true
 
@@ -61,13 +62,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       a0 = atmos_state.a
       μ0 = atmos_state.μ
 
-      pare[iep0, ip] = p0
-      pare[ieT0, ip] = T0
-      pare[iea0, ip] = a0
-      pare[ierho0, ip] = ρ0
-      pare[iemu0, ip] = μ0
-      pare[ieM0, ip] = 0.0
-      pare[ieu0, ip] = 0.0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0   = p0;  eng_ip.T0  = T0;  eng_ip.a0  = a0
+      eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0;  eng_ip.M0  = 0.0;  eng_ip.u0  = 0.0
 
       para[iaMach, ip] = 0.0
       para[iaCL, ip] = 0.0
@@ -75,11 +72,11 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       para[iaWbuoy, ip] = 0.0
 
       # ip ∈ iprotate:ipclimb1
-      pare[iep0, iprotate:ipclimb1] .= p0
-      pare[ieT0, iprotate:ipclimb1] .= T0
-      pare[iea0, iprotate:ipclimb1] .= a0
-      pare[ierho0, iprotate:ipclimb1] .= ρ0
-      pare[iemu0, iprotate:ipclimb1] .= μ0
+      for jp = iprotate:ipclimb1
+            eng_jp = mission.points[jp].engine
+            eng_jp.p0 = p0;  eng_jp.T0 = T0;  eng_jp.a0 = a0
+            eng_jp.rho0 = ρ0;  eng_jp.mu0 = μ0
+      end
       para[iaWbuoy, iprotate:ipclimb1] .= 0.0
 
 
@@ -94,13 +91,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       rho0 = atmos_state.ρ
       a0 = atmos_state.a
       mu0 = atmos_state.μ
-      pare[iep0, ip] = p0
-      pare[ieT0, ip] = T0
-      pare[iea0, ip] = a0
-      pare[ierho0, ip] = rho0
-      pare[iemu0, ip] = mu0
-      pare[ieM0, ip] = Mach
-      pare[ieu0, ip] = Mach * a0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
       para[iaReunit, ip] = Mach * a0 * rho0 / mu0
 
       # End-of-descent altitude conditions
@@ -113,11 +106,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       a0 = atmos_state.a
       mu0 = atmos_state.μ
 
-      pare[iep0, ip] = p0
-      pare[ieT0, ip] = T0
-      pare[iea0, ip] = a0
-      pare[ierho0, ip] = rho0
-      pare[iemu0, ip] = mu0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0
       para[iaWbuoy, ip] = 0.0
 
       # interpolate CL over climb points, 
@@ -153,24 +144,26 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       CLTO = para[iaclpmax, iptakeoff] * cosL^2
       # [prash] I think the assumption here is that Wcruise/WTO~1 and
       # just scaling it with rho and CL to get an initial estimate for V
-      VTO = pare[ieu0, ipcruise1] *
-            sqrt(pare[ierho0, ipcruise1] / pare[ierho0, iptakeoff]) *
+      VTO = mission.points[ipcruise1].engine.u0 *
+            sqrt(mission.points[ipcruise1].engine.rho0 / mission.points[iptakeoff].engine.rho0) *
             sqrt(para[iaCL, ipcruise1] / CLTO)
-      ReTO = VTO * pare[ierho0, iptakeoff] / pare[iemu0, iptakeoff]
-      pare[ieu0, iprotate:ipclimb1] .= VTO
+      ReTO = VTO * mission.points[iptakeoff].engine.rho0 / mission.points[iptakeoff].engine.mu0
+      for jp = iprotate:ipclimb1
+            mission.points[jp].engine.u0 = VTO
+      end
       para[iaReunit, iprotate:ipclimb1] .= ReTO
       @inbounds for ip = ipclimb1+1:ipclimbn
             frac = float(ip - ipclimb1) / float(ipclimbn - ipclimb1)
-            V = VTO * (1.0 - frac) + pare[ieu0, ipcruise1] * frac
+            V = VTO * (1.0 - frac) + mission.points[ipcruise1].engine.u0 * frac
             Re = ReTO * (1.0 - frac) + para[iaReunit, ipcruise1] * frac
-            pare[ieu0, ip] = V
+            mission.points[ip].engine.u0 = V
             para[iaReunit, ip] = Re
       end
       @inbounds for ip = ipdescent1:ipdescentn
             frac = float(ip - ipdescent1) / float(ipdescentn - ipdescent1)
-            V = VTO * frac + pare[ieu0, ipcruisen] * (1.0 - frac)
+            V = VTO * frac + mission.points[ipcruisen].engine.u0 * (1.0 - frac)
             Re = ReTO * frac + para[iaReunit, ipcruisen] * (1.0 - frac)
-            pare[ieu0, ip] = V
+            mission.points[ip].engine.u0 = V
             para[iaReunit, ip] = Re
       end
 
@@ -184,15 +177,15 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       CLmax = clpmax * cosL^2
 
       #---- Vs stall speed (takeoff condition)
-      rho0 = pare[ierho0, ip]
-      a0 = pare[iea0, ip]
+      rho0 = mission.points[ip].engine.rho0
+      a0   = mission.points[ip].engine.a0
       S = wing.layout.S
       Vstall = sqrt(2.0 * WTO / (rho0 * S * CLmax))
       Mstall = Vstall / a0
-      pare[ieu0, ip] = Vstall
-      pare[ieM0, ip] = Mstall
+      mission.points[ip].engine.u0 = Vstall
+      mission.points[ip].engine.M0 = Mstall
       para[iaMach, ip] = Mstall
-      para[iaReunit, ip] = Vstall * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = Vstall * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
 
       #---- V2 speed per FAR-25  (takeoff,cutback,climb1 condition)
       V2 = Vstall * 1.2
@@ -200,10 +193,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       CL2 = CLmax / 1.2^2
 
       ip = iptakeoff
-      pare[ieu0, ip] = V2
-      pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
 
       #---- set pitch trim by adjusting CLh
@@ -225,10 +218,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       #---- initial guesses for climb points
       ip = ipcutback
-      pare[ieu0, ip] = V2
-      pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       para[iaxCG, ip] = xCG2
       para[iaxCP, ip] = xCP2
@@ -236,10 +229,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       para[iaCLh, ip] = CLh2
 
       ip = ipclimb1
-      pare[ieu0, ip] = V2
-      pare[ieM0, ip] = M2
+      mission.points[ip].engine.u0 = V2
+      mission.points[ip].engine.M0 = M2
       para[iaMach, ip] = M2
-      para[iaReunit, ip] = V2 * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       para[iaxCG, ip] = xCG2
       para[iaxCP, ip] = xCP2
@@ -249,10 +242,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #---- also use V2 speed for end-of-descent condition, with weight correction
       ip = ipdescentn
       Vrat = sqrt(para[iafracW, ip] / para[iafracW, ipclimb1])
-      pare[ieu0, ip] = V2 * Vrat
-      pare[ieM0, ip] = M2 * Vrat
+      mission.points[ip].engine.u0 = V2 * Vrat
+      mission.points[ip].engine.M0 = M2 * Vrat
       para[iaMach, ip] = M2 * Vrat
-      para[iaReunit, ip] = V2 * Vrat * pare[ierho0, ip] / pare[iemu0, ip]
+      para[iaReunit, ip] = V2 * Vrat * mission.points[ip].engine.rho0 / mission.points[ip].engine.mu0
       para[iaCL, ip] = CL2
       #
       # ============================================================================
@@ -272,11 +265,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             rho0 = atmos_state.ρ
             a0 = atmos_state.a
             mu0 = atmos_state.μ
-            pare[iep0, ip] = p0
-            pare[ieT0, ip] = T0
-            pare[iea0, ip] = a0
-            pare[ierho0, ip] = rho0
-            pare[iemu0, ip] = mu0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0
 
             rhocab = max(parg[igpcabin], p0) / (RSL * Tref)
             para[iaWbuoy, ip] = (rhocab - rho0) * gee * parg[igcabVol]
@@ -285,13 +276,14 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       #---- set climb Tt4's from fractions
       fT1 = parg[igfTt4CL1]
       fTn = parg[igfTt4CLn]
-      Tt4TO = pare[ieTt4, iptakeoff]
-      Tt4CR = pare[ieTt4, ipcruise1]
+      Tt4TO = mission.points[iptakeoff].engine.st4.Tt
+      Tt4CR = mission.points[ipcruise1].engine.st4.Tt
       @inbounds for ip = ipclimb1:ipclimbn
             frac = float(ip - ipclimb1) /
                    float(ipclimbn - ipclimb1)
             Tfrac = fT1 * (1.0 - frac) + fTn * frac
-            pare[ieTt4, ip] = Tt4TO * (1.0 - Tfrac) + Tt4CR * Tfrac
+            Tt4_ip = Tt4TO * (1.0 - Tfrac) + Tt4CR * Tfrac
+            mission.points[ip].engine.st4.Tt = Tt4_ip
       end
       #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       #---- initial values for range, time, weight fraction
@@ -314,9 +306,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             # velocity calculation from CL, Weight, altitude
             W = para[iafracW, ip] * WMTO
             CL = para[iaCL, ip]
-            ρ = pare[ierho0, ip]
-            μ = pare[iemu0, ip]
-            Vsound = pare[iea0, ip]
+            ρ = mission.points[ip].engine.rho0
+            μ = mission.points[ip].engine.mu0
+            Vsound = mission.points[ip].engine.a0
             cosg = cos(para[iagamV, ip])
             BW = W + para[iaWbuoy, ip]
             Wpay = parg[igWpay]
@@ -328,14 +320,14 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             para[iaMach, ip] = Mach
             para[iaReunit, ip] = V * ρ / μ
 
-            pare[ieu0, ip] = V
-            pare[ieM0, ip] = Mach
+            mission.points[ip].engine.u0 = V
+            mission.points[ip].engine.M0 = Mach
 
                   # Set pitch trim by adjusting CLh
                   Wf = W - Wzero
                   rfuel = Wf / parg[igWfuel]
                   opt_trim_var = TrimVar.CLHtail
-                  balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var; 
+                  balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
 
                   if (ip == ipclimb1)
@@ -347,8 +339,8 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
                   eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
 
-            Ftotal = pare[ieFe, ip] * parg[igneng]
-            TSFC = pare[ieTSFC, ip]
+            Ftotal = mission.points[ip].engine.Fe * parg[igneng]
+            TSFC = mission.points[ip].engine.TSFC
             DoL = para[iaCD, ip] / para[iaCL, ip]
 
             # Calculate improved flight angle
@@ -364,7 +356,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             # Store integrands for range and weight integration using a predictor-corrector scheme
             FoW[ip] = Ftotal / (BW * cosg) - DoL
 
-            mfuel = pare[iemfuel, ip]
+            mfuel = mission.points[ip].engine.mfuel
             FFC[ip] = mfuel * gee / (W * V * cosg)
 
             Vgi[ip] = 1.0 / (V * cosg)
@@ -377,7 +369,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             if (ip > ipclimb1)
                   # Corrector step
                   dh = para[iaalt, ip] - para[iaalt, ip-1]
-                  dVsq = pare[ieu0, ip]^2 - pare[ieu0, ip-1]^2
+                  dVsq = mission.points[ip].engine.u0^2 - mission.points[ip-1].engine.u0^2
 
                   FoWavg = 0.5 * (FoW[ip] + FoW[ip-1])
                   FFCavg = 0.5 * (FFC[ip] + FFC[ip-1])
@@ -403,15 +395,15 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
                   W = para[iafracW, ip+1] * WMTO   # Initial weight fractions have been set in _size_aircraft!
                   CL = para[iaCL, ip+1]
-                  ρ = pare[ierho0, ip+1]
+                  ρ = mission.points[ip+1].engine.rho0
                   cosg = cos(para[iagamV, ip+1])
 
                   BW = W + para[iaWbuoy, ip+1]
 
                   V = sqrt(2 * BW * cosg / (ρ * S * CL))
-                  pare[ieu0, ip+1] = V
+                  mission.points[ip+1].engine.u0 = V
                   dh = para[iaalt, ip+1] - para[iaalt, ip]
-                  dVsq = pare[ieu0, ip+1]^2 - pare[ieu0, ip]^2
+                  dVsq = mission.points[ip+1].engine.u0^2 - mission.points[ip].engine.u0^2
 
                   dR = (dh + 0.5 * dVsq / gee) / FoW[ip]
                   dt = dR * Vgi[ip]
@@ -432,9 +424,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       para[iafracW, ipcruise1] = para[iafracW, ipclimbn]
       para[iaWbuoy, ipcruise1] = para[iaWbuoy, ipclimbn]
 
-      pare[iePLH2, ipcruise1] = pare[iePLH2, ipclimbn]
-      pare[ieyg, ipcruise1] = pare[ieyg, ipclimbn]
-
       # Cruise start
       ip = ipcruise1
       # Set pitch trim by adjusting CLh
@@ -454,18 +443,17 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             W = para[iafracW, ip] * WMTO
             BW = W + para[iaWbuoy, ip]
             F = BW * (DoL + para[iagamV, ip])
-            pare[ieFe, ip] = F / parg[igneng] #Store required thrust for engine calcs
+            mission.points[ip].engine.Fe = F / parg[igneng]
             Wpay = parg[igWpay]
-            
-            eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
 
+            eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
       end
 
       # set cruise-climb climb angle, from fuel burn rate and atmospheric dp/dz
-      TSFC = pare[ieTSFC, ip]
-      V = pare[ieu0, ip]
-      p0 = pare[iep0, ip]
-      ρ0 = pare[ierho0, ip]
+      TSFC = mission.points[ip].engine.TSFC
+      V  = mission.points[ip].engine.u0
+      p0 = mission.points[ip].engine.p0
+      ρ0 = mission.points[ip].engine.rho0
       DoL = para[iaCD, ip] / para[iaCL, ip]
       W = para[iafracW, ip] * WMTO
       BW = W + para[iaWbuoy, ip]
@@ -481,12 +469,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       para[iagamV, ip] = gamVcr1
 
-      Ftotal = pare[ieFe, ip] * parg[igneng]
+      Ftotal = mission.points[ip].engine.Fe * parg[igneng]
 
       cosg = cos(gamVcr1)
 
       FoW[ip] = Ftotal / (BW * cosg) - DoL
-      mfuel = pare[iemfuel, ip]
+      mfuel = mission.points[ip].engine.mfuel
       FFC[ip] = mfuel * gee / (W * V * cosg)
       Vgi[ip] = 1.0 / (V * cosg)
 
@@ -500,7 +488,6 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       dRcruise = (alte - altc - gamVdeb * (Rangetot - dRclimb)) / (gamVcr1 - gamVdeb)
 
       altd = altc + gamVcr1 * dRcruise
-      # println("Cruise Fe inside mission", pare[ieFe, ipcruise1])
 
       # Final cruise point
       ip = ipcruisen
@@ -513,13 +500,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       ρ0 = atmos_state.ρ
       a0 = atmos_state.a
       μ0 = atmos_state.μ
-      pare[iep0, ip] = p0
-      pare[ieT0, ip] = T0
-      pare[iea0, ip] = a0
-      pare[ierho0, ip] = ρ0
-      pare[iemu0, ip] = μ0
-      pare[ieM0, ip] = Mach
-      pare[ieu0, ip] = Mach * a0
+      eng_ip = mission.points[ip].engine
+      eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+      eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
       para[iaReunit, ip] = Mach * a0 * ρ0 / μ0
       para[iaalt, ip] = altd
 
@@ -540,14 +523,14 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
       W = para[iafracW, ip] * WMTO
       BW = W + para[iaWbuoy, ip]
       Ftotal = BW * (DoL + para[iagamV, ip])
-      pare[ieFe, ip] = Ftotal / parg[igneng]
+      mission.points[ip].engine.Fe = Ftotal / parg[igneng]
 
       eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
-      TSFC = pare[ieTSFC, ip]
+      TSFC = mission.points[ip].engine.TSFC
 
-      V = pare[ieu0, ip]
-      p0 = pare[iep0, ip]
-      ρ0 = pare[ierho0, ip]
+      V  = mission.points[ip].engine.u0
+      p0 = mission.points[ip].engine.p0
+      ρ0 = mission.points[ip].engine.rho0
       DoL = para[iaCD, ip] / para[iaCL, ip]
 
       gamVcr2 = DoL * p0 * TSFC / (ρ0 * gee * V - p0 * TSFC)
@@ -557,7 +540,7 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       FoW[ip] = Ftotal / (BW * cosg) - DoL
 
-      mfuel = pare[iemfuel, ip]
+      mfuel = mission.points[ip].engine.mfuel
       FFC[ip] = mfuel * gee / (W * V * cosg) 
 
       Vgi[ip] = 1.0 / (V * cosg)
@@ -590,13 +573,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             rho0 = atmos_state.ρ
             a0 = atmos_state.a
             mu0 = atmos_state.μ
-            pare[iep0, ip] = p0
-            pare[ieT0, ip] = T0
-            pare[iea0, ip] = a0
-            pare[ierho0, ip] = rho0
-            pare[iemu0, ip] = mu0
-            pare[ieM0, ip] = Mach
-            pare[ieu0, ip] = Mach * a0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = rho0;  eng_ip.mu0 = mu0;  eng_ip.M0 = Mach;  eng_ip.u0 = Mach * a0
             para[iaReunit, ip] = Mach * a0 * rho0 / mu0
 
             rhocab = max(parg[igpcabin], p0) / (RSL * Tref)
@@ -610,13 +589,10 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
 
       # Descent
       ip = ipdescent1
-      pare[iep0, ip] = pare[iep0, ipcruisen]
-      pare[ieT0, ip] = pare[ieT0, ipcruisen]
-      pare[iea0, ip] = pare[iea0, ipcruisen]
-      pare[ierho0, ip] = pare[ierho0, ipcruisen]
-      pare[iemu0, ip] = pare[iemu0, ipcruisen]
-      pare[ieM0, ip] = pare[ieM0, ipcruisen]
-      pare[ieu0, ip] = pare[ieu0, ipcruisen]
+      let src = mission.points[ipcruisen].engine, dst = mission.points[ip].engine
+            dst.p0 = src.p0;  dst.T0 = src.T0;  dst.a0 = src.a0
+            dst.rho0 = src.rho0;  dst.mu0 = src.mu0;  dst.M0 = src.M0;  dst.u0 = src.u0
+      end
 
       para[iaMach, ip] = para[iaMach, ipcruisen]
       para[iaReunit, ip] = para[iaReunit, ipcruisen]
@@ -649,11 +625,9 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             ρ0 = atmos_state.ρ
             a0 = atmos_state.a
             μ0 = atmos_state.μ
-            pare[iep0, ip] = p0
-            pare[ieT0, ip] = T0
-            pare[iea0, ip] = a0
-            pare[ierho0, ip] = ρ0
-            pare[iemu0, ip] = μ0
+            eng_ip = mission.points[ip].engine
+            eng_ip.p0 = p0;  eng_ip.T0 = T0;  eng_ip.a0 = a0
+            eng_ip.rho0 = ρ0;  eng_ip.mu0 = μ0
 
             para[iaRange, ip] = R
             para[iaalt, ip] = alt
@@ -672,21 +646,21 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             W = para[iafracW, ip] * WMTO
             BW = W + para[iaWbuoy, ip]
             CL = para[iaCL, ip]
-            rho = pare[ierho0, ip]
+            rho = mission.points[ip].engine.rho0
             V = sqrt(2.0 * BW * cosg / (rho * S * CL))
-            Mach = V / pare[iea0, ip]
+            Mach = V / mission.points[ip].engine.a0
 
             para[iaMach, ip] = Mach
-            para[iaReunit, ip] = V * rho / pare[iemu0, ip]
+            para[iaReunit, ip] = V * rho / mission.points[ip].engine.mu0
 
-            pare[ieu0, ip] = V
-            pare[ieM0, ip] = Mach
+            mission.points[ip].engine.u0 = V
+            mission.points[ip].engine.M0 = Mach
 
             # set pitch trim by adjusting CLh
             Wf = W - Wzero
             rfuel = Wf / parg[igWfuel]
             opt_trim_var = TrimVar.CLHtail
-            balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var; 
+            balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
 
             if (ip == ipdescentn)
@@ -703,34 +677,41 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             cosg = cos(gamVde)
             DoL = para[iaCD, ip] / para[iaCL, ip]
             Fspec = BW * (sing + cosg * DoL)
-            pare[ieFe, ip] = Fspec / parg[igneng]
+            mission.points[ip].engine.Fe = Fspec / parg[igneng]
 
             if initializes_engine
-                  pare[iembf, ip] = pare[iembf, ip-1]
-                  pare[iemblc, ip] = pare[iemblc, ip-1]
-                  pare[iembhc, ip] = pare[iembhc, ip-1]
-                  pare[iepif, ip] = pare[iepif, ip-1]
-                  pare[iepilc, ip] = pare[iepilc, ip-1]
-                  pare[iepihc, ip] = pare[iepihc, ip-1]
+                  # Back-propagate compressor map operating points from the previous
+                  # mission point (last cruise point) as Newton initial guesses for
+                  # the first descent engine call.
+                  prev_eng = mission.points[ip-1].engine
+                  cur_eng  = mission.points[ip].engine
+                  cur_eng.mbf  = prev_eng.mbf
+                  cur_eng.mblc = prev_eng.mblc
+                  cur_eng.mbhc = prev_eng.mbhc
+                  cur_eng.pif  = prev_eng.pif
+                  cur_eng.pilc = prev_eng.pilc
+                  cur_eng.pihc = prev_eng.pihc
                   initializes_engine = false #Apparently, this helps convergence
                                              #on descent, where the engine is at lower throttle
 
                   # make better estimate for new Tt4, adjusted for new ambient T0
-                  dTburn = pare[ieTt4, ip-1] - pare[ieTt3, ip-1]
-                  OTR = pare[ieTt3, ip-1] / pare[ieTt2, ip-1]
-                  Tt3 = pare[ieT0, ip] * OTR
-                  pare[ieTt4, ip] = Tt3 + dTburn + 50.0
+                  dTburn = prev_eng.st4.Tt - prev_eng.st3.Tt
+                  OTR    = prev_eng.st3.Tt / prev_eng.st2.Tt
+                  Tt3    = cur_eng.T0 * OTR
+                  Tt4_init = Tt3 + dTburn + 50.0
+                  cur_eng.st4.Tt  = Tt4_init
 
                   # make better estimate for new pt5, adjusted for new ambient p0
-                  pare[iept5, ip] = pare[iept5, ip-1] * pare[iep0, ip] / pare[iep0, ip-1]
+                  pt5_init       = prev_eng.st8.pt * cur_eng.p0 / prev_eng.p0
+                  cur_eng.st8.pt = pt5_init
 
             end
 
             eng.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
 
             # store effective thrust, effective TSFC
-            F = pare[ieFe, ip] * parg[igneng]
-            TSFC = pare[ieTSFC, ip]
+            F = mission.points[ip].engine.Fe * parg[igneng]
+            TSFC = mission.points[ip].engine.TSFC
 
             # store integrands for Range and Weight integration
             FoW[ip] = F / (BW * cosg) - DoL
@@ -738,13 +719,13 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
             Vgi[ip] = 1.0 / (V * cosg)
 
             # if F < 0, then TSFC is not valid, so calculate mdot_fuel directly
-            mfuel = pare[iemfuel, ip]
+            mfuel = mission.points[ip].engine.mfuel
             FFC[ip] = mfuel * gee / (W * V * cosg)
 
             if (ip > ipdescent1)
                   #  corrector integration step, approximate trapezoidal
                   dh = para[iaalt, ip] - para[iaalt, ip-1]
-                  dVsq = pare[ieu0, ip]^2 - pare[ieu0, ip-1]^2
+                  dVsq = mission.points[ip].engine.u0^2 - mission.points[ip-1].engine.u0^2
 
                   FoWavg = 0.5 * (FoW[ip] + FoW[ip-1])
                   FFCavg = 0.5 * (FFC[ip] + FFC[ip-1])
@@ -768,12 +749,12 @@ function _mission_iteration!(ac, imission, Ldebug; calculate_cruise = false)
                   BW = W + para[iaWbuoy, ip+1]
 
                   CL = para[iaCL, ip+1]
-                  rho = pare[ierho0, ip+1]
+                  rho = mission.points[ip+1].engine.rho0
                   V = sqrt(2 * BW * cosg / (rho * S * CL))
-                  pare[ieu0, ip+1] = V
+                  mission.points[ip+1].engine.u0 = V
 
                   dh = para[iaalt, ip+1] - para[iaalt, ip]
-                  dVsq = pare[ieu0, ip+1]^2 - pare[ieu0, ip]^2
+                  dVsq = mission.points[ip+1].engine.u0^2 - mission.points[ip].engine.u0^2
 
                   dR = para[iaRange, ip] - para[iaRange, ip-1]
                   dt = dR * Vgi[ip]

@@ -7,8 +7,9 @@ The aircraft must be defined in parg array. The ipstatic and iprotate points are
 
 """
 function takeoff!(ac; imission=1, printTO = true)
-    
-    parg, parm, para, pare, _, _, _, wing, _, _, _, _  = unpack_ac(ac, imission)
+
+    parg, parm, para, _, _, _, wing, _, _, _, _  = unpack_ac(ac, imission)
+    get_eng(ip) = ac.missions[imission].points[ip].engine
 
     #---- Newton convergence tolerance
     toler = 1.0e-7
@@ -33,8 +34,8 @@ function takeoff!(ac; imission=1, printTO = true)
     mubrake = parg[igmubrake]  # max braking resistance coefficient
     hobst = parg[ighobst]    # obstacle height (FAA spec, ~10m I think)
 
-    Vstall = pare[ieu0, iprotate]
-    V2 = pare[ieu0, iptakeoff]
+    Vstall = get_eng(iprotate).u0
+    V2     = get_eng(iptakeoff).u0
 
     cosL = cosd(sweep)
     Afan = 0.25 * pi * dfan^2 * (1.0 - HTRf^2)
@@ -43,9 +44,9 @@ function takeoff!(ac; imission=1, printTO = true)
     CDspoiler = parg[igCDspoil]
     CDivert = 0.002
 
-    Fmax = pare[ieFe, ipstatic]
-    pare[ieFe, iptakeoff] = Fmax
-    Fref = pare[ieFe, iprotate]
+    Fmax = get_eng(ipstatic).Fe
+    get_eng(iptakeoff).Fe = Fmax
+    Fref = get_eng(iprotate).Fe
 
     #---- single-engine thrust-curve constants for takeoff roll calculations
     F01 = (Fmax + Fref) / 2.0
@@ -56,7 +57,7 @@ function takeoff!(ac; imission=1, printTO = true)
 
     #---- normal takeoff
     ip = iprotate
-    rho0 = pare[ierho0, ip]
+    rho0 = get_eng(ip).rho0
     CLroll = 0.0
     para[iaCL, ip] = CLroll
     para[iaCLh, ip] = 0.0
@@ -129,8 +130,8 @@ function takeoff!(ac; imission=1, printTO = true)
         #---- calculate fuel burn during takeoff run
         ip1 = ipstatic
         ip2 = iprotate
-        mdotf1 = pare[iemcore, ip1] * pare[ieff, ip1] * neng
-        mdotf2 = pare[iemcore, ip2] * pare[ieff, ip2] * neng
+        mdotf1 = get_eng(ip1).mfuel
+        mdotf2 = get_eng(ip2).mfuel
         WfTO = 0.5 * (mdotf1 + mdotf2) * tTO * gee
         para[iafracW, ipstatic] = para[iafracW, iptakeoff] +
                                   WfTO / parg[igWMTO]
@@ -210,8 +211,8 @@ function takeoff!(ac; imission=1, printTO = true)
             #---- calculate fuel burn during takeoff run
             ip1 = ipstatic
             ip2 = iprotate
-            mdotf1 = pare[iemcore, ip1] * pare[ieff, ip1] * neng
-            mdotf2 = pare[iemcore, ip2] * pare[ieff, ip2] * neng
+            mdotf1 = get_eng(ip1).mfuel
+            mdotf2 = get_eng(ip2).mfuel
             WfTO = 0.5 * (mdotf1 + mdotf2) * tTO * gee
             para[iafracW, ipstatic] = para[iafracW, iptakeoff] +
                                       WfTO / parg[igWMTO]
