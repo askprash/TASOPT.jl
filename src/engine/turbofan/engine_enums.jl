@@ -15,30 +15,35 @@ Enumeration of every named flow station in the TASOPT turbofan.  Each member
 is a compile-time constant that can be used as a typed sentinel to index
 engine-state containers, eliminating bare integer indices.
 
-SAE ARP755 station numbering convention:
+Generally follows the SAE ARP755 station numbering convention, with some
+custom additions for TASOPT heat-exchanger and offtake stations (marked †):
 
-| Member            | ARP755 # | Description                                  |
-|:------------------|:--------:|:---------------------------------------------|
-| `Freestream`      | 0        | Far-field ambient                            |
-| `FanFaceOuter`    | 12       | Fan face outside casing boundary layers      |
-| `FanFaceLPC`      | 2a       | Fan face over LPC (low-pressure compressor)  |
-| `PreCoolerOut`    | 2ac      | Pre-cooler outlet / LPC inlet                |
-| `FanFaceFan`      | 2        | Fan face over fan stream                     |
-| `FanExit`         | 13       | Fan exit / pre-cooler inlet                  |
-| `LPCExit`         | 25       | LPC exit / inter-cooler inlet                |
-| `InterCoolerOut`  | 25c      | Inter-cooler outlet / HPC inlet              |
-| `HPCExit`         | 3        | HPC (high-pressure compressor) exit          |
-| `CombustorExit`   | 4        | Combustor exit before cooling air addition   |
-| `CoolMixInlet`    | 4a       | Start-of-mixing / cooling-flow outlet        |
-| `TurbineInlet`    | 41       | Turbine inlet after cooling air addition     |
-| `HPTExit`         | 45       | HPT (high-pressure turbine) exit / LPT inlet |
-| `LPTExit`         | 5        | LPT (low-pressure turbine) exit              |
-| `RegenCoolerOut`  | 5c       | Regenerative cooler outlet                   |
-| `CoreNozzle`      | 8        | Core nozzle throat                           |
-| `CoreNozzleExit`  | 9        | Core flow downstream of nozzle               |
-| `FanNozzle`       | 18       | Fan nozzle throat                            |
-| `FanNozzleExit`   | 19       | Fan duct exit downstream of fan nozzle       |
-| `OfftakeDisch`    | 25off    | Offtake air discharge point                  |
+| Member            | Station # | Description                                  |
+|:------------------|:---------:|:---------------------------------------------|
+| `Freestream`      | 0         | Far-field ambient                            |
+| `FanFaceOuter`    | 12        | Fan face outside casing boundary layers      |
+| `FanFaceLPC`      | 2a        | Fan face over LPC (low-pressure compressor)  |
+| `PreCoolerOut`    | 2ac †     | Pre-cooler outlet / LPC inlet                |
+| `FanFaceFan`      | 2         | Fan face over fan stream                     |
+| `FanExit`         | 13        | Fan exit / pre-cooler inlet                  |
+| `LPCExit`         | 25        | LPC exit / inter-cooler inlet                |
+| `InterCoolerOut`  | 25c †     | Inter-cooler outlet / HPC inlet              |
+| `HPCExit`         | 3         | HPC (high-pressure compressor) exit          |
+| `CombustorExit`   | 4         | Combustor exit before cooling air addition   |
+| `CoolMixInlet`    | 4a        | Start-of-mixing / cooling-flow outlet        |
+| `TurbineInlet`    | 41        | Turbine inlet after cooling air addition     |
+| `HPTExit`         | 45        | HPT (high-pressure turbine) exit / LPT inlet |
+| `LPTExit`         | 5         | LPT (low-pressure turbine) exit              |
+| `RegenCoolerOut`  | 5c †      | Regenerative cooler outlet                   |
+| `CoreNozzle`      | 8         | Core nozzle throat                           |
+| `CoreNozzleExit`  | 9         | Core flow downstream of nozzle               |
+| `FanNozzle`       | 18        | Fan nozzle throat                            |
+| `FanNozzleExit`   | 19        | Fan duct exit downstream of fan nozzle       |
+| `OfftakeDisch`    | 25off †   | Offtake air discharge point                  |
+
+† TASOPT extension — not defined in SAE ARP755.
+
+See also the [station numbering reference](@ref station_numbering) in the docs.
 """
 @enumx EngineStation begin
     Freestream       # station 0:     far-field ambient

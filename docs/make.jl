@@ -39,6 +39,7 @@ makedocs(
         ],
     "Propulsion systems" => Any[
             "propulsion/propsys.md",
+            "propulsion/station_numbering.md",
             "propulsion/gascalc.md",
             "propulsion/hxfun.md",
             "propulsion/PEMfuelcell.md",
