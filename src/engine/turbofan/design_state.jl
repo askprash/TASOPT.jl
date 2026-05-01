@@ -21,9 +21,9 @@ containers.
 
 ## Map scalars
 Component performance maps are normalised relative to the design-point
-corrected speeds (`Nb*D`), corrected mass flows (`mb*D`), and pressure
-ratios (`pi*D`).  Subscript conventions: f = fan, lc = LPC, hc = HPC,
-ht = HPT, lt = LPT.
+corrected speeds (`Nb_*_des`), corrected mass flows (`mb_*_des`), and
+pressure ratios (`pi_*_des`).  Component suffix conventions:
+`fan`, `lpc` (LPC), `hpc` (HPC), `hpt` (HPT), `lpt` (LPT).
 
 ## Component areas
 Flow areas at key cross-sections, sized to pass the design corrected flow at
