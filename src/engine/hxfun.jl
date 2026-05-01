@@ -3,7 +3,7 @@
 # The design method is based on the effectiveness-NTU method, described in many sources such as 
 # https://www.mathworks.com/help/hydro/ref/entuheattransfer.html
 
-const alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127] #Air composition
+const alpha = collect(AIR_ALPHA) #Air composition
 
 """
     HX_gas

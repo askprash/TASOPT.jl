@@ -148,7 +148,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
       # from 'airfrac.inc'
       # air fractions  
       #        N2      O2      CO2    H2O      Ar       fuel
-      alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127, 0.0]
+      alpha = [AIR_ALPHA..., 0.0]
 
       # fuel fractions
       beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]

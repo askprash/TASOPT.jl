@@ -2957,7 +2957,7 @@ isGradient = false
 
         # Standard TASOPT 5-species air composition stored in FlowStation.alpha
         # (species 1-5: N2, O2, CO2, H2O, Ar; fuel slot is NOT stored here)
-        air_alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        air_alpha = collect(TASOPT.engine.AIR_ALPHA)
         n    = 5    # nair — number of air species passed to gas_burnd
         nair = 5
 
@@ -4334,7 +4334,7 @@ isGradient = false
         # Thermodynamic state — representative cruise conditions
         # Air species composition (standard TASOPT ordering)
         # ---------------------------------------------------------------------------
-        alpha_air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        alpha_air = collect(TASOPT.engine.AIR_ALPHA)
         nair  = 5
 
         # Fan nozzle inlet conditions derived from a default sized aircraft
@@ -4598,7 +4598,7 @@ isGradient = false
 
         # Re-use fan nozzle state from the parent Nozzle testset conditions
         # but now wrap with pn=1 to match Newton driver usage (loss already in pt18)
-        alpha_air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        alpha_air = collect(TASOPT.engine.AIR_ALPHA)
         nair  = 5
 
         pt21  = 61271.983314487086

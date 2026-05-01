@@ -112,7 +112,7 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
         #engine variables do not need to be loaded again.
 
         # Constants
-        alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127, 0.0]
+        alpha = [AIR_ALPHA..., 0.0]
         nair = 5
 
         # ===============================================================

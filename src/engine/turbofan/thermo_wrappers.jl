@@ -47,7 +47,7 @@ Static-state fields (`Ts`, `ps`, …, `u`) are **not** touched.
 
 ```julia
 fs = FlowStation()
-fs.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+fs.alpha = AIR_ALPHA
 fs.Tt = 288.15
 set_total_from_Tt!(fs)
 # fs.ht, fs.st, fs.cpt, fs.Rt now reflect the thermally-perfect gas at 288.15 K
@@ -109,7 +109,7 @@ With `epol = 1.0` (default), the process is isentropic: `station.ss ≈ station.
 
 ```julia
 fs = FlowStation()
-fs.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+fs.alpha = AIR_ALPHA
 fs.Tt = 300.0; fs.pt = 1.0e5
 set_total_from_Tt!(fs)
 set_static_from_M!(fs, 0.8)
@@ -164,7 +164,7 @@ Static fields (`Ts`, `ps`, `hs`, `ss`, `u`) are **not** modified.
 
 ```julia
 inlet = FlowStation()
-inlet.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+inlet.alpha = AIR_ALPHA
 inlet.Tt = 288.15;  inlet.pt = 1.0e5
 set_total_from_Tt!(inlet)
 
@@ -220,7 +220,7 @@ Static fields (`Ts`, `ps`, `hs`, `ss`, `u`) are **not** modified.
 
 ```julia
 inlet = FlowStation()
-inlet.alpha = SA[0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+inlet.alpha = AIR_ALPHA
 inlet.Tt = 900.0;  inlet.pt = 2.0e6
 set_total_from_Tt!(inlet)
 

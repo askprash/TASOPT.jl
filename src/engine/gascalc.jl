@@ -1130,7 +1130,7 @@ function gasPr(gas, T)
             T0 = 273
 
             if gas == "air" 
-                  alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127, 0.0]
+                  alpha = [AIR_ALPHA..., 0.0]
                   nair = 5
                   s, dsdt, ht, dhdt, cp, R = gassum(alpha, nair, T)
                   

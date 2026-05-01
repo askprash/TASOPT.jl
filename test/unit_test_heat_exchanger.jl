@@ -28,7 +28,7 @@
         HXgas.pp_in = 40e3
         HXgas.pc_in = 1515e3
 
-        HXgas.alpha_p = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        HXgas.alpha_p = collect(TASOPT.engine.AIR_ALPHA)
         HXgas.igas_c = 40
 
         HXgeom.is_concentric = true
@@ -83,7 +83,7 @@
         HXgas.pp_in = 3*40e3
         HXgas.pc_in = 3*1515e3
 
-        HXgas.alpha_p = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        HXgas.alpha_p = collect(TASOPT.engine.AIR_ALPHA)
         HXgas.igas_c = 40
 
         HXgeom.is_concentric = true
@@ -129,7 +129,7 @@
         HXgas.pp_in = 40e3
         HXgas.pc_in = 1515e3
 
-        HXgas.alpha_p = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        HXgas.alpha_p = collect(TASOPT.engine.AIR_ALPHA)
         HXgas.igas_c = 40
 
         HXgeom.is_concentric = true
@@ -197,7 +197,7 @@
         HXgas.recircT  = 200
         HXgas.h_lat  = 446e3 + 670e3
 
-        HXgas.alpha_p = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        HXgas.alpha_p = collect(TASOPT.engine.AIR_ALPHA)
         HXgas.igas_c = 40
 
         HXgeom.is_concentric = false
