@@ -64,6 +64,9 @@ makedocs(
         "misc/dreladocs.md",
         # "misc/misc.md",
         "misc/fordevs.md"
+        ],
+    "Developer notes" => Any[
+        "dev/julia_vs_fortran_divergences.md"
         ]
     ],
 
