@@ -287,7 +287,7 @@ end
 """
     lp_shaft_workd(shaft, fo, ff, BPR, ht2_5, ht2ac, ht13, ht2, Pom)
         -> (dhlt, dhlt_fo, dhlt_ff, dhlt_BPR, dhlt_ht2_5, dhlt_ht1_9c,
-            dhlt_ht2_1, dhlt_ht2, dhlt_Pom)
+            dhlt_ht2_1, dhlt_ht2, dhlt_Pom, dlfac_fo, dlfac_ff)
 
 Compute the LPT specific work and its partial derivatives with respect to
 the nine natural inputs.
@@ -300,6 +300,10 @@ so the caller assembles Newton entries by chain rule:
     dhlt_x = dhlt_fo · fo_x  +  dhlt_ff · ff_x  +  dhlt_BPR · BPR_x
            + dhlt_ht2_5 · ht2_5_x  +  dhlt_ht1_9c · ht1_9c_x
            + dhlt_ht2_1 · ht2_1_x  +  dhlt_ht2 · ht2_x  +  dhlt_Pom · Pom_x
+
+`dlfac_fo` and `dlfac_ff` are also returned so that callers needing the raw
+scaling-factor sensitivities (e.g. to reconstruct Fortran-compatible partial
+assemblies) can do so without re-calling `lp_shaft_work`.
 
 ## Returns
 
@@ -314,6 +318,17 @@ so the caller assembles Newton entries by chain rule:
 | `dhlt_ht2_1`  | ∂dhlt/∂ht13 = BPR · dlfac                       |
 | `dhlt_ht2`   | ∂dhlt/∂ht2  = −BPR · dlfac                      |
 | `dhlt_Pom`   | ∂dhlt/∂Pom  = dlfac                             |
+| `dlfac_fo`   | ∂dlfac/∂fo  (raw scaling-factor sensitivity)    |
+| `dlfac_ff`   | ∂dlfac/∂ff  (raw scaling-factor sensitivity)    |
+
+## Note on upstream Fortran compatibility
+
+The upstream Fortran's `dhlt_ml` partial in `tfoper.f` omits `+Pom` in the
+demand factor for the `dlfac_ml` contribution — a copy-paste omission relative
+to all other `dhlt_*` partials.  The `dlfac_fo` / `dlfac_ff` return values
+allow `tfoper.jl` to reconstruct that Fortran-matching formula for `dhlt_ml`
+without re-evaluating the shaft functions.  The correct thermodynamic partial
+(including `+Pom`) is tracked as a pending fix in tasopt-go7.
 """
 function lp_shaft_workd(
     shaft ::Shaft{T},
@@ -340,7 +355,8 @@ function lp_shaft_workd(
     dhlt_Pom   = dlfac
 
     return dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
-           dhlt_ht2_5, dhlt_ht1_9c, dhlt_ht2_1, dhlt_ht2, dhlt_Pom
+           dhlt_ht2_5, dhlt_ht1_9c, dhlt_ht2_1, dhlt_ht2, dhlt_Pom,
+           dlfac_fo, dlfac_ff
 end
 
 # ---------------------------------------------------------------------------

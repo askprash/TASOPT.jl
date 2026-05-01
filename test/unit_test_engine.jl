@@ -4515,13 +4515,15 @@ isGradient = false
 
         # Base evaluation
         dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
-        dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom =
+        dhlt_ht25, dhlt_ht19c, dhlt_ht21, dhlt_ht2, dhlt_Pom,
+        dlfac_fo_ret, dlfac_ff_ret =
             lp_workd(shaft, fo_val, ff_val, BPR_val,
                      ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
 
         # 1. Consistency with lp_shaft_work
-        dhlt_ref, dlfac_ref, _, _ = lp_work(shaft, fo_val, ff_val, BPR_val,
-                                            ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
+        dhlt_ref, dlfac_ref, dlfac_fo_ref, dlfac_ff_ref = lp_work(
+            shaft, fo_val, ff_val, BPR_val,
+            ht25_val, ht19c_val, ht21_val, ht2_val, Pom_val)
         @test dhlt ≈ dhlt_ref   rtol=1e-14
 
         # 2. Analytic identities
@@ -4531,6 +4533,10 @@ isGradient = false
         @test dhlt_ht2   ≈ -BPR_val * dlfac_ref   rtol=1e-14
         @test dhlt_Pom   ≈  dlfac_ref         rtol=1e-14
         @test dhlt_BPR   ≈ (ht21_val - ht2_val) * dlfac_ref   rtol=1e-14
+
+        # 2b. Raw scaling-factor sensitivities match lp_shaft_work outputs
+        @test dlfac_fo_ret ≈ dlfac_fo_ref   rtol=1e-14
+        @test dlfac_ff_ret ≈ dlfac_ff_ref   rtol=1e-14
 
         # 3. FD verification: ∂dhlt/∂fo
         eps_fo = 1e-7

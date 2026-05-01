@@ -1357,7 +1357,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #---- LPT work with Jacobian  (shaft_lp = Shaft(epsl, Gearf) constructed above Newton loop)
             dhlt, dhlt_fo, dhlt_ff, dhlt_BPR,
-            dhlt_ht2_5, dhlt_ht1_9c, dhlt_ht2_1, dhlt_ht2, dhlt_Pom =
+            dhlt_ht2_5, dhlt_ht1_9c, dhlt_ht2_1, dhlt_ht2, dhlt_Pom,
+            dlfac_fo_lp, dlfac_ff_lp =
                 lp_shaft_workd(shaft_lp, fo, ff, BPR, ht2_5, ht2ac, ht13, ht2, Pom)
 
             dhlt_pf = dhlt_ht2_1 * ht2_1_pf
@@ -1365,8 +1366,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dhlt_ph = dhlt_ff * ff_ph
             dhlt_mf = dhlt_ff * ff_mf + dhlt_fo * fo_mf +
                       dhlt_BPR * BPR_mf + dhlt_ht2_1 * ht2_1_mf + dhlt_Pom * Pom_mf
-            dhlt_ml = dhlt_ff * ff_ml + dhlt_fo * fo_ml +
-                      dhlt_BPR * BPR_ml + dhlt_ht2_5 * ht2_5_ml + dhlt_Pom * Pom_ml
+            # Mirrors upstream Fortran exactly: dhlt_ml uses demand_no_pom = demand − Pom
+            # in the dlfac_ml contribution — a copy-paste omission in tfoper.f relative to
+            # all other dhlt_* partials.  The correct partial (with +Pom) is tasopt-go7.
+            dhlt_ml = (ht2_5 - ht2ac + BPR * (ht13 - ht2)) *
+                          (dlfac_fo_lp * fo_ml + dlfac_ff_lp * ff_ml) +
+                      dhlt_Pom * (ht2_5_ml + BPR_ml * (ht13 - ht2) + Pom_ml)
             dhlt_mh = dhlt_ff * ff_mh
             dhlt_Tb = dhlt_ff * ff_Tb
             dhlt_Mi = dhlt_ff * ff_Mi + dhlt_fo * fo_Mi +
