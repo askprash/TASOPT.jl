@@ -45,17 +45,6 @@ post-combustion products use `lambda`.  Both representations have exactly
 five components and live in the same field — callers are responsible for
 tracking which interpretation applies.
 
-## Notes
-
-The legacy `gascalc.jl` interface passes `n` (number of species) as a
-runtime `Int` argument at every call site (≥50 call sites across 13
-functions).  Changing all those signatures in one step spans Phase 2/3/4
-files and creates unacceptable merge risk at this stage.
-
-Resolution — option (b): **keep `n` as `Int` in the legacy interface** and
-add `@assert n == 5` in debug builds at each call site, so any inadvertent
-mismatch is caught immediately.
-
 ## Fields
 
 ### Total (stagnation) state
@@ -108,10 +97,7 @@ mutable struct GasState{T<:AbstractFloat}
 
     # -----------------------------------------------------------------------
     # Species composition — 5 species, fixed at compile time
-    #
-    # OQ-5 (see docstring): n is NOT a field; n==5 is a compile-time
-    # invariant enforced by the SVector length.  Legacy callers that pass n
-    # as a runtime Int should @assert n == 5 when in debug mode.
+    # n==5 is a compile-time invariant enforced by the SVector length.
     # -----------------------------------------------------------------------
     alpha ::SVector{5,T}   # mass fractions: [N₂, O₂, CO₂, H₂O, Ar]
 end
