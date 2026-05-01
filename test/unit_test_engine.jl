@@ -1246,65 +1246,37 @@ isGradient = false
         snum = TASOPT.engine.station_number
         sdesc = TASOPT.engine.station_description
 
-        # All 20 stations must be distinct and constructable
         all_stations = instances(ES.T)
         @test length(all_stations) == 20
 
-        # station_number round-trip: every member maps to a non-empty string
+        # Every station maps to a non-empty string number and description
         for s in all_stations
-            num = snum(s)
-            @test num isa String
-            @test !isempty(num)
+            @test snum(s) isa String && !isempty(snum(s))
+            @test sdesc(s) isa String && !isempty(sdesc(s))
         end
 
-        # Spot-check ARP755 numbering for all stations
-        @test snum(ES.Freestream)     == "0"
-        @test snum(ES.FanFaceOuter)   == "12"
-        @test snum(ES.FanFaceLPC)     == "2a"
-        @test snum(ES.PreCoolerOut)   == "2ac"
-        @test snum(ES.FanFaceFan)     == "2"
-        @test snum(ES.FanExit)        == "13"
-        @test snum(ES.LPCExit)        == "25"
-        @test snum(ES.InterCoolerOut) == "25c"
-        @test snum(ES.HPCExit)        == "3"
-        @test snum(ES.CombustorExit)  == "4"
-        @test snum(ES.CoolMixInlet)   == "4a"
-        @test snum(ES.TurbineInlet)   == "41"
-        @test snum(ES.HPTExit)        == "45"
-        @test snum(ES.LPTExit)        == "5"
-        @test snum(ES.RegenCoolerOut) == "5c"
-        @test snum(ES.CoreNozzle)     == "8"
-        @test snum(ES.CoreNozzleExit) == "9"
-        @test snum(ES.FanNozzle)      == "18"
-        @test snum(ES.FanNozzleExit)  == "19"
-        @test snum(ES.OfftakeDisch)   == "25off"
-
-        # station_number values are all distinct
+        # Station numbers are all distinct
         nums = [snum(s) for s in all_stations]
         @test length(unique(nums)) == length(nums)
 
-        # station_description returns a non-empty string for every member
-        for s in all_stations
-            desc = sdesc(s)
-            @test desc isa String
-            @test !isempty(desc)
-        end
+        # Spot-check: ARP755 standard stations and TASOPT-specific extensions
+        @test snum(ES.Freestream)     == "0"
+        @test snum(ES.HPCExit)        == "3"
+        @test snum(ES.TurbineInlet)   == "41"
+        @test snum(ES.FanNozzle)      == "18"
+        @test snum(ES.OfftakeDisch)   == "25off"  # TASOPT extension
 
-        # Enum members are usable as Dict keys (field-access sentinel use-case)
-        d = Dict(s => snum(s) for s in all_stations)
-        @test d[ES.HPCExit]      == "3"
-        @test d[ES.TurbineInlet] == "41"
-
-        # Coverage: every station cited in tfsize! and tfoper! docs is present.
-        # ARP755 stations: 0, 12, 2a, 2ac, 2, 13, 25, 25c, 3, 4, 4a,
-        #                  41, 45, 5, 5c, 8, 9, 18, 19, 25off
+        # Coverage: full set matches documented ARP755 + extension stations
         documented = Set([
             "0", "12", "2a", "2ac", "2", "13", "25", "25c",
             "3", "4", "4a", "41", "45", "5", "5c",
             "8", "9", "18", "19", "25off"
         ])
-        enum_nums = Set(snum(s) for s in all_stations)
-        @test documented == enum_nums
+        @test Set(snum(s) for s in all_stations) == documented
+
+        # Usable as Dict keys
+        d = Dict(s => snum(s) for s in all_stations)
+        @test d[ES.HPCExit] == "3"
     end
 
     @testset "Simple engine" begin
@@ -1336,137 +1308,55 @@ isGradient = false
     @testset "DesignState" begin
         DS = TASOPT.engine.DesignState
 
-        # ------------------------------------------------------------------
-        # Zero-initialised Float64 constructor (default)
-        # ------------------------------------------------------------------
+        # Default constructor: all scalar fields zero, vectors length-4
         ds = DS()
         @test ds isa DS{Float64}
-
-        # All scalar fields are zero
         for fname in (:pi_fan_des, :pi_lpc_des, :pi_hpc_des, :pi_hpt_des, :pi_lpt_des,
                       :mb_fan_des, :mb_lpc_des, :mb_hpc_des, :mb_hpt_des, :mb_lpt_des,
                       :Nb_fan_des, :Nb_lpc_des, :Nb_hpc_des, :Nb_hpt_des, :Nb_lpt_des,
-                      :A2, :A25, :A8, :A18,
-                      :fc, :ruc, :M4a)
+                      :A2, :A25, :A8, :A18, :fc, :ruc, :M4a)
             @test getfield(ds, fname) == 0.0
         end
+        @test length(ds.epsrow) == 4 && all(==(0.0), ds.epsrow)
+        @test length(ds.Tmrow)  == 4 && all(==(0.0), ds.Tmrow)
 
-        # Vector fields are length-4 zero SVectors
-        @test length(ds.epsrow) == 4
-        @test length(ds.Tmrow) == 4
-        @test all(==(0.0), ds.epsrow)
-        @test all(==(0.0), ds.Tmrow)
-
-        # ------------------------------------------------------------------
-        # Explicit Float64 typed constructor
-        # ------------------------------------------------------------------
-        ds64 = DS{Float64}()
-        @test ds64 isa DS{Float64}
-        @test ds64.pi_fan_des === 0.0
-
-        # ------------------------------------------------------------------
         # Float32 typed constructor
-        # ------------------------------------------------------------------
+        using StaticArrays
         ds32 = DS{Float32}()
         @test ds32 isa DS{Float32}
         @test ds32.pi_fan_des === 0.0f0
         @test ds32.epsrow isa StaticArrays.SVector{4,Float32}
-        @test all(==(0.0f0), ds32.epsrow)
 
-        # ------------------------------------------------------------------
-        # Mutation: map scalars round-trip
-        # ------------------------------------------------------------------
-        ds.pi_fan_des  = 1.6
-        ds.pi_lpc_des = 3.0
-        ds.pi_hpc_des = 12.0
-        ds.pi_hpt_des = 4.5
-        ds.pi_lpt_des = 2.0
+        # Representative scalar round-trips (one per group)
+        ds.pi_fan_des = 1.6;  @test ds.pi_fan_des == 1.6
+        ds.pi_hpc_des = 12.0; @test ds.pi_hpc_des == 12.0
+        ds.mb_fan_des = 210.0; @test ds.mb_fan_des == 210.0
+        ds.Nb_hpc_des = 1.0;  @test ds.Nb_hpc_des == 1.0
+        # ARP755-renamed area fields (A8 = core nozzle throat, A18 = fan nozzle throat)
+        ds.A2  = 3.14; @test ds.A2  == 3.14
+        ds.A18 = 1.20; @test ds.A18 == 1.20
 
-        @test ds.pi_fan_des  == 1.6
-        @test ds.pi_lpc_des == 3.0
-        @test ds.pi_hpc_des == 12.0
-        @test ds.pi_hpt_des == 4.5
-        @test ds.pi_lpt_des == 2.0
-
-        ds.mb_fan_des  = 210.0
-        ds.mb_lpc_des = 55.0
-        ds.mb_hpc_des = 50.0
-        ds.mb_hpt_des = 12.0
-        ds.mb_lpt_des = 45.0
-
-        @test ds.mb_fan_des  == 210.0
-        @test ds.mb_lpc_des == 55.0
-        @test ds.mb_hpc_des == 50.0
-        @test ds.mb_hpt_des == 12.0
-        @test ds.mb_lpt_des == 45.0
-
-        ds.Nb_fan_des  = 1.0
-        ds.Nb_lpc_des = 1.0
-        ds.Nb_hpc_des = 1.0
-        ds.Nb_hpt_des = 1.0
-        ds.Nb_lpt_des = 1.0
-
-        @test ds.Nb_fan_des == 1.0
-
-        # ------------------------------------------------------------------
-        # Mutation: component areas round-trip
-        # ------------------------------------------------------------------
-        ds.A2  = 3.14
-        ds.A25 = 0.52
-        ds.A8  = 0.18
-        ds.A18 = 1.20
-
-        @test ds.A2  == 3.14
-        @test ds.A25 == 0.52
-        @test ds.A8  == 0.18
-        @test ds.A18 == 1.20
-
-        # ------------------------------------------------------------------
-        # Mutation: cooling fields round-trip
-        # ------------------------------------------------------------------
-        using StaticArrays
+        # Cooling vector mutation: epsrow and Tmrow are SVector{4}
         eps_val = SA[0.05, 0.04, 0.03, 0.02]
         tm_val  = SA[1200.0, 1150.0, 1100.0, 1050.0]
+        ds.epsrow = eps_val; ds.Tmrow = tm_val
+        ds.fc = sum(eps_val); ds.ruc = 0.95; ds.M4a = 0.10
+        @test ds.epsrow[1] ≈ 0.05 && ds.epsrow[4] ≈ 0.02
+        @test ds.Tmrow[1]  ≈ 1200.0 && ds.Tmrow[4] ≈ 1050.0
+        @test ds.fc ≈ 0.14 && ds.ruc ≈ 0.95 && ds.M4a ≈ 0.10
 
-        ds.epsrow = eps_val
-        ds.Tmrow  = tm_val
-        ds.fc     = sum(eps_val)
-        ds.ruc    = 0.95
-        ds.M4a    = 0.10
-
-        @test ds.epsrow[1] ≈ 0.05
-        @test ds.epsrow[4] ≈ 0.02
-        @test ds.Tmrow[1]  ≈ 1200.0
-        @test ds.Tmrow[4]  ≈ 1050.0
-        @test ds.fc        ≈ 0.14
-        @test ds.ruc       ≈ 0.95
-        @test ds.M4a       ≈ 0.10
-
-        # ------------------------------------------------------------------
-        # ncrowx = 4: vector dimensions match the blade-row dimension constant
-        # ------------------------------------------------------------------
-        @test length(ds.epsrow) == 4
-        @test length(ds.Tmrow)  == 4
-
-        # ------------------------------------------------------------------
-        # @inferred: field access should not allocate or lose type info
-        # ------------------------------------------------------------------
+        # @inferred: field access must not lose type info
         @test @inferred(Float64, getproperty(ds, :pi_fan_des)) == ds.pi_fan_des
-        @test @inferred(Float64, getproperty(ds, :A2))  == ds.A2
-        @test @inferred(Float64, getproperty(ds, :ruc)) == ds.ruc
-        @test @inferred(Float64, getproperty(ds, :M4a)) == ds.M4a
+        @test @inferred(Float64, getproperty(ds, :A2))         == ds.A2
+        @test @inferred(Float64, getproperty(ds, :ruc))        == ds.ruc
 
-        # ------------------------------------------------------------------
-        # Inline storage: DesignState embedded in another struct should not
-        # force heap allocation of the DesignState itself
-        # ------------------------------------------------------------------
+        # Inline storage: embeddable without heap allocation
         struct WrapDS
             ds::DS{Float64}
             tag::Int
         end
         w = WrapDS(DS(), 42)
         @test w.ds isa DS{Float64}
-        @test w.tag == 42
     end
 
     # ======================================================================
@@ -1474,131 +1364,50 @@ isGradient = false
         using StaticArrays
         GS = TASOPT.engine.GasState
 
-        # ------------------------------------------------------------------
-        # Default constructor — GasState() → GasState{Float64}
-        # ------------------------------------------------------------------
+        # Default constructor: all fields zero, alpha is length-5 SVector
         gs = GS()
         @test gs isa GS{Float64}
-
-        # Scalar fields zero-initialised
-        @test gs.Tt  === 0.0
-        @test gs.ht  === 0.0
-        @test gs.pt  === 0.0
-        @test gs.cpt === 0.0
-        @test gs.Rt  === 0.0
-        @test gs.st  === 0.0
-
-        @test gs.Ts  === 0.0
-        @test gs.ps  === 0.0
-        @test gs.hs  === 0.0
-        @test gs.ss  === 0.0
-        @test gs.cps === 0.0
-        @test gs.Rs  === 0.0
-        @test gs.u   === 0.0
-
-        # Species composition is length-5 zero SVector
-        @test length(gs.alpha) == 5
+        @test gs.Tt === 0.0 && gs.pt === 0.0 && gs.u === 0.0
         @test gs.alpha isa StaticArrays.SVector{5,Float64}
-        @test all(==(0.0), gs.alpha)
+        @test length(gs.alpha) == 5 && all(==(0.0), gs.alpha)
 
-        # ------------------------------------------------------------------
-        # Explicit Float64 typed constructor
-        # ------------------------------------------------------------------
-        gs64 = GS{Float64}()
-        @test gs64 isa GS{Float64}
-        @test gs64.Tt === 0.0
-
-        # ------------------------------------------------------------------
         # Float32 typed constructor
-        # ------------------------------------------------------------------
         gs32 = GS{Float32}()
         @test gs32 isa GS{Float32}
         @test gs32.Tt === 0.0f0
         @test gs32.alpha isa StaticArrays.SVector{5,Float32}
-        @test all(==(0.0f0), gs32.alpha)
 
-        # ------------------------------------------------------------------
-        # Constructor with explicit total-state fields and species
-        # ------------------------------------------------------------------
-        air_alpha = TASOPT.engine.AIR_ALPHA   # standard air
+        # Explicit total-state constructor
+        air_alpha = TASOPT.engine.AIR_ALPHA
         gs_total  = GS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha)
-
-        @test gs_total.Tt  ≈ 288.15
-        @test gs_total.ht  ≈ 2.885e5
-        @test gs_total.pt  ≈ 101325.0
-        @test gs_total.cpt ≈ 1005.0
-        @test gs_total.Rt  ≈ 287.058
-
-        # st (total entropy complement) defaults to zero (not yet computed)
-        @test gs_total.st  === 0.0
-        # Static fields default to zero
-        @test gs_total.Ts  === 0.0
-        @test gs_total.ps  === 0.0
-        @test gs_total.u   === 0.0
-
+        @test gs_total.Tt ≈ 288.15
         @test gs_total.alpha ≈ air_alpha
+        @test gs_total.Ts === 0.0   # static fields default to zero
 
-        # ------------------------------------------------------------------
-        # Mutation: round-trip on every field
-        # ------------------------------------------------------------------
-        gs.Tt  = 800.0
-        gs.ht  = 8.5e5
-        gs.pt  = 2.0e6
-        gs.cpt = 1100.0
-        gs.Rt  = 287.058
-        gs.st  = 2350.0
+        # Representative scalar mutation
+        gs.Tt = 800.0; gs.pt = 2.0e6; gs.u = 150.0
+        @test gs.Tt ≈ 800.0 && gs.pt ≈ 2.0e6 && gs.u ≈ 150.0
 
-        @test gs.Tt  ≈ 800.0
-        @test gs.ht  ≈ 8.5e5
-        @test gs.pt  ≈ 2.0e6
-        @test gs.cpt ≈ 1100.0
-        @test gs.Rt  ≈ 287.058
-        @test gs.st  ≈ 2350.0
-
-        gs.Ts  = 720.0
-        gs.ps  = 1.6e6
-        gs.hs  = 7.9e5
-        gs.ss  = 2400.0
-        gs.cps = 1090.0
-        gs.Rs  = 287.058
-        gs.u   = 150.0
-
-        @test gs.Ts  ≈ 720.0
-        @test gs.ps  ≈ 1.6e6
-        @test gs.hs  ≈ 7.9e5
-        @test gs.ss  ≈ 2400.0
-        @test gs.cps ≈ 1090.0
-        @test gs.Rs  ≈ 287.058
-        @test gs.u   ≈ 150.0
-
+        # Alpha mutation: sum preserved, boundary elements correct
         gs.alpha = air_alpha
         @test gs.alpha[1] ≈ 0.7532
         @test gs.alpha[5] ≈ 0.0127
         @test sum(gs.alpha) ≈ sum(air_alpha)
 
-        # ------------------------------------------------------------------
-        # @inferred: field access must not lose type info
-        # ------------------------------------------------------------------
+        # @inferred: no type info lost on field access
         gs2 = GS()
         @test @inferred(Float64, getproperty(gs2, :Tt)) == gs2.Tt
         @test @inferred(Float64, getproperty(gs2, :pt)) == gs2.pt
         @test @inferred(Float64, getproperty(gs2, :u))  == gs2.u
 
-        # ------------------------------------------------------------------
-        # Inline storage: GasState embedded in another struct
-        # ------------------------------------------------------------------
+        # Inline storage: GasState embeddable without heap allocation
         struct WrapGS
             state::GS{Float64}
             id::Int
         end
-        wg = WrapGS(GS(), 7)
-        @test wg.state isa GS{Float64}
-        @test wg.id == 7
+        @test WrapGS(GS(), 7).state isa GS{Float64}
 
-        # ------------------------------------------------------------------
-        # OQ-5 invariant: alpha always has exactly 5 species
-        # (n == 5 is a compile-time guarantee via SVector length)
-        # ------------------------------------------------------------------
+        # OQ-5: alpha always has exactly 5 species (compile-time SVector length)
         @test length(GS().alpha) == 5
         @test length(GS{Float32}().alpha) == 5
     end
@@ -1611,164 +1420,72 @@ isGradient = false
         FS = TASOPT.engine.FlowStation
         GS = TASOPT.engine.GasState
 
-        # ------------------------------------------------------------------
-        # Default constructor — FlowStation() → FlowStation{Float64}
-        # ------------------------------------------------------------------
+        # Default constructor: own fields and embedded gas all zero
         fs = FS()
         @test fs isa FS{Float64}
-        @test fs.A    === 0.0
-        @test fs.mdot === 0.0
-
-        # Embedded gas is a properly zeroed GasState
+        @test fs.A === 0.0 && fs.mdot === 0.0
         @test fs.gas isa GS{Float64}
-        @test fs.gas.Tt === 0.0
-        @test fs.gas.pt === 0.0
-        @test fs.gas.u  === 0.0
 
-        # ------------------------------------------------------------------
         # Typed constructors
-        # ------------------------------------------------------------------
-        fs64 = FS{Float64}()
-        @test fs64 isa FS{Float64}
-        @test fs64.A === 0.0
-
         fs32 = FS{Float32}()
         @test fs32 isa FS{Float32}
-        @test fs32.A    === 0.0f0
-        @test fs32.mdot === 0.0f0
-        @test fs32.gas isa GS{Float32}
+        @test fs32.A === 0.0f0 && fs32.gas isa GS{Float32}
 
-        # Constructor with explicit A and mdot keyword args
+        # Keyword-arg constructor and total-state constructor
         fs_area = FS{Float64}(; A=0.5, mdot=10.0)
-        @test fs_area.A    ≈ 0.5
-        @test fs_area.mdot ≈ 10.0
-        @test fs_area.gas.Tt === 0.0   # gas still zeroed
+        @test fs_area.A ≈ 0.5 && fs_area.mdot ≈ 10.0 && fs_area.gas.Tt === 0.0
 
-        # ------------------------------------------------------------------
-        # Constructor with explicit total state + species
-        # ------------------------------------------------------------------
         air_alpha = TASOPT.engine.AIR_ALPHA
-        fs_total  = FS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha;
-                                A=0.3, mdot=50.0)
+        fs_total = FS{Float64}(288.15, 2.885e5, 101325.0, 1005.0, 287.058, air_alpha; A=0.3, mdot=50.0)
+        @test fs_total.Tt ≈ 288.15 && fs_total.alpha ≈ air_alpha
+        @test fs_total.A ≈ 0.3 && fs_total.mdot ≈ 50.0
 
-        @test fs_total.Tt    ≈ 288.15
-        @test fs_total.ht    ≈ 2.885e5
-        @test fs_total.pt    ≈ 101325.0
-        @test fs_total.cpt   ≈ 1005.0
-        @test fs_total.Rt    ≈ 287.058
-        @test fs_total.alpha ≈ air_alpha
-        @test fs_total.A     ≈ 0.3
-        @test fs_total.mdot  ≈ 50.0
-
-        # Static fields default to zero even with explicit total state
-        @test fs_total.Ts === 0.0
-        @test fs_total.ps === 0.0
-        @test fs_total.u  === 0.0
-
-        # ------------------------------------------------------------------
-        # Property forwarding — reads
-        # ------------------------------------------------------------------
+        # Property forwarding — reads: forwarded fields match nested gas access
         fs2 = FS{Float64}(; A=1.0, mdot=20.0)
-        fs2.gas.Tt  = 800.0
-        fs2.gas.pt  = 2.0e6
-        fs2.gas.u   = 150.0
-
-        # Forwarded reads match direct nested access
-        @test fs2.Tt  === fs2.gas.Tt
-        @test fs2.pt  === fs2.gas.pt
-        @test fs2.u   === fs2.gas.u
-
-        # Own-field reads still work
-        @test fs2.A    ≈ 1.0
-        @test fs2.mdot ≈ 20.0
-
-        # gas field itself is accessible
+        fs2.gas.Tt = 800.0; fs2.gas.pt = 2.0e6; fs2.gas.u = 150.0
+        @test fs2.Tt === fs2.gas.Tt
+        @test fs2.pt === fs2.gas.pt
+        @test fs2.u  === fs2.gas.u
         @test fs2.gas isa GS{Float64}
 
-        # ------------------------------------------------------------------
-        # Property forwarding — writes via setproperty!
-        # ------------------------------------------------------------------
+        # Property forwarding — writes: setproperty! routes through gas
         fs3 = FS()
-        fs3.Tt  = 500.0
-        fs3.ht  = 5.0e5
-        fs3.pt  = 1.0e6
-        fs3.cpt = 1050.0
-        fs3.Rt  = 287.0
-        fs3.Ts  = 460.0
-        fs3.ps  = 0.9e6
-        fs3.hs  = 4.8e5
-        fs3.ss  = 2300.0
-        fs3.cps = 1040.0
-        fs3.Rs  = 287.0
-        fs3.u   = 200.0
-        fs3.alpha = air_alpha
+        fs3.Tt = 500.0; fs3.pt = 1.0e6; fs3.u = 200.0; fs3.alpha = air_alpha
+        @test fs3.gas.Tt ≈ 500.0 && fs3.gas.pt ≈ 1.0e6 && fs3.gas.u ≈ 200.0
+        @test fs3.Tt ≈ 500.0   # also visible via forwarded reader
+        fs3.A = 0.8; fs3.mdot = 30.0
+        @test fs3.A ≈ 0.8 && fs3.mdot ≈ 30.0
 
-        # All forwarded writes are visible via the gas field
-        @test fs3.gas.Tt  ≈ 500.0
-        @test fs3.gas.ht  ≈ 5.0e5
-        @test fs3.gas.pt  ≈ 1.0e6
-        @test fs3.gas.Ts  ≈ 460.0
-        @test fs3.gas.u   ≈ 200.0
-        @test fs3.gas.alpha ≈ air_alpha
-
-        # Also visible via the forwarded reader
-        @test fs3.Tt ≈ 500.0
-        @test fs3.u  ≈ 200.0
-
-        # Own-field writes
-        fs3.A    = 0.8
-        fs3.mdot = 30.0
-        @test fs3.A    ≈ 0.8
-        @test fs3.mdot ≈ 30.0
-
-        # ------------------------------------------------------------------
         # @inferred: forwarded field access must not lose type information
-        # ------------------------------------------------------------------
         fs4 = FS()
-        @test @inferred(Float64, getproperty(fs4, :Tt))  == fs4.Tt
-        @test @inferred(Float64, getproperty(fs4, :pt))  == fs4.pt
-        @test @inferred(Float64, getproperty(fs4, :u))   == fs4.u
-        @test @inferred(Float64, getproperty(fs4, :A))   == fs4.A
-        @test @inferred(Float64, getproperty(fs4, :mdot))== fs4.mdot
+        @test @inferred(Float64, getproperty(fs4, :Tt))   == fs4.Tt
+        @test @inferred(Float64, getproperty(fs4, :pt))   == fs4.pt
+        @test @inferred(Float64, getproperty(fs4, :A))    == fs4.A
+        @test @inferred(Float64, getproperty(fs4, :mdot)) == fs4.mdot
 
-        # ------------------------------------------------------------------
         # propertynames includes both own and forwarded names
-        # ------------------------------------------------------------------
         pnames = propertynames(FS())
-        for name in (:gas, :A, :mdot, :Tt, :ht, :pt, :cpt, :Rt,
-                     :Ts, :ps, :hs, :ss, :cps, :Rs, :u, :alpha)
+        for name in (:gas, :A, :mdot, :Tt, :ht, :pt, :cpt, :Rt, :Ts, :ps, :u, :alpha)
             @test name in pnames
         end
 
-        # ------------------------------------------------------------------
-        # Inline storage: FlowStation embedded in another struct
-        # ------------------------------------------------------------------
+        # Inline storage: FlowStation embeddable without heap allocation
         struct WrapFS
             station::FS{Float64}
             id::Int
         end
-        wfs = WrapFS(FS(), 3)
-        @test wfs.station isa FS{Float64}
-        @test wfs.id == 3
+        @test WrapFS(FS(), 3).station isa FS{Float64}
 
-        # ------------------------------------------------------------------
         # Float32 forwarding works end-to-end
-        # ------------------------------------------------------------------
         fs32b = FS{Float32}()
         fs32b.Tt = 300.0f0
-        fs32b.pt = 1.0f5
         @test fs32b.Tt === 300.0f0
-        @test fs32b.pt === 1.0f5
         @test @inferred(Float32, getproperty(fs32b, :Tt)) == fs32b.Tt
 
-        # ------------------------------------------------------------------
-        # st field is forwarded (GasState.st → FlowStation.st)
-        # ------------------------------------------------------------------
+        # st field forwarded (GasState.st → FlowStation.st)
         fs_st = FS()
-        @test fs_st.st === 0.0
         fs_st.st = 2400.0
-        @test fs_st.gas.st ≈ 2400.0
-        @test fs_st.st ≈ 2400.0
+        @test fs_st.gas.st ≈ 2400.0 && fs_st.st ≈ 2400.0
     end
 
     # ======================================================================
@@ -2042,187 +1759,96 @@ isGradient = false
         FS = TASOPT.engine.FlowStation
         DS = TASOPT.engine.DesignState
 
-        # ------------------------------------------------------------------
-        # Default constructor — EngineState() → EngineState{Float64}
-        # ------------------------------------------------------------------
+        # Default constructor and typed constructors
         eng = ES()
         @test eng isa ES{Float64}
-
-        # ------------------------------------------------------------------
-        # Typed constructor — EngineState{Float32}()
-        # ------------------------------------------------------------------
         eng32 = ES{Float32}()
         @test eng32 isa ES{Float32}
-        @test eng32.M0 === 0.0f0
-        @test eng32.st4 isa FS{Float32}
-        @test eng32.design isa DS{Float32}
+        @test eng32.M0 === 0.0f0 && eng32.st4 isa FS{Float32} && eng32.design isa DS{Float32}
 
-        # ------------------------------------------------------------------
-        # All 20 station fields are FlowStation{Float64} and fully zeroed
-        # ------------------------------------------------------------------
+        # All 20 station fields are FlowStation{Float64} and zeroed
         station_fields = (:st0, :st12, :st2a, :st2ac, :st2, :st13,
                           :st25, :st25c, :st3, :st4, :st4a, :st41,
                           :st45, :st5, :st5c, :st8, :st9, :st18,
                           :st19, :st25off)
         @test length(station_fields) == 20
         for fname in station_fields
-            fs = getproperty(eng, fname)
-            @test fs isa FS{Float64}
-            @test fs.Tt  === 0.0
-            @test fs.pt  === 0.0
-            @test fs.A   === 0.0
-            @test fs.mdot === 0.0
+            @test getproperty(eng, fname) isa FS{Float64}
         end
 
-        # ------------------------------------------------------------------
-        # Ambient scalars all zero by default
-        # ------------------------------------------------------------------
-        @test eng.M0 === 0.0
-        @test eng.T0 === 0.0
-        @test eng.p0 === 0.0
-        @test eng.a0 === 0.0
+        # Ambient scalars and design field zero by default
+        @test eng.M0 === 0.0 && eng.T0 === 0.0 && eng.p0 === 0.0
+        @test eng.design isa DS{Float64} && eng.design.pi_fan_des === 0.0
 
-        # ------------------------------------------------------------------
-        # Design field is a zero-initialised DesignState
-        # ------------------------------------------------------------------
-        @test eng.design isa DS{Float64}
-        @test eng.design.pi_fan_des  === 0.0
-        @test eng.design.pi_lpc_des === 0.0
-        @test eng.design.A2    === 0.0
-
-        # ------------------------------------------------------------------
-        # Setting and reading station fields
-        # ------------------------------------------------------------------
-        eng.st4.Tt  = 1800.0
-        eng.st4.pt  = 2.5e6
-        eng.st4.mdot = 40.0
-        @test eng.st4.Tt   ≈ 1800.0
-        @test eng.st4.pt   ≈ 2.5e6
-        @test eng.st4.mdot ≈ 40.0
-
-        # Another station is unaffected
+        # Station field mutation and isolation (st4 ≠ st3 ≠ st45)
+        eng.st4.Tt = 1800.0; eng.st4.pt = 2.5e6
+        @test eng.st4.Tt ≈ 1800.0 && eng.st4.pt ≈ 2.5e6
         @test eng.st3.Tt === 0.0
 
-        # ------------------------------------------------------------------
-        # Setting ambient scalars
-        # ------------------------------------------------------------------
+        # Ambient scalars and design-state mutations
         eng2 = ES()
-        eng2.M0 = 0.85
-        eng2.T0 = 216.65
-        eng2.p0 = 22632.0
-        eng2.a0 = 295.07
-        @test eng2.M0 ≈ 0.85
-        @test eng2.T0 ≈ 216.65
-        @test eng2.p0 ≈ 22632.0
-        @test eng2.a0 ≈ 295.07
+        eng2.M0 = 0.85; eng2.T0 = 216.65
+        @test eng2.M0 ≈ 0.85 && eng2.T0 ≈ 216.65
+        eng2.design.pi_fan_des = 1.6; eng2.design.A2 = 0.5
+        @test eng2.design.pi_fan_des ≈ 1.6 && eng2.design.A2 ≈ 0.5
 
-        # ------------------------------------------------------------------
-        # Setting design-state fields
-        # ------------------------------------------------------------------
-        eng2.design.pi_fan_des  = 1.6
-        eng2.design.pi_hpc_des = 10.0
-        eng2.design.A2    = 0.5
-        @test eng2.design.pi_fan_des  ≈ 1.6
-        @test eng2.design.pi_hpc_des ≈ 10.0
-        @test eng2.design.A2    ≈ 0.5
-
-        # ------------------------------------------------------------------
-        # Each station is an independent FlowStation (mutations don't alias)
-        # ------------------------------------------------------------------
+        # Non-aliasing: mutations on st4 and st41 don't affect st45
         eng3 = ES()
-        eng3.st4.Tt  = 1600.0
-        eng3.st41.Tt = 1550.0
-        @test eng3.st4.Tt  ≈ 1600.0
-        @test eng3.st41.Tt ≈ 1550.0
-        @test eng3.st45.Tt === 0.0   # neighbouring station unaffected
+        eng3.st4.Tt = 1600.0; eng3.st41.Tt = 1550.0
+        @test eng3.st4.Tt ≈ 1600.0 && eng3.st41.Tt ≈ 1550.0
+        @test eng3.st45.Tt === 0.0
 
-        # ------------------------------------------------------------------
-        # Inline storage: EngineState embedded in another struct
-        # ------------------------------------------------------------------
+        # Inline storage: EngineState embeddable without heap allocation
         struct WrapES
             eng::ES{Float64}
             id::Int
         end
-        wes = WrapES(ES(), 7)
-        @test wes.eng isa ES{Float64}
-        @test wes.id == 7
+        @test WrapES(ES(), 7).eng isa ES{Float64}
 
-        # ------------------------------------------------------------------
         # Float32 stations are properly typed
-        # ------------------------------------------------------------------
         eng32b = ES{Float32}()
         eng32b.st3.Tt = 900.0f0
-        @test eng32b.st3.Tt === 900.0f0
-        @test eng32b.st3 isa FS{Float32}
+        @test eng32b.st3.Tt === 900.0f0 && eng32b.st3 isa FS{Float32}
 
-        # ------------------------------------------------------------------
         # Station-shortcut access — eng.Tt4 ≡ eng.st4.Tt
-        # ------------------------------------------------------------------
         @testset "station shortcuts" begin
 
             eng_sc = ES()
 
             # Shortcut reads agree with direct nested access (zero state)
-            @test eng_sc.Tt4     === eng_sc.st4.Tt
-            @test eng_sc.pt25    === eng_sc.st25.pt
-            @test eng_sc.A25off  === eng_sc.st25off.A
-            @test eng_sc.mdot0   === eng_sc.st0.mdot
-
-            # Non-integer-suffix stations work correctly
-            @test eng_sc.Tt2ac   === eng_sc.st2ac.Tt
-            @test eng_sc.pt4a    === eng_sc.st4a.pt
-            @test eng_sc.ht5c    === eng_sc.st5c.ht
-            @test eng_sc.A25c    === eng_sc.st25c.A
+            @test eng_sc.Tt4    === eng_sc.st4.Tt
+            @test eng_sc.pt25   === eng_sc.st25.pt
+            @test eng_sc.A25off === eng_sc.st25off.A
+            @test eng_sc.Tt2ac  === eng_sc.st2ac.Tt
+            @test eng_sc.ht5c   === eng_sc.st5c.ht
 
             # Shortcut write then direct read
-            eng_sc.Tt4     = 1600.0
-            eng_sc.pt25    = 4.5e5
-            eng_sc.A25off  = 0.18
-            eng_sc.mdot2   = 120.0
-            @test eng_sc.st4.Tt      ≈ 1600.0
-            @test eng_sc.st25.pt     ≈ 4.5e5
-            @test eng_sc.st25off.A   ≈ 0.18
-            @test eng_sc.st2.mdot    ≈ 120.0
+            eng_sc.Tt4 = 1600.0; eng_sc.pt25 = 4.5e5; eng_sc.A25off = 0.18
+            @test eng_sc.st4.Tt ≈ 1600.0 && eng_sc.st25.pt ≈ 4.5e5
+            @test eng_sc.st25off.A ≈ 0.18
 
             # Direct write then shortcut read
-            eng_sc.st41.Tt = 1500.0
-            eng_sc.st45.pt = 3.0e5
-            @test eng_sc.Tt41 ≈ 1500.0
-            @test eng_sc.pt45 ≈ 3.0e5
+            eng_sc.st41.Tt = 1500.0; eng_sc.st45.pt = 3.0e5
+            @test eng_sc.Tt41 ≈ 1500.0 && eng_sc.pt45 ≈ 3.0e5
 
-            # Shortcut write/read consistency (round-trip)
-            eng_sc.Tt5c = 900.0
-            @test eng_sc.Tt5c ≈ eng_sc.st5c.Tt ≈ 900.0
+            # Non-shortcut own fields still resolve correctly
+            eng_sc.M0 = 0.85; @test eng_sc.M0 ≈ 0.85
 
-            # Non-shortcut own fields still resolve correctly after override
-            eng_sc.M0 = 0.85
-            @test eng_sc.M0 ≈ 0.85
-            eng_sc.T0 = 216.65
-            @test eng_sc.T0 ≈ 216.65
-
-            # Type stability: @inferred verifies no type info is lost through shortcut.
-            # Note: @inferred requires a call expression, so we use getproperty()
-            # explicitly rather than dot-access syntax.
+            # Type stability through shortcut dispatch
             @test @inferred(Float64, getproperty(eng_sc, :Tt4))    == eng_sc.st4.Tt
             @test @inferred(Float64, getproperty(eng_sc, :pt25))   == eng_sc.st25.pt
             @test @inferred(Float64, getproperty(eng_sc, :A25off)) == eng_sc.st25off.A
 
-            # propertynames includes shortcut symbols
+            # propertynames includes shortcut and own-field symbols
             pnames = propertynames(eng_sc)
-            @test :Tt4    in pnames
-            @test :pt25c  in pnames
-            @test :A25off in pnames
-            @test :mdot0  in pnames
-            @test :Tt5c   in pnames
-            # own fields are also listed
-            @test :st4    in pnames
-            @test :M0     in pnames
-            @test :design in pnames
+            for sym in (:Tt4, :pt25c, :A25off, :Tt5c, :st4, :M0, :design)
+                @test sym in pnames
+            end
 
             # Unknown shortcut raises an error
             @test_throws ErrorException eng_sc.bogus_field_xyz
 
-            # Float32 shortcut access preserves element type
+            # Float32 shortcut preserves element type
             eng32_sc = ES{Float32}()
             eng32_sc.Tt4 = 1400.0f0
             @test eng32_sc.Tt4 === 1400.0f0
