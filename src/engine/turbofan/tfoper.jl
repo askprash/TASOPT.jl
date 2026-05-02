@@ -241,12 +241,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- minimum allowable fan efficiency
       epfmin = 0.60
 
-      #---- typed compressor component instances (used by compressor_efficiency and compressor_Nb_residual)
+      #---- typed compressor component instances (used by compressor_pratd, which calls compressor_efficiency internally)
       comp_fan = Compressor(pi_fan_des,  mb_fan_des,  Nb_fan_des,  epf0,  T(0.60), FanMap, windmilling=true)
       comp_lpc = Compressor(pi_lpc_des, mb_lpc_des, Nb_lpc_des, eplc0, T(0.70), LPCMap)
       comp_hpc = Compressor(pi_hpc_des, mb_hpc_des, Nb_hpc_des, ephc0, T(0.70), HPCMap)
 
-      #---- typed shaft component instances (used by hp_shaft_work, lp_shaft_work, shaft_speed_residual)
+      #---- typed shaft component instances (used by hp_shaft_workd, lp_shaft_workd, shaft_speed_residual)
       shaft_hp = Shaft(epsh, T(1.0))
       shaft_lp = Shaft(epsl, Gearf)
 

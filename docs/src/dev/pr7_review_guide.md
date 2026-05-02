@@ -39,7 +39,8 @@ rather than commit by commit:
 > This is **not** a fully swappable plugin-component architecture. Components are not
 > dynamically dispatched at runtime — they are plain structs passed by value.
 > `Inlet` BLI mixing is not yet delegated to the `Inlet` component inside `tfoper!`;
-> that is an open gap tracked in tasopt-eac.3.
+> that wiring is explicitly deferred to tasopt-eac.11. The component architecture
+> contract is documented in `docs/src/dev/engine_component_contract.md` (tasopt-eac.3).
 
 ---
 
@@ -236,16 +237,18 @@ Each component owns:
    Newton Jacobian. Functions take inlet `FlowStation` and operating-point scalars; they
    do not read or write global state.
 
-**Open gap — Inlet (tasopt-eac.3):**
+**Open gap — Inlet (tasopt-eac.11):**
 
 `inlet.jl` defines `Inlet{T}`, `inlet_diffuser!`, and `inlet_bli_mixing!`. These
-functions are correct and tested. However, `tfoper!` and `tfsize!` still compute
-BLI entropy mixing inline rather than delegating to `inlet_bli_mixing!`. The `Inlet`
-struct is constructed and exported but not yet called inside `tfoper!`. This is the one
-place where the architecture claim is aspirational rather than implemented.
+functions are correct and tested, and are used by the ducted-fan module. However,
+`tfoper!` still computes BLI entropy mixing inline (lines 420–488) rather than
+delegating to `inlet_bli_mixing!`. Wiring `Inlet` into the turbofan Newton solver
+requires extending `inlet_bli_mixing!` to return the partial derivatives needed by the
+9×9 Newton system — deferred to tasopt-eac.11.
 
-Reviewers should treat the Inlet wiring as deferred work (tasopt-eac.3), not as a
-defect in the other six components.
+The component architecture contract is documented in `docs/src/dev/engine_component_contract.md`
+(tasopt-eac.3). Reviewers should treat the Inlet wiring as an explicit deferred item,
+not as a defect in the other six components.
 
 **What reviewers should check:**
 
@@ -390,7 +393,7 @@ and `run_engine_sweep`.
 
 | Limitation | Severity | Tracking |
 |-----------|----------|---------|
-| `Inlet` BLI mixing inline in `tfoper!`; `Inlet` component not yet wired | Architecture gap | tasopt-eac.3 (merge gate) |
+| `Inlet` BLI mixing inline in `tfoper!`; `Inlet` component not yet wired into turbofan | Architecture gap | tasopt-eac.11 (deferred post-merge) |
 | `tfcalc!` unpacks EngineState into ~60 locals then repacks after the call; large scalar tuple from `tfsize!` positionally destructured | Readability technical debt | tasopt-eac.2 (deferred post-merge with follow-up) |
 | Component types are not stable public API; export list includes many internals | API hygiene | Future cleanup issue |
 | `DuctedFanState.pare_to_ducted_fan_state!` transitional bridge retained | Compatibility shim | Delete when ducted-fan caller migrated |
@@ -408,8 +411,8 @@ boundary (EngineState in, EngineState out) is already clean.
 
 Before requesting final merge approval:
 
-- [ ] tasopt-eac.3 resolved: either `Inlet` is wired into `tfoper!`, or the architecture
-      claim is explicitly narrowed to "6 of 7 components"
+- [x] tasopt-eac.3 resolved: component architecture contract documented
+      (`docs/src/dev/engine_component_contract.md`); Inlet explicitly deferred to tasopt-eac.11
 - [ ] tasopt-eac.9 complete: this document committed and navigable (DONE by this commit)
 - [ ] tasopt-eac.2 either resolved or a tracked follow-up bead exists with "intentional
       glue" annotation in `tfcalc.jl`
@@ -423,7 +426,8 @@ Before requesting final merge approval:
 - [tasopt-eac](beads) — parent epic
 - tasopt-eac.1 — landing strategy (CLOSED)
 - tasopt-eac.2 — tfcalc glue reduction (merge-gate candidate)
-- tasopt-eac.3 — component architecture coherence, Inlet gap (hard merge gate)
+- tasopt-eac.3 — component architecture contract documented (CLOSED by tasopt-eac.3 commit)
+- tasopt-eac.11 — Wire Inlet BLI into turbofan tfoper!/tfsize! (deferred post-merge)
 - tasopt-eac.8 — architecture-level regression tests
 - tasopt-eac.9 — this document (CLOSED by this commit)
 - tasopt-eac.10 — process doc for future large Ralph refactors
