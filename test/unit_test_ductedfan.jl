@@ -244,7 +244,7 @@ using StaticArrays
     end
 
     # =========================================================================
-    # run_ducted_fan_design_point / pare_to_ducted_fan_state! (tasopt-3gk)
+    # run_ducted_fan_design_point / engine_state_to_ducted_fan_state! (tasopt-3gk)
     # =========================================================================
     @testset "Ducted fan harness" begin
         import TOML
@@ -359,10 +359,10 @@ using StaticArrays
         end
 
         # ------------------------------------------------------------------
-        # pare_to_ducted_fan_state! round-trip: fresh state matches harness
+        # engine_state_to_ducted_fan_state! round-trip: fresh state matches harness
         # ------------------------------------------------------------------
         df2 = TASOPT.engine.DuctedFanState{Float64}()
-        TASOPT.engine.pare_to_ducted_fan_state!(df2, ac_h.missions[1].points[ipcruise1].engine)
+        TASOPT.engine.engine_state_to_ducted_fan_state!(df2, ac_h.missions[1].points[ipcruise1].engine)
         @test df2.Fe   ≈ df.Fe   rtol=1e-12
         @test df2.pif  ≈ df.pif  rtol=1e-12
         @test df2.A2   ≈ df.A2   rtol=1e-12

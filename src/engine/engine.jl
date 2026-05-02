@@ -46,7 +46,7 @@ export write_sweep_toml, ENGINE_BASELINE_PATH, regenerate_engine_baseline
 
 # Ducted-fan entry points and results
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!
-export DuctedFanState, pare_to_ducted_fan_state!
+export DuctedFanState, engine_state_to_ducted_fan_state!
 export run_ducted_fan_design_point, run_ducted_fan_sweep
 export write_ducted_fan_sweep_toml, DUCTED_FAN_BASELINE_PATH, regenerate_ducted_fan_baseline
 

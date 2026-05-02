@@ -3,7 +3,7 @@ ducted_fan_harness.jl — Ducted-fan engine-standalone runners.
 
 Provides:
 - `DuctedFanState`: typed container for one ducted-fan operating point.
-- `pare_to_ducted_fan_state!`: populate DuctedFanState from a typed EngineState.
+- `engine_state_to_ducted_fan_state!`: populate DuctedFanState from a typed EngineState.
 - `run_ducted_fan_design_point`: single-point sizing runner.
 - `run_ducted_fan_sweep`: multi-point off-design sweep.
 - `write_ducted_fan_sweep_toml`: serialize sweep to TOML regression baseline.
@@ -150,19 +150,29 @@ end
 DuctedFanState() = DuctedFanState{Float64}()
 
 # ---------------------------------------------------------------------------
-# pare_to_ducted_fan_state!
+# engine_state_to_ducted_fan_state!
 # ---------------------------------------------------------------------------
 
 """
-    pare_to_ducted_fan_state!(state, eng_ip::EngineState) -> state
+    engine_state_to_ducted_fan_state!(state, eng_ip::EngineState) -> state
 
 Populate a `DuctedFanState` from a typed `EngineState`
 (`ac.missions[imission].points[ip].engine`) after a successful `ductedfancalc!`
-call.  Reads exclusively from the typed surface; no bare `pare` access.
+call.  Reads exclusively from the typed surface.
+
+## Design note: EngineState vs DuctedFanState
+
+`EngineState` is the mutable, per-mission-point computation state updated
+in-place during aircraft sizing.  `DuctedFanState` is a serialization-ready
+output DTO (data transfer object) — a clean snapshot of a single ducted-fan
+operating point produced after convergence.  Scalar fields such as `M0`, `Fe`,
+and `etaf` are intentionally duplicated from `EngineState` so that
+`DuctedFanState` is self-contained for TOML serialization and sweep analysis
+without coupling the serialization layer to the sizing state.
 
 Used internally by `run_ducted_fan_design_point` and `run_ducted_fan_sweep`.
 """
-function pare_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
+function engine_state_to_ducted_fan_state!(state::DuctedFanState, eng_ip::EngineState)
     # -----------------------------------------------------------------------
     # Ambient
     # -----------------------------------------------------------------------
@@ -360,7 +370,7 @@ function run_ducted_fan_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
     # -----------------------------------------------------------------------
     state = DuctedFanState{Float64}()
-    pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
+    engine_state_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
     return state
 end
 
@@ -411,7 +421,7 @@ function run_ducted_fan_sweep(ac;
         ac.engine.enginecalc!(ac, "off_design", imission, ip, initializes_engine)
         # Read converged typed EngineState → DuctedFanState (tasopt-j9l.45.15).
         state = DuctedFanState{Float64}()
-        pare_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
+        engine_state_to_ducted_fan_state!(state, ac.missions[imission].points[ip].engine)
         states[ip] = state
     end
     return states
