@@ -377,29 +377,8 @@ end
 
 import TOML
 
-# Stations serialised in physical flow-path order (mirrors _STATION_DUMP_ORDER).
-const _TOML_STATION_ORDER = (
-    ("0",    "Freestream",     :st0),
-    ("2",    "FanFaceFan",     :st2),
-    ("12",   "FanFaceOuter",   :st12),
-    ("2a",   "FanFaceLPC",     :st2a),
-    ("2ac",  "PreCoolerOut",   :st2ac),
-    ("13",   "FanExit",        :st13),
-    ("25",   "LPCExit",        :st25),
-    ("25c",  "InterCoolerOut", :st25c),
-    ("3",    "HPCExit",        :st3),
-    ("4",    "CombustorExit",  :st4),
-    ("4a",   "CoolMixInlet",   :st4a),
-    ("41",   "TurbineInlet",   :st41),
-    ("45",   "HPTExit",        :st45),
-    ("5",    "LPTExit",        :st5),
-    ("5c",   "RegenCoolerOut", :st5c),
-    ("8",    "CoreNozzle",     :st8),
-    ("9",    "CoreNozzleExit", :st9),
-    ("18",   "FanNozzle",      :st18),
-    ("19",   "FanNozzleExit",  :st19),
-    ("25off","OfftakeDisch",   :st25off),
-)
+# Station serialisation order: use the single authoritative source from engine_state.jl.
+# _STATION_DUMP_ORDER is defined there and is already in scope (same module).
 
 """
     _station_to_dict(fs::FlowStation) -> Dict{String,Float64}
@@ -452,7 +431,7 @@ function write_sweep_toml(io::IO, mission, ip_range, ac; imission::Int=1)
         eng = mission.points[ip].engine
         lbl = (ip <= length(ip_labels)) ? ip_labels[ip] : string(ip)
         stations = Dict{String,Any}()
-        for (_, _, stfld) in _TOML_STATION_ORDER
+        for (_, _, stfld) in _STATION_DUMP_ORDER
             stations[String(stfld)] = _station_to_dict(getfield(eng, stfld))
         end
         points[k] = Dict{String,Any}(
@@ -507,7 +486,7 @@ function write_sweep_toml(io::IO, result::SweepResult)
     for k in 1:n
         eng = result.engines[k]
         stations = Dict{String,Any}()
-        for (_, _, stfld) in _TOML_STATION_ORDER
+        for (_, _, stfld) in _STATION_DUMP_ORDER
             stations[String(stfld)] = _station_to_dict(getfield(eng, stfld))
         end
         points[k] = Dict{String,Any}(

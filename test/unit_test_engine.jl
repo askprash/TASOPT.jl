@@ -2149,6 +2149,37 @@ isGradient = false
     end  # Station dump order consistent with EngineState struct
 
     # ======================================================================
+    # Architecture invariant: _STATION_DUMP_ORDER is the single station source
+    # Verifies that TOML serialisation and dump helpers share one metadata
+    # source — _STATION_DUMP_ORDER — with no separate duplicate constant.
+    # (tasopt-eac.4)
+    # ======================================================================
+    @testset "STATION_DUMP_ORDER is single authoritative station source (tasopt-eac.4)" begin
+        dump_order = TASOPT.engine._STATION_DUMP_ORDER
+
+        # Every entry is a 3-tuple (station#, name, field_symbol)
+        @test all(e -> length(e) == 3, dump_order)
+
+        # Field symbols in dump order are exactly the st* fields in _ENGINE_OWN_FIELDS
+        own_fields = TASOPT.engine._ENGINE_OWN_FIELDS
+        dump_syms  = Set(t[3] for t in dump_order)
+        station_own = Set(f for f in own_fields if startswith(String(f), "st"))
+        @test dump_syms == station_own
+
+        # Station number strings are unique (no duplicate rows in either dump or TOML)
+        stnums = [t[1] for t in dump_order]
+        @test length(unique(stnums)) == length(stnums)
+
+        # Station name strings are unique
+        stnames = [t[2] for t in dump_order]
+        @test length(unique(stnames)) == length(stnames)
+
+        # There is no separate _TOML_STATION_ORDER constant — it was unified into
+        # _STATION_DUMP_ORDER (tasopt-eac.4). Verify it does not exist.
+        @test !isdefined(TASOPT.engine, :_TOML_STATION_ORDER)
+    end  # STATION_DUMP_ORDER is single authoritative station source
+
+    # ======================================================================
     # run_engine_sweep / write_sweep_csv
     # ======================================================================
     @testset "run_engine_sweep" begin
@@ -2371,7 +2402,7 @@ isGradient = false
         end
 
         # Station field name → FlowStation property symbol mapping.
-        # Must mirror _TOML_STATION_ORDER in engine_harness.jl.
+        # Must mirror _STATION_DUMP_ORDER (the single authoritative source).
         station_map = (
             ("st0",   :st0),  ("st2",   :st2),  ("st12",  :st12),
             ("st2a",  :st2a), ("st2ac", :st2ac), ("st13",  :st13),
