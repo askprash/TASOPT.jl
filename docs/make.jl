@@ -67,7 +67,8 @@ makedocs(
         ],
     "Developer notes" => Any[
         "dev/julia_vs_fortran_divergences.md",
-        "dev/pr7_landing_strategy.md"
+        "dev/pr7_landing_strategy.md",
+        "dev/pr7_review_guide.md"
         ]
     ],
 
