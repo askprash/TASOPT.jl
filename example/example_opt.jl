@@ -123,11 +123,12 @@ function obj(x, grad)
     end
 
     # Optional additional constraints (commented out for flexibility)
-    # 5. Maximum vane metal temperature constraint (example using typed EngineState)
-    # Tvanemax = 1333.33  # [K]
-    # Tvane = maximum(p.engine.Tt4 for p in ac.missions[1].points)
-    # if Tvane > Tvanemax
-    #     constraint = Tvane/Tvanemax - 1.0
+    # 5. Maximum turbine inlet temperature constraint (example using typed EngineState)
+    # Note: Tt4 is the turbine inlet total temperature, not the vane metal temperature.
+    # Tt4max = 1800.0  # [K]
+    # Tt4_max_cruise = maximum(p.engine.Tt4 for p in ac.missions[1].points)
+    # if Tt4_max_cruise > Tt4max
+    #     constraint = Tt4_max_cruise/Tt4max - 1.0
     #     penalty = 5.0 * ac.parg[igWpay] * constraint^2
     #     total_penalty += penalty
     # end

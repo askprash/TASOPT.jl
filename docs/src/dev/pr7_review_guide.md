@@ -395,7 +395,7 @@ and `run_engine_sweep`.
 |-----------|----------|---------|
 | `Inlet` BLI mixing inline in `tfoper!`; `Inlet` component not yet wired into turbofan | Architecture gap | tasopt-eac.11 (deferred post-merge) |
 | `tfcalc!` unpacks EngineState into ~60 locals then repacks after the call; large scalar tuple from `tfsize!` positionally destructured | Readability technical debt | tasopt-eac.2 (deferred post-merge with follow-up) |
-| Component types are not stable public API; export list includes many internals | API hygiene | Future cleanup issue |
+| Component types are not stable public API; export list includes many internals | API hygiene | tasopt-eac.5 (narrow engine module public API) |
 | `DuctedFanState.pare_to_ducted_fan_state!` transitional bridge retained | Compatibility shim | Delete when ducted-fan caller migrated |
 | `dhlt_ml +Pom` omission mirrors Fortran bug | Pre-existing numerical divergence | tasopt-go7 (deferred fix with regression-baseline update) |
 | Station metadata not independently queryable without `EngineStation` enum | Minor | tasopt-eac (parent epic) |
@@ -413,7 +413,7 @@ Before requesting final merge approval:
 
 - [x] tasopt-eac.3 resolved: component architecture contract documented
       (`docs/src/dev/engine_component_contract.md`); Inlet explicitly deferred to tasopt-eac.11
-- [ ] tasopt-eac.9 complete: this document committed and navigable (DONE by this commit)
+- [x] tasopt-eac.9 complete: this document committed and navigable (CLOSED)
 - [ ] tasopt-eac.2 either resolved or a tracked follow-up bead exists with "intentional
       glue" annotation in `tfcalc.jl`
 - [ ] Full test suite: `VERDICT: PASSED_CLEAN` on `claude_engine_refactor`
@@ -427,6 +427,7 @@ Before requesting final merge approval:
 - tasopt-eac.1 — landing strategy (CLOSED)
 - tasopt-eac.2 — tfcalc glue reduction (merge-gate candidate)
 - tasopt-eac.3 — component architecture contract documented (CLOSED by tasopt-eac.3 commit)
+- tasopt-eac.5 — narrow engine module public API (deferred post-merge)
 - tasopt-eac.11 — Wire Inlet BLI into turbofan tfoper!/tfsize! (deferred post-merge)
 - tasopt-eac.8 — architecture-level regression tests
 - tasopt-eac.9 — this document (CLOSED by this commit)

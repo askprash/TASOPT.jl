@@ -14,14 +14,21 @@ Provides:
 """
 
 # ---------------------------------------------------------------------------
-# Internal helpers — station-level field population from a pare slice
-# (still used by ducted_fan_harness.jl)
+# Legacy ducted-fan compatibility bridge — pare-slice → FlowStation helpers
+#
+# These helpers exist only because ducted_fan_harness.jl still stages engine
+# state through a pare-style vector before constructing FlowStation objects.
+# They are NOT used by the turbofan path (tfcalc!/tfoper!/tfsize!) and should
+# be deleted once ducted_fan_harness.jl is migrated to EngineState.
 # ---------------------------------------------------------------------------
 
 """
     _fill_total!(fs, pare, iTt, iht, ipt, icpt, iRt)
 
 Write the five total-state scalars from a `pare` slice into `fs`.
+
+**Ducted-fan bridge only.** Called by `ducted_fan_harness.jl`; not used by
+the turbofan Newton solver.
 """
 @inline function _fill_total!(fs::FlowStation, pare,
                                iTt::Int, iht::Int, ipt::Int, icpt::Int, iRt::Int)
@@ -38,6 +45,9 @@ end
 Write the five static-state scalars (p, T, R, cp, u) from a `pare` slice
 into `fs`.  Static enthalpy `hs` and entropy complement `ss` are not in
 `pare`; they remain at their prior value.
+
+**Ducted-fan bridge only.** Called by `ducted_fan_harness.jl`; not used by
+the turbofan Newton solver.
 """
 @inline function _fill_static!(fs::FlowStation, pare,
                                 ip::Int, iT::Int, iR::Int, icp::Int, iu::Int)

@@ -56,7 +56,7 @@ critical path.
 | `hp_shaft_workd` | `Shaft` | `(dhht, scaling factor, Jacobian terms)` |
 | `lp_shaft_workd` | `Shaft` | `(dhlt, scaling factor, Jacobian terms)` |
 | `shaft_speed_residual` | `Shaft` | `(residual, ∂r/∂Nl)` |
-| `bypass_ratio` | `Splitter` | `(BPR, ∂BPR/∂pt2, ∂BPR/∂pt2ac)` |
+| `bypass_ratio` | `Splitter` | `(BPR, BPR_mf, BPR_ml, BPR_pt2, BPR_pt1_9c)` |
 | `nozzle_exit` | `Nozzle` | `(u_e, T_e, p_e, h_e, …)` |
 | `nozzle_massflow_residual` | `Nozzle` | `(residual, ∂r/∂A7)` |
 
