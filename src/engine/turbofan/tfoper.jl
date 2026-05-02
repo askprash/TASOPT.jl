@@ -423,7 +423,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             # ===============================================================
             #---- set fan inlet total pressure pt13 corrected for BLI
-            #-    (Tt2,pt2 approximated with Tt0,pt0 here to avoid circular definition)
+            #-    (Tt2,pt2 approximated with Tt0,pt0 to avoid circular definition;
+            #-     same corrected-flow normalisation as inlet_bli_mixing! in inlet.jl)
+            #-    Guard u0==0 (not Kinl==0||at0==0 as in inlet_bli_mixing!) because
+            #-    when the aircraft is static there is no momentum defect regardless
+            #-    of Kinl.  Jacobians (sbfan_mf/ml/Mi, sbcore_*) are kept inline
+            #-    because inlet_bli_mixing! does not return them.
             if (u0 == 0.0)
                   #----- static case... no BL defect
                   sbfan = 0.0
@@ -441,20 +446,14 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   a2sq = at0^2 / (1.0 + 0.5 * (gam0 - 1.0) * Mi^2)
                   a2sq_Mi = -a2sq / (1.0 + 0.5 * (gam0 - 1.0) * Mi^2) *
                             (gam0 - 1.0) * Mi
+                  #-     corrected-flow reference factor (matches ref_scale in inlet_bli_mixing!)
+                  ref_scale = sqrt(Tref / Tt0) * pt0 / pref
 
                   if eng_has_BLI_cores
                         #------ BL mixes with fan + core flow
-                        #c      mmix    = mf*sqrt(Tref/Tt2 ) * pt2    /pref
-                        #c             + ml*sqrt(Tref/Tt2a) * pt2a   /pref
-                        #c      mmix_mf =    sqrt(Tref/Tt2 ) * pt2    /pref
-                        #c      mmix_ml =    sqrt(Tref/Tt2a) * pt2a   /pref
-                        #c      mmix_Mi = mf*sqrt(Tref/Tt2 ) * pt2_Mi /pref
-                        #c             + ml*sqrt(Tref/Tt2a) * pt1_9_Mi/pref
-
-                        mmix = mf * sqrt(Tref / Tt0) * pt0 / pref +
-                               ml * sqrt(Tref / Tt0) * pt0 / pref
-                        mmix_mf = sqrt(Tref / Tt0) * pt0 / pref
-                        mmix_ml = sqrt(Tref / Tt0) * pt0 / pref
+                        mmix    = mf * ref_scale + ml * ref_scale
+                        mmix_mf = ref_scale
+                        mmix_ml = ref_scale
                         mmix_Mi = 0.0
 
                         sbfan = Kinl * gam0 / (mmix * a2sq)
@@ -470,12 +469,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   else #clean flow
                         #------ BL mixes with fan flow only
-                        #c      mmix    = mf*sqrt(Tref/Tt2) * pt2   /pref
-                        #c      mmix_mf =    sqrt(Tref/Tt2) * pt2   /pref
-                        #c      mmix_Mi = mf*sqrt(Tref/Tt2) * pt2_Mi/pref
-
-                        mmix = mf * sqrt(Tref / Tt0) * pt0 / pref
-                        mmix_mf = sqrt(Tref / Tt0) * pt0 / pref
+                        mmix    = mf * ref_scale
+                        mmix_mf = ref_scale
                         mmix_Mi = 0.0
 
                         sbfan = Kinl * gam0 / (mmix * a2sq)
