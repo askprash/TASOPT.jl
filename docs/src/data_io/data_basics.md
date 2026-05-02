@@ -11,12 +11,11 @@ Performance and design data is held largely in the `par` arrays (a holdover from
 
 ## `par` arrays
 
-Four arrays contain both prescribed inputs *and* computed outputs, some of which are multi-dimensional:
+Three arrays contain both prescribed inputs *and* computed outputs, some of which are multi-dimensional:
 
   - **`parg`**`::AbstractVector{Float64}`:  **geometric** quantities, weights, structural values, and other values inherent to an instantiated design (not operation).
   - **`parm`**`::AbstractArray{Float64, 2}`:  **mission**-prescribing parameters. The second dimension allows the specification of multiple mission profiles.
   - **`para`**`::AbstractArray{Float64, 3}`:  **aerodynamic** performance quantities. The second dimension captures the variation over a mission. The third dimension allows the specification of multiple mission profiles.
-  - **`pare`**`::AbstractArray{Float64, 3}`:  **engine** perfomance quantities. As for `para`, the second and third dimensions capture flight-point and mission dependencies, respectively.
 
 Data in the `par` arrays are accessed via Integer indices defined at `src/data_structs/index.inc`. These indices can be added to a namespace via `include(__TASOPTindices__)`:
 
@@ -29,30 +28,29 @@ include(joinpath(__TASOPTroot__, "data_structs/index.inc"))
 include(__TASOPTindices__)
 ```
 
-The variable names of these indices indicate which `par` array they should access and hint at the quantity in question. For example, `ieTfuel` evaluates to `2` and retrieves the model's fuel temperature via `pare[ieTfuel]`. 
+The variable names of these indices indicate which `par` array they should access and hint at the quantity in question. For example, `iaMach` retrieves the flight Mach number via `para[iaMach, ip, im]`, where `ip` is the flight-point index and `im` is the mission index.
 
-Note that for the multi-dimensional `par` arrays, indexing with a single Integer only retrieves the value for the first flight point of the first mission (namely, the design mission). Additional indexing is required to access data from different flight points or missions. Indices for specific flight points are defined in `index.inc` and should be used when indexing `pare` or `para`, e.g., `ipstatic` for static ground condition or `ipcruise1` for the start of cruise.
+Note that for the multi-dimensional `par` arrays, indexing with a single Integer only retrieves the value for the first flight point of the first mission (namely, the design mission). Additional indexing is required to access data from different flight points or missions. Indices for specific flight points are defined in `index.inc` and should be used when indexing `para`, e.g., `ipstatic` for static ground condition or `ipcruise1` for the start of cruise.
 
 
 ```@example dataaccess
 using TASOPT
 include(__TASOPTindices__)
 ac = load_default_model()
+size_aircraft!(ac)
 
-println("Single element: ", size(ac.pare[ieTfuel]))
-println(ac.pare[ieTfuel])
+# Single element — first flight point of the design mission
+println("Single element: ", size(ac.para[iaMach]))
+println(ac.para[iaMach])
 
-println("Full slices: ", size(ac.pare[ieTfuel,:,:]))
-println(ac.pare[ieTfuel,:,:])
+# Full slice over all flight points and missions
+println("All flight points, all missions: ", size(ac.para[iaMach,:,:]))
 
-println("All missions at cruise start: ", size(ac.pare[ieTfuel,ipcruise1,:]))
-println(ac.pare[ieTfuel,ipcruise1,:])
+# Slice at a specific flight point across all missions
+println("Mach at cruise start: ", size(ac.para[iaMach,ipcruise1,:]))
+println(ac.para[iaMach,ipcruise1,:])
 
 ```
-
-
-
-can be included via the convenience variable `__TASOPTindices__`
 
 ## [Engine typed state](@id engine_typed_state)
 
