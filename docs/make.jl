@@ -69,7 +69,8 @@ makedocs(
         "dev/julia_vs_fortran_divergences.md",
         "dev/pr7_landing_strategy.md",
         "dev/pr7_review_guide.md",
-        "dev/engine_component_contract.md"
+        "dev/engine_component_contract.md",
+        "dev/large_refactor_protocol.md"
         ]
     ],
 
