@@ -261,6 +261,9 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       nozzle_fan  = Nozzle(one(T), T(A7))
       nozzle_core = Nozzle(one(T), T(A5))
 
+      #---- inlet component instance (pid used in diffuser; Kinl/Phiinl/eng_has_BLI_cores for BLI)
+      inlet = Inlet(pid; Kinl=Kinl, Phiinl=Phiinl, eng_has_BLI_cores=eng_has_BLI_cores)
+
       # from "airfrac.inc"
       # air fractions  
       #        N2      O2      CO2    H2O      Ar       fuel
@@ -337,7 +340,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       ht12 = ht0
       cpt12 = cpt0
       Rt12 = Rt0
-      pt12 = pt0 * pid
+      pt12 = pt0 * inlet.pid
 
       #---- initial guesses for primary Newton variables
       pf = pif

@@ -222,13 +222,16 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
       end
 
       # ===============================================================
+      #---- inlet component instance (pid used in diffuser; Kinl/Phiinl/eng_has_BLI_cores for BLI)
+      inlet = Inlet(pid; Kinl=Kinl, Phiinl=Phiinl, eng_has_BLI_cores=eng_has_BLI_cores)
+
       #---- diffuser flow 0-2
       Tt12 = Tt0
       st12 = st0
       ht12 = ht0
       cpt12 = cpt0
       Rt12 = Rt0
-      pt12 = pt0 * pid
+      pt12 = pt0 * inlet.pid
       
       #---- initial guesses for station 2, 1.9 and 1.9c
       pt2 = pt12
