@@ -53,11 +53,6 @@ end
 # this function have been stubbed with an empty matrix placeholder.
 
 # ---------------------------------------------------------------------------
-# run_engine_design_point (formerly preceded by engine_state_to_pare_vec)
-# ---------------------------------------------------------------------------
-
-#  placeholder to keep the compiler happy — no longer reachable via normal paths
-# ---------------------------------------------------------------------------
 # run_engine_design_point
 # ---------------------------------------------------------------------------
 
@@ -108,7 +103,7 @@ function run_engine_design_point(ac; imission::Int=1, ip::Int=ipcruise1)
     ac.parm[imDeltaTatm] = ac.parm[imT0TO] - T_std
 
     # -----------------------------------------------------------------------
-    # Set T0, p0, a0, M0, u0, ρ0, μ0 in pare from design altitude + Mach.
+    # Set ambient condition scalars (T0, p0, a0, M0, u0, ρ0, μ0) from design altitude + Mach.
     # This is the same logic as set_ambient_conditions! in size_aircraft.jl,
     # reproduced here so the harness does not depend on that unexported helper.
     # -----------------------------------------------------------------------
@@ -142,7 +137,7 @@ end
 
 Tabular container for the output of [`run_engine_sweep`](@ref).  Holds one
 [`EngineState`](@ref) per mission point together with the key engine
-performance scalars extracted from `pare`.
+performance scalars extracted from the typed `EngineState`.
 
 ## Fields
 
@@ -201,9 +196,9 @@ other points it operates at the thrust target (`CalcMode.FixedFeOffDes`).
 - `ip_range`: iterable of mission-point indices (default `ipstatic:ipdescentn`,
   i.e., all 16 regular mission points).
 - `initializes_engine::Bool`: passed to `tfwrap!` for each point.
-  Default `false` — use the converged `pare` state as the initial guess.
+  Default `false` — use the converged `EngineState` as the Newton initial guess.
   Pass `true` to reinitialise the Newton iteration from scratch at every point
-  (slower, but independent of the current `pare` state).
+  (slower, but independent of the prior converged state).
 
 ## Returns
 `ac.missions[imission]::Mission{Float64}` — the mission whose `points[ip].engine`

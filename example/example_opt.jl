@@ -50,12 +50,15 @@ function obj(x, grad)
     ac.para[iarcls, ipclimb2:ipdescent4, 1] .= x[9]         # Break/root CL ratio = cls/clo
     ac.para[iarclt, ipclimb2:ipdescent4, 1] .= x[10]        # Tip/root CL ratio = clt/clo
     
-    # Update engine parameters
-    ac.pare[ieTt4, ipcruise1:ipcruise2, 1] .= x[11]         # Turbine inlet temperature [K]
-    ac.pare[iepihc, ipcruise1, 1] = x[12]        # High pressure compressor pressure ratio
-    ac.pare[iepif, ipcruise1, 1] = x[13]                   # Fan pressure ratio
-    ac.pare[iepilc, ipcruise1, 1] = 3.0          # Low pressure compressor pressure ratio (fixed)
-    ac.pare[ieBPR, ipcruise1, 1] = x[14] # Bypass ratio
+    # Update engine parameters via typed EngineState
+    pts = ac.missions[1].points
+    for ip in ipcruise1:ipcruise2
+        pts[ip].engine.Tt4 = x[11]         # Turbine inlet temperature [K]
+    end
+    pts[ipcruise1].engine.pihc = x[12]     # High pressure compressor pressure ratio
+    pts[ipcruise1].engine.pif  = x[13]     # Fan pressure ratio
+    pts[ipcruise1].engine.pilc = 3.0       # Low pressure compressor pressure ratio (fixed)
+    pts[ipcruise1].engine.BPR  = x[14]     # Bypass ratio
 
     # Size aircraft with new parameters
     try
@@ -120,9 +123,9 @@ function obj(x, grad)
     end
 
     # Optional additional constraints (commented out for flexibility)
-    # 5. Maximum metal temperature constraint
+    # 5. Maximum vane metal temperature constraint (example using typed EngineState)
     # Tvanemax = 1333.33  # [K]
-    # Tvane = maximum(ac.pare[ieTmet1, :, 1])
+    # Tvane = maximum(p.engine.Tt4 for p in ac.missions[1].points)
     # if Tvane > Tvanemax
     #     constraint = Tvane/Tvanemax - 1.0
     #     penalty = 5.0 * ac.parg[igWpay] * constraint^2
