@@ -270,6 +270,28 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
 
             else
                   #----- account for inlet BLI defect via mass-averaged entropy
+                  #-
+                  #-     Formula: mmix = mdotf * sqrt(Tt2/Tt0) * pt0/pt2
+                  #-     where mdotf = BPR*mcore (fan), mdotc = mcore (core).
+                  #-
+                  #-     This is algebraically equivalent to the corrected-flow
+                  #-     formula in inlet_bli_mixing! / tfoper! — both compute
+                  #-       mmix = mdot * sqrt(Tt/Tt0) * pt0/pt
+                  #-     but inlet_bli_mixing! encodes mdot as the Newton iterate
+                  #-     mf ≡ mdotf·sqrt(Tt2/Tref)·pref/pt2, so
+                  #-       mf·ref_scale = mdotf·sqrt(Tt2/Tt0)·pt0/pt2  (exact).
+                  #-
+                  #-     Because BLI is adiabatic, Tt2 = Tt0 always; the
+                  #-     sqrt(Tt2/Tt0) factors are identically 1.
+                  #-
+                  #-     We do NOT call inlet_bli_mixing! here because:
+                  #-       (a) at this point mf=1 (design-normalized), not the
+                  #-           Newton iterate that encodes actual pt2;
+                  #-       (b) the underrelaxed loop below converges the circular
+                  #-           dependency pt2 ↔ sbfan (sbfan defines pt2 via
+                  #-           exp(-sbfan), pt2 appears in mmix denominator).
+                  #-           inlet_bli_mixing! has no loop and cannot replicate
+                  #-           this without a re-design. (tasopt-htv)
                   a2sq = at0^2 / (1.0 + 0.5 * (gam0 - 1.0) * M2^2)
 
                   if eng_has_BLI_cores
@@ -285,7 +307,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
                         sbcore2 = 0.0
                   end
 
-                  #----- update mixed-out entropies, with some underrelaxation       
+                  #----- update mixed-out entropies, with some underrelaxation
                   rlxs = 0.85
                   sbfan = sbfan + rlxs * (sbfan2 - sbfan)
                   sbcore = sbcore + rlxs * (sbcore2 - sbcore)
