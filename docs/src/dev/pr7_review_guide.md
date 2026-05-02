@@ -157,7 +157,7 @@ runtime overhead.
 - A few downstream consumers of `pare` outside the engine path may still read from
   typed `EngineState` fields via transitional accessors — these are listed in
   `test/unit_test_engine.jl` regression fixtures.
-- `DuctedFanState` has a transitional `pare_to_ducted_fan_state!` bridge function
+- `DuctedFanState` has a transitional `engine_state_to_ducted_fan_state!` bridge function
   (see Section 7).
 
 **What reviewers should check:**
@@ -194,7 +194,7 @@ evaluation order.
 - `tfcalc!` is a new dispatcher that reads inputs from `EngineState`, calls
   `tfsize!` or `tfoper!`, and writes outputs back to `EngineState`.
 
-**Numerical parity:** All 4666 tests pass. Regression baseline fixtures are
+**Numerical parity:** All 4830 tests pass. Regression baseline fixtures are
 byte-for-byte identical to the Fortran upstream (except for the pre-existing
 `dhlt_ml +Pom` omission in tasopt-go7, which this PR neither introduces nor fixes).
 
@@ -210,7 +210,9 @@ byte-for-byte identical to the Fortran upstream (except for the pre-existing
 **What reviewers can ignore:**
 
 - The length of the `tfoper!` argument list. It is deliberately unchanged from the Fortran
-  interface to preserve evaluation order. Shortening it is tracked in tasopt-eac.2.
+  interface to preserve evaluation order. The `tfsize!` output interface has been reduced
+  to a named `SizingResult` struct (tasopt-eac.2, CLOSED); `tfoper!` internal length is
+  a separate follow-up item not blocking merge.
 
 ---
 
@@ -278,7 +280,7 @@ not as a defect in the other six components.
 |------|------:|---------------------|
 | `src/engine/turbofan/engine_harness.jl` | 599 | `run_engine_design_point`, `run_engine_sweep`, `SweepResult`, CSV/TOML serialisation |
 | `src/engine/ductedfan/ducted_fan_harness.jl` | (new) | `run_ducted_fan_design_point`, `run_ducted_fan_sweep` |
-| `src/engine/ductedfan/DuctedFanState` | — | `DuctedFanState{T}` parametric struct; `pare_to_ducted_fan_state!` bridge |
+| `src/engine/ductedfan/DuctedFanState` | — | `DuctedFanState{T}` parametric struct; `engine_state_to_ducted_fan_state!` bridge |
 | `src/engine/hx/` | — | HX typed-state migration: `resetHXs`, `HXOffDesign!` write HX delta fields into `EngineState` |
 
 **Heat exchanger integration:**
@@ -292,9 +294,13 @@ integration surface — reviewers do not need to understand internal HX thermody
 **Ducted fan:**
 
 `DuctedFanState` mirrors the field structure of `EngineState` for ducted-fan points.
-`pare_to_ducted_fan_state!` is a transitional bridge retained for backward compatibility
-with callers that still construct `pare`-style arrays for ducted-fan inputs. This is
-explicitly transitional glue, not permanent API.
+`engine_state_to_ducted_fan_state!` (renamed from `pare_to_ducted_fan_state!` in
+tasopt-eac.6) is a transitional bridge that copies scalar fields from a live `EngineState`
+into a self-contained `DuctedFanState` snapshot — the duplication is intentional so
+`DuctedFanState` is self-contained for TOML serialisation. The function was renamed to
+clarify that it bridges `EngineState` (mutable per-mission computation state) to
+`DuctedFanState` (output DTO), not a bare `pare` array. This is explicitly transitional
+glue, not permanent API.
 
 **What reviewers should check:**
 
@@ -307,8 +313,8 @@ explicitly transitional glue, not permanent API.
 
 - Internal HX thermodynamics — the only contract is that the five delta fields are
   populated in `EngineState` before `tfcalc!` is called.
-- `pare_to_ducted_fan_state!` internals — it is bridging code that will be deleted
-  once the ducted-fan caller is migrated.
+- `engine_state_to_ducted_fan_state!` internals — it is bridging code that will be
+  deleted once the ducted-fan caller is migrated.
 
 ---
 
@@ -363,7 +369,7 @@ and `run_engine_sweep`.
 |------|---------------|
 | `test/unit_test_engine.jl` | Component unit tests (gas properties, compressor/turbine/nozzle/combustor/shaft/splitter functions); single-point `tfsize!`/`tfoper!` regression vs. frozen baseline; AD gradient checks (Zygote, ForwardDiff) |
 | `test/unit_test_gasturbine_flightenvelope.jl` | Full-mission sweep regression |
-| `test/runtests.jl` | Suite runner; all 4666 tests |
+| `test/runtests.jl` | Suite runner; all 4830 tests |
 
 **Parity approach:**
 
@@ -377,6 +383,8 @@ and `run_engine_sweep`.
 **What reviewers should check:**
 
 - The full suite passes with `VERDICT: PASSED_CLEAN` (run `./.claude/local/test.sh`).
+  Current count: 4830 tests (152 architecture invariant tests added by tasopt-eac.8;
+  12 parametric-type tests added by tasopt-eac.13).
 - Baseline files under `test/` are the only golden-output fixtures; no ad-hoc
   `@test output == magic_number` checks were added.
 - ForwardDiff gradient tests exercise `EngineState{ForwardDiff.Dual}` construction —
@@ -394,16 +402,11 @@ and `run_engine_sweep`.
 | Limitation | Severity | Tracking |
 |-----------|----------|---------|
 | `Inlet` BLI mixing inline in `tfoper!`; `Inlet` component not yet wired into turbofan | Architecture gap | tasopt-eac.11 (deferred post-merge) |
-| `tfcalc!` unpacks EngineState into ~60 locals then repacks after the call; large scalar tuple from `tfsize!` positionally destructured | Readability technical debt | tasopt-eac.2 (deferred post-merge with follow-up) |
-| Component types are not stable public API; export list includes many internals | API hygiene | tasopt-eac.5 (narrow engine module public API) |
-| `DuctedFanState.pare_to_ducted_fan_state!` transitional bridge retained | Compatibility shim | Delete when ducted-fan caller migrated |
+| `tfcalc!` unpacks EngineState into ~60 locals then repacks after the call; large scalar tuple from `tfsize!` positionally destructured | **Resolved** — `SizingResult{T}` named struct replaces positional tuple; `_update_engine_sizing!` centralises station/scalar writeback | tasopt-eac.2 (CLOSED: f72dade5 + 1f308465) |
+| Component types are not stable public API; export list includes many internals | **Resolved** — 29 internal symbols removed from engine exports; public surface documented | tasopt-eac.5 (CLOSED: a0ffe72e) |
+| `DuctedFanState.engine_state_to_ducted_fan_state!` transitional bridge retained | Compatibility shim | Delete when ducted-fan caller migrated |
 | `dhlt_ml +Pom` omission mirrors Fortran bug | Pre-existing numerical divergence | tasopt-go7 (deferred fix with regression-baseline update) |
 | Station metadata not independently queryable without `EngineStation` enum | Minor | tasopt-eac (parent epic) |
-
-**tasopt-eac.2 deferral rationale:** The current `tfcalc!` glue is readable and correct.
-Introducing a named `SizingResult` struct requires care around AD compatibility. The
-refactor is tracked but does not block the architecture claim because the external
-boundary (EngineState in, EngineState out) is already clean.
 
 ---
 
@@ -414,9 +417,16 @@ Before requesting final merge approval:
 - [x] tasopt-eac.3 resolved: component architecture contract documented
       (`docs/src/dev/engine_component_contract.md`); Inlet explicitly deferred to tasopt-eac.11
 - [x] tasopt-eac.9 complete: this document committed and navigable (CLOSED)
-- [ ] tasopt-eac.2 either resolved or a tracked follow-up bead exists with "intentional
-      glue" annotation in `tfcalc.jl`
-- [ ] Full test suite: `VERDICT: PASSED_CLEAN` on `claude_engine_refactor`
+- [x] tasopt-eac.2 resolved: `SizingResult{T<:Real}` named struct replaces positional
+      tfsize! tuple (commit f72dade5); `_update_engine_sizing!` centralises writeback;
+      parametric type verified AD-compatible with ForwardDiff.Dual (tasopt-eac.13, commit 1f308465)
+- [x] tasopt-eac.5 resolved: engine module export surface narrowed to intentional API;
+      29 internal helpers un-exported (commit a0ffe72e)
+- [x] tasopt-eac.8 resolved: 152 architecture-invariant tests added covering
+      MissionPoint ownership, design input population, and station dump order (commit c9748054)
+- [x] tasopt-eac.6 resolved: `engine_state_to_ducted_fan_state!` rename clarifies
+      EngineState→DuctedFanState DTO bridge role (commit 9b205168)
+- [ ] Full test suite: `VERDICT: PASSED_CLEAN` on `claude_engine_refactor` (current: 4830/4830)
 - [ ] No new precompile warnings introduced
 
 ---
@@ -425,12 +435,15 @@ Before requesting final merge approval:
 
 - [tasopt-eac](beads) — parent epic
 - tasopt-eac.1 — landing strategy (CLOSED)
-- tasopt-eac.2 — tfcalc glue reduction (merge-gate candidate)
-- tasopt-eac.3 — component architecture contract documented (CLOSED by tasopt-eac.3 commit)
-- tasopt-eac.5 — narrow engine module public API (deferred post-merge)
+- tasopt-eac.2 — tfcalc glue reduction; `SizingResult{T}` + `_update_engine_sizing!` (CLOSED: f72dade5 + 1f308465)
+- tasopt-eac.3 — component architecture contract documented (CLOSED)
+- tasopt-eac.5 — narrow engine module public API; 29 internals un-exported (CLOSED: a0ffe72e)
+- tasopt-eac.6 — rename `pare_to_ducted_fan_state!` → `engine_state_to_ducted_fan_state!` (CLOSED: 9b205168)
+- tasopt-eac.8 — architecture-level regression tests; 152 invariant tests added (CLOSED: c9748054)
+- tasopt-eac.9 — this document (CLOSED)
+- tasopt-eac.10 — process doc for future large Ralph refactors (open)
 - tasopt-eac.11 — Wire Inlet BLI into turbofan tfoper!/tfsize! (deferred post-merge)
-- tasopt-eac.8 — architecture-level regression tests
-- tasopt-eac.9 — this document (CLOSED by this commit)
-- tasopt-eac.10 — process doc for future large Ralph refactors
+- tasopt-eac.13 — `SizingResult{T<:Real}` parametric type for AD compatibility (CLOSED: 1f308465)
+- tasopt-eac.14 — refresh this guide after hardening commits (CLOSED by this commit)
 - tasopt-go7 — `dhlt_ml +Pom` bug fix (deferred)
 - tasopt-j11 — Phase 7 solver modernisation (deferred to 2026-09-01)
