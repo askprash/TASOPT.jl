@@ -10,16 +10,20 @@ The function input takes parameters as a list of symbols. There are a variety of
 using TASOPT
 include(__TASOPTindices__)
 # List of the parameters you want to update as symbols
-    params = [
-    # Parg type with just one index
-    :(ac.parg[igetas]),
-    # pare/para type with full range of values across all mission points
-    :(ac.pare[ieepolf,:,:]),
-    # pare/para type with specific range of mission points [NOTE: This will return a vector of gradients relative to each input param in the range]
-    :(ac.pare[iepihc,ipclimbn:ipcruise1,1]),
-    # TASOPT strucutral, nested parameter
+params = [
+    # parg index — single scalar
+    :(ac.parg[igWfmax]),
+    # para array — specific mission point and mission index
+    :(ac.para[iaCL, ipcruise1, 1]),
+    # Structural nested field (no array indices) — use dot-path notation
     :(ac.fuselage.layout.cross_section.radius)
 ]
+# Engine operating parameters (e.g. Tt4, pif, pihc, epolf) live in typed EngineState:
+#   ac.missions[1].points[ip].engine.Tt4
+#   ac.missions[1].points[ip].engine.pif
+#   ac.missions[1].points[ip].engine.design.epolf
+# Set these via direct assignment before calling size_aircraft! rather than
+# through the params list.
 epsilon = 1e-5
 default_model = load_default_model()
 size_aircraft!(default_model)

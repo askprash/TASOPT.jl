@@ -1,0 +1,31 @@
+# Engine-state regression baseline for the "Propulsion (typed EngineState)"
+# testset in test/regression_test_size_aircraft.jl.
+#
+# See test/fixtures/README.md for the canonicalization scheme and regen procedure.
+schema_version = 1
+
+# SHA-256 of the canonicalized full state dump covering all 17 mission points.
+# Canonicalization (see _engine_state_canonical_hash in regression_test_size_aircraft.jl):
+#   1. Collect every EngineState scalar, DesignState scalar/vector element, and
+#      FlowStation field at all 20 stations for each of the nip mission points.
+#   2. Key each value as "ip{ip:02d}/{path}" and sort lexicographically.
+#   3. Format each float as "%.10e" (11 significant figures — well above cross-
+#      platform libm ULP noise of ~1e-15, tight enough to catch real regressions).
+#   4. SHA-256 the resulting newline-separated "key=value" string.
+#
+# To regenerate:
+#   julia --project=. test/generate_engine_state_baseline.jl
+canonicalization = "keys ip%02d/path sorted, values %.10e, SHA-256"
+full_state_hash = "fe9dafe8e463ca34b52bd4cbbe23066892e5f8d525a6b247851919cc6cc8842d"
+
+# Curated cruise1 (ip=ipcruise1=10) endpoint spot-checks.
+# These are the values an engineer would reason about when auditing a diff.
+[cruise1]
+Fe   = 24506.244460540747       # net thrust [N]
+TSFC = 0.00018082846822069758   # thrust-specific fuel consumption [kg/(N·s)]
+BPR  = 5.1                      # bypass ratio [-]
+Tt4  = 1587.0                   # turbine-inlet total temperature [K]  (eng.st4.Tt)
+pt3  = 1.0908958453617878e6     # compressor-exit total pressure [Pa]  (eng.st3.pt)
+Nbf  = 1.0790738309310697       # fan corrected speed [-]
+Nblc = 1.0790738309310697       # LPC corrected speed [-]
+Nbhc = 0.9284950622632381       # HPC corrected speed [-]

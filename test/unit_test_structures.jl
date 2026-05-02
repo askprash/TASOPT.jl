@@ -502,7 +502,7 @@ ac.landing_gear.main_gear.wheels_per_strut = 2
 ac.landing_gear.main_gear.y_offset_halfspan_fraction = 0.2
 
 ac.parg[igxCGaft] = 30
-ac.pare[ieu0,iprotate,1] = 70
+ac.missions[1].points[iprotate].engine.u0 = 70.0
 ac.parg[igdfan] = 1.5
 ac.wing.layout.span = 40
 

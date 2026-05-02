@@ -46,7 +46,7 @@ The routine computes the **neutral point (`xNP`), indicating the aircraft's long
 """
 function balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var; Ldebug::Bool = false)
       #Unpack aircraft
-      parg, _, para, _, options, fuse, fuse_tank, wing, htail, vtail, _, landing_gear = unpack_ac(ac, imission, ip = ip)
+      parg, _, para, options, fuse, fuse_tank, wing, htail, vtail, _, landing_gear = unpack_ac(ac, imission, ip = ip)
 
       # Unpack weights
       Wpay = parg[igWpay]

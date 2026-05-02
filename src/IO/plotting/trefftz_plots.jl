@@ -155,9 +155,9 @@ function plot_lift_distribution(ac; ip=ipcruise1, mirror::Bool=true,
         ylabel_str = "\$\\Gamma / \\Gamma_{max}\$ [-]"
     elseif show_loading
         # Multiply by density and velocity for actual loading
-        pare = ac.pared
-        rho = pare[ierho0, ip]
-        V = pare[ieu0, ip]
+        eng_ip = ac.missions[1].points[ip].engine
+        rho = eng_ip.rho0
+        V   = eng_ip.st0.u
         gc = gc .* rho .* V
         ylabel_str = "Lift Loading \$\\rho V \\Gamma\$ [N/m]"
     else

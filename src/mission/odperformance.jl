@@ -6,12 +6,16 @@
     This function will be overhauled and renamed in an upcoming revision. Neither NPSS nor turboelectric compatibility are currently in the scope.
 
 """
-function odperf!(pari, parg, parm, para, pare, Wfrac, FL, 
-    NPSS_TS::Base.Process, 
-    NPSS_Fan::Base.Process, 
+function odperf!(ac, imission::Int, Wfrac, FL,
+    NPSS_TS::Base.Process,
+    NPSS_Fan::Base.Process,
     NPSS_AftFan::Base.Process, Ldebug, ifirst, NPSS_PT, NPSS::Base.Process)
 
 @warn "The function `odperf!` will be overhauled and renamed in an upcoming revision. Neither NPSS nor turboelectric compatibility are currently in the scope."
+
+parg = ac.parg
+parm = view(ac.parm, :, imission)
+para = view(ac.para, :, :, imission)
 
 calc_ipc1 = true
 # ifirst = true
@@ -80,7 +84,8 @@ Tt4crzmax   = zeros(Float64, N)
 end
 
 MNcr = para[iaMach, ipcruise1]
-Tt4max = maximum(pare[ieTt4, :])
+Tt4max = maximum(ac.missions[imission].points[ip].engine.Tt4
+                 for ip in eachindex(ac.missions[imission].points))
 println(@sprintf("%12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s", 
 "FL", "TAS", "CAS", "Mach", "Fn", "L/D", "Tt4max", "Tmetmax", "FFmax", "Tt4cruise", "Tmetcruise", "FFcruise", "CL", "CLh"))
 # integrate trajectory over climb
@@ -94,17 +99,19 @@ for   i = 1:N
     # println(@sprintf("%.2f, %.2f, %.2f",CAScl, TAScl, Mcl))
     CASdes, TASdes, Mdes = get_descentspeed(alts[i], MNcr)
 
-    if i == 1 #assume climb CL below 
+    if i == 1 #assume climb CL below
         ip = iptest # dummy location to store values
         CL = para[iaCL, ipclimb1]
         para[:, ip] .= para[:, ipclimb1] #initialize iptest location
-        pare[:, ip] .= pare[:, ipclimb1] #initialize iptest location
+        ac.missions[imission].points[iptest].engine =
+            deepcopy(ac.missions[imission].points[ipclimb1].engine)
 
     else
         ip = iptest # dummy location to store values
         CL = para[iaCL, ipcruise1]
         para[:, ip] .= para[:, ipcruise1]
-        pare[:, ip] .= pare[:, ipcruise1]
+        ac.missions[imission].points[iptest].engine =
+            deepcopy(ac.missions[imission].points[ipcruise1].engine)
     end
 
     ρ  = ρ0s[i]
@@ -141,31 +148,32 @@ for   i = 1:N
         
         para[iaMach, ip] = Mach
         para[iaReunit, ip] = V*ρ/μ
-        pare[ieu0, ip] = V
-        pare[ieM0, ip] = Mach
+        eng_ip = ac.missions[imission].points[ip].engine
+        eng_ip.u0 = V
+        eng_ip.M0 = Mach
 
         # Set pitch trim by adjusting CLh
         Wf = W - Wzero
         rfuel = Wf/parg[igWfuel]*0
         opt_trim_var = TrimVar.CLHtail
-        balance_aircraft!(pari, parg, view(para, :, ip), rfuel, rpay, ξpay, opt_trim_var; 
+        balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
 
-        
+
         # Calculate Drag
         if (i == 1)
             computes_wing_direct = false
-        else 
+        else
             computes_wing_direct = true
         end
         if CL > 0.9
             computes_wing_direct = false
         end
-        aircraft_drag!(pari, parg, view(para, :, ip), view(pare, :, ip), computes_wing_direct)
+        aircraft_drag!(ac, imission, ip, computes_wing_direct)
 
         #BLI parameters
-        ρ0 = pare[ierho0, ip]
-        u0 = pare[ieu0  , ip] 
+        ρ0 = eng_ip.rho0
+        u0 = V  # eng_ip.u0 was just set to V above
         Φinl = 0.5*ρ0*u0^3 * (DAfsurf*fBLIf)/2.0 
         Kinl = 0.5*ρ0*u0^3 * (KAfTE  *fBLIf)/2.0 # Assume 2 engines
 
@@ -176,8 +184,8 @@ for   i = 1:N
         if NPSS_PT
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             mdotf[i], deNOx_, EINOx1, EINOx2, FAR, Tt3, OPR,
-            Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4max, 
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, pare, iptest)
+            Wc3, Tt4_1, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4max,
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
         else
             Ftotal, η, P, Hrej, heatexcess,
             mdotf[i], BSFC,
@@ -220,9 +228,11 @@ for   i = 1:N
     if (abs(dgamV) > gamVtol) 
             println("Climb gamV not converged. dgamV = $dgamV")
     end
-    pare[ieFe, ip] = Ftotal
+    ac.missions[imission].points[ip].engine.Fe = Ftotal
   
     # Cruise Section
+    Tmetmax = NaN  # populated by NPSS_PT path only (NPSS_TEsysOD not currently wired)
+    Tmetcrz = NaN  # populated by NPSS_PT path only (NPSS_TEsysOD not currently wired)
     if FL[i]≥ 30 && FL[i]≤431
         ip = iptest
         #Get flight speed from climb schedule
@@ -244,15 +254,16 @@ for   i = 1:N
         Mach = Mcr
         para[iaMach, ip] = Mach
         para[iaReunit, ip] = V*ρ/μ
-        pare[ieu0, ip] = V
-        pare[ieM0, ip] = Mach
+        eng_ip = ac.missions[imission].points[ip].engine
+        eng_ip.u0 = V
+        eng_ip.M0 = Mach
 
         Wf = W - Wzero
         rfuel = Wf/parg[igWfuel]*0
 
         #Trim aircraft
         opt_trim_var = TrimVar.CLHtail
-        balance_aircraft!(pari, parg, view(para, :, ip), rfuel, rpay, ξpay, opt_trim_var; 
+        balance_aircraft!(ac, imission, ip, rfuel, rpay, ξpay, opt_trim_var;
                         Ldebug = Ldebug)
         computes_wing_direct = true
         if CL > 1.0
@@ -260,7 +271,7 @@ for   i = 1:N
             computes_wing_direct = false
         end
         #Get Drag
-        aircraft_drag!(pari, parg, view(para, :, ip), view(pare, :, ip), computes_wing_direct)
+        aircraft_drag!(ac, imission, ip, computes_wing_direct)
         DoL = para[iaCD, ip]/ para[iaCL, ip]
 
         F  = BW*(DoL) #zero climb angle for cruise
@@ -280,9 +291,9 @@ for   i = 1:N
         if NPSS_PT
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             FFmaxcrz[i], deNOx, EINOx1, EINOx2, FAR, Tt3, OPR,
-            Wc3, Tt41, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4, 
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, pare, iptest)
-            Tmetmax = pare[ieTmet1, iptest]
+            Wc3, Tt4_1, EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, 0.0, Tt4,
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
+            # Tmetmax: NPSS_TEsysOD not yet wired to typed state — left as NaN
         else
             Ftotal, η, P, Hrej, heatexcess,
             FFmaxcrz[i], BSFC,
@@ -301,9 +312,9 @@ for   i = 1:N
         if NPSS_PT
             NPSS_success, Ftotal, η, P, Hrej, heatexcess, 
             crzmdotf[i], deNOx, EINOx1, crzEINOx[i], crzFAR[i], Tt3, OPR,
-            Wc3, Tt4crz[i], EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, F, 0.0, 
-                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, pare, iptest)
-            Tmetcrz= pare[ieTmet1, iptest]
+            Wc3, Tt4crz[i], EGT = NPSS_TEsysOD(NPSS, alts[i], Mach, F, 0.0,
+                Kinl, Φinl, 0.0, 0.0, ifirst, parg, parpt, Matrix{Float64}(undef, 0, 0), iptest)
+            # Tmetcrz: NPSS_TEsysOD not yet wired to typed state — left as NaN
         else
             iter = 1
             itermax = 20

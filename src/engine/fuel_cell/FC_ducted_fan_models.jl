@@ -21,30 +21,36 @@ In the off-design case, it computes the power and thrust requirements for each m
     **Output:**
     No direct outputs. The `ac` object is modified with:
     - Updated fuel cell power (`fcdata.FC_power`)
-    - Updated ducted fan performance parameters (`pare`)
+    - Updated ducted fan performance parameters (typed engine state)
     - Updated engine size and power requirements during the design phase
 """
-function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initializes_engine, iterw = 0) 
+function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initializes_engine, iterw = 0)
     #Unpack aircraft data
-    parg, _, para, pare, _, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
+    parg, _, para, _, _, _, _, _, _, _ = unpack_ac(ac, imission)
     fcdata = ac.engine.data #Extract fuel cell data
+
+    eng_ip = ac.missions[imission].points[ip].engine
 
     if case == "design"
         #Design ducted fan for start of cruise
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
+        # eng_ip.design.{A2,A18,mb_fan_des,pi_fan_des,Nb_fan_des} and eng_ip.{A7fac,Pfan} are current.
 
-        parg[igA7] = pare[ieA7, ip] / pare[ieA7fac, ip]
+        parg[igA7] = eng_ip.design.A18 / eng_ip.A7fac
 
-        pare[ieA2, :] .= pare[ieA2, ip]
-        pare[ieA7, :] .= parg[igA7] .* pare[ieA7fac, :]
-
-        pare[iembfD, :] .= pare[iembfD, ip]
-        pare[iepifD, :] .= pare[iepifD, ip]
-        pare[ieNbfD, :] .= pare[ieNbfD, ip]
+        # Typed-state: propagate design constants to all mission points.
+        for pt in ac.missions[imission].points
+            pt.engine.design.A2   = eng_ip.design.A2
+            pt.engine.design.A18  = parg[igA7] * pt.engine.A7fac
+            pt.engine.design.mb_fan_des = eng_ip.design.mb_fan_des
+            pt.engine.design.pi_fan_des = eng_ip.design.pi_fan_des
+            pt.engine.design.Nb_fan_des = eng_ip.design.Nb_fan_des
+        end
 
         #Design fuel cell for takeoff conditions
         ip_fcdes = iprotate
-        Pfanmax = pare[iePfanmax, ip_fcdes]
+        eng_fcdes = ac.missions[imission].points[ip_fcdes].engine
+        Pfanmax = eng_fcdes.Pfanmax
 
         ## Model of electric machine to deliver Pfanmax
         Pmotormax = Pfanmax #100% efficiency for now
@@ -54,7 +60,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
         size_fuel_cell!(ac, ip_fcdes, imission)
 
         #Evaluate state at design point ip
-        Pfan = pare[iePfan, ip]
+        Pfan = eng_ip.Pfan
         ## Model of electric machine to deliver Pfan
         Pmotor = Pfan #100% efficiency for now
         ##
@@ -77,7 +83,7 @@ function calculate_fuel_cell_with_ducted_fan!(ac, case, imission, ip, initialize
 
         ductedfancalc!(ac, case, imission, ip, initializes_engine)
 
-        Pfan = pare[iePfan, ip]
+        Pfan = eng_ip.Pfan
         ## Model of electric machine to deliver Pfan
         Pmotor = Pfan #100% efficiency for now
         ##

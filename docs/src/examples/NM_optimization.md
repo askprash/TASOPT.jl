@@ -64,7 +64,7 @@ This example uses a Nelder Mead optimization aimed towards optimizing for passen
 
 ```julia
 # DESIGN VARIABLES
-#             AR    Alt(ft)  Cl     sweep     λs  λt   hboxo   hboxs   rcls    rclt     Tt4CR   iepihc iepif
+#             AR    Alt(ft)  Cl     sweep     λs  λt   hboxo   hboxs   rcls    rclt     Tt4CR   pihc   pif
 lower      = [7.0 , 20000.0, 0.40, 10.0, 0.1, 0.1, 0.10,   0.10,   0.1,    0.1,     700.0,  6,      0]
 upper      = [12.0, 60000.0, 0.65, 40.0, 1.0, 1.0, 0.15,   0.15,   1.4,    1.0,     2000.0, 15,     10] 
 
@@ -73,10 +73,12 @@ upper      = [12.0, 60000.0, 0.65, 40.0, 1.0, 1.0, 0.15,   0.15,   1.4,    1.0, 
 ### Set the initial values for all design variables
 
 ```julia
-initial =[
-        ac.parg[igAR], 33000.0, 0.57, ac.parg[igsweep], 
-        ac.parg[iglambdas], ac.parg[iglambdat], ac.parg[ighboxo], 
-        ac.parg[ighboxs], ac.para[iarcls, ipcruise1,1], ac.para[iarclt, ipcruise1,1], 1587, 11.46, 1.66
+initial = [
+    ac.wing.layout.AR, 33000.0, 0.57, ac.wing.layout.sweep,
+    ac.wing.inboard.λ, ac.wing.outboard.λ,
+    ac.wing.inboard.cross_section.thickness_to_chord,
+    ac.wing.outboard.cross_section.thickness_to_chord,
+    ac.para[iarcls, ipcruise1, 1], ac.para[iarclt, ipcruise1, 1], 1587, 11.46, 1.66
 ]
 ```
 
@@ -110,20 +112,26 @@ opt.ftol_rel = f_tol_rel
 
 ```julia
 function obj(x, grad)
-    ac.parg[igAR] = x[1] # Aspect Ratio 
-    ac.para[iaalt, ipcruise1, :] .=  x[2] * ft_to_m # Cruise Altitude
-    ac.para[iaCL, ipclimb1+1:ipdescentn-1, :] .= x[3] # CL
-    ac.parg[igsweep] = x[4] # Wing sweep 
-    ac.parg[iglambdas] = x[5] #inner_panel_taper_ratio
-    ac.parg[iglambdat] = x[6] #outer_panel_taper_ratio
-    ac.parg[ighboxo] = x[7] #root_thickness_to_chord
-    ac.parg[ighboxs] = x[8] #spanbreak_thickness_to_chord
+    ac.wing.layout.AR = x[1]                                          # Aspect Ratio
+    ac.para[iaalt, ipcruise1, :] .= x[2] * ft_to_m                   # Cruise Altitude
+    ac.para[iaCL, ipclimb1+1:ipdescentn-1, :] .= x[3]                # CL
+    ac.wing.layout.sweep = x[4]                                       # Wing sweep
+    ac.wing.inboard.λ  = x[5]                                        # inner panel taper ratio
+    ac.wing.outboard.λ = x[6]                                        # outer panel taper ratio
+    ac.wing.inboard.cross_section.thickness_to_chord  = x[7]         # root thickness-to-chord
+    ac.wing.outboard.cross_section.thickness_to_chord = x[8]         # spanbreak thickness-to-chord
     ac.para[iarcls, ipclimb1+1 : ipdescentn-1, :] .= x[9]   #  rcls    break/root cl ratio = cls/clo
     ac.para[iarclt, ipclimb1+1 : ipdescentn-1, :] .= x[10]   #  rclt    tip  /root cl ratio = clt/clo
-    ac.pare[ieTt4, ipcruise1:ipcruise2, :] .= x[11] # Tt4
-    ac.pare[iepihc, ipclimb1+1 : ipdescentn-1, :] .= x[12] # High Pressure Compressor Pressure Ratio
-    ac.pare[iepif, ipclimbn, :] .= x[13] #Fan PR 
-    ac.pare[iepilc, :, :] .= 3 # Low Pressure Compressure Pressure Ratio set to 3
+    # Set engine parameters via typed EngineState
+    pts = ac.missions[1].points
+    for ip in ipcruise1:ipcruise2
+        pts[ip].engine.Tt4 = x[11]                          # Tt4
+    end
+    for ip in (ipclimb1+1):(ipdescentn-1)
+        pts[ip].engine.pihc = x[12]                         # High Pressure Compressor Pressure Ratio
+    end
+    pts[ipclimbn].engine.pif = x[13]                        # Fan PR
+    foreach(p -> (p.engine.pilc = 3.0), pts)               # LPC Pressure Ratio (fixed)
 
     # Sizing aircraft with new ac.parameters
     TASOPT.size_aircraft!(ac, iter =50, printiter=false)
@@ -131,7 +139,7 @@ function obj(x, grad)
     push!(PFEIarray, ac.parm[imPFEI])
     push!(xarray, x)
     push!(CDarray, ac.para[iaCD, ipcruise1, 1])
-    push!(OPRarray, ac.pare[iept3]/ac.pare[iept2])
+    push!(OPRarray, ac.missions[1].points[ipcruise1].engine.pt3 / ac.missions[1].points[ipcruise1].engine.pt2)
     
     # Ensure aircraft weight makes sense
     WTOmax = ac.parg[igWMTO]
@@ -147,7 +155,7 @@ function obj(x, grad)
     penfac = 10*ac.parg[igWpay]
     f = f + penfac*max(0.0, constraint)^2
     
-    println("X̄ = $x  ⇨  PFEI = $(ac.parm[imPFEI]) f = $f, OPR = $(ac.pare[iept3]/ac.pare[iept2]),")
+    println("X̄ = $x  ⇨  PFEI = $(ac.parm[imPFEI]) f = $f, OPR = $(ac.missions[1].points[ipcruise1].engine.pt3 / ac.missions[1].points[ipcruise1].engine.pt2),")
     push!(farray, f)
     
     return f

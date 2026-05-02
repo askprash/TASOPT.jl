@@ -39,6 +39,7 @@ makedocs(
         ],
     "Propulsion systems" => Any[
             "propulsion/propsys.md",
+            "propulsion/station_numbering.md",
             "propulsion/gascalc.md",
             "propulsion/hxfun.md",
             "propulsion/PEMfuelcell.md",
@@ -63,6 +64,13 @@ makedocs(
         "misc/dreladocs.md",
         # "misc/misc.md",
         "misc/fordevs.md"
+        ],
+    "Developer notes" => Any[
+        "dev/julia_vs_fortran_divergences.md",
+        "dev/pr7_landing_strategy.md",
+        "dev/pr7_review_guide.md",
+        "dev/engine_component_contract.md",
+        "dev/large_refactor_protocol.md"
         ]
     ],
 

@@ -22,10 +22,9 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     end
     
     #Extract aircraft components and storage arrays
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, eng = unpack_ac(ac, imission)
     
     parad = ac.parad
-    pared = ac.pared
 
     time_propsys = 0.0
 
@@ -53,9 +52,16 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     #Initialize arrays with the design mission values if desired
     if (initializes_engine)
         #----- use design case as initial guess for engine state
-        pare[:,:] .= pared[:,:]
+        # Initialize typed engine state from design mission typed state.
+        # Design typed state is authoritative after .14.3 (tasopt-j9l.45.14.3); deepcopy
+        # replaces the old bare-pare-copy + pare_to_engine_state! pattern (.14.5).
+        des_pts = ac.missions[1].points
+        mis_pts = ac.missions[imission].points
+        for ip in eachindex(mis_pts)
+            mis_pts[ip].engine = deepcopy(des_pts[ip].engine)
+        end
     else
-        pare[ieu0, ipcruise1] = pared[ieu0, ipcruise1] #Copy flight speed for altitude calculation
+        ac.missions[imission].points[ipcruise1].engine.u0 = ac.missions[1].points[ipcruise1].engine.u0
     end
 
     for ip = ipstatic: ipdescentn
@@ -123,29 +129,31 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
 #---- estimate takeoff speed and set V,Re over climb and descent
 #-    (needed to start trajectory integration)
     ip = iptakeoff
-    VTO = pared[ieu0,ip] * sqrt(pared[ierho0,ip]/pare[ierho0,ip])
-    ReTO = VTO*pare[ierho0,ip]/pare[iemu0,ip]
+    eng_des_to = ac.missions[1].points[ip].engine
+    eng_mis_to = ac.missions[imission].points[ip].engine
+    VTO = eng_des_to.u0 * sqrt(eng_des_to.rho0 / eng_mis_to.rho0)
+    ReTO = VTO * eng_mis_to.rho0 / eng_mis_to.mu0
 
     ip = ipcruise1
-    VCR = pared[ieu0,ip]
+    VCR = ac.missions[1].points[ip].engine.u0
     ReCR = parad[iaReunit,ip]
 
     for ip = iprotate: ipclimb1
-      pare[ieu0,ip] = VTO
+      ac.missions[imission].points[ip].engine.u0 = VTO
       para[iaReunit,ip] = ReTO
     end
     for ip = ipclimb1+1 : ipclimbn
       frac = float(ip-ipclimb1) / float(ipclimbn-ipclimb1)
       V  =  VTO*(1.0-frac) +  VCR*frac
       Re = ReTO*(1.0-frac) + ReCR*frac
-      pare[ieu0,ip] = V
+      ac.missions[imission].points[ip].engine.u0 = V
       para[iaReunit,ip] = Re
     end
     for ip = ipdescent1: ipdescentn
       frac = float(ip-ipdescent1) / float(ipdescentn-ipdescent1)
       V  =  VTO*frac +  VCR*(1.0-frac)
       Re = ReTO*frac + ReCR*(1.0-frac)
-      pare[ieu0,ip] = V
+      ac.missions[imission].points[ip].engine.u0 = V
       para[iaReunit,ip] = Re
     end
 
@@ -220,7 +228,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     # Initialize previous weight iterations
     WTO1, WTO2, WTO3 = zeros(Float64, 3) #1st-previous to 3rd previous iteration weight for convergence criterion
 
-    resetHXs(pare) #Reset heat exchanger parameters
+    resetHXs(ac.missions[imission].points) #Reset heat exchanger parameters
 
 #---- no convergence yet
     Lconv = false
@@ -254,12 +262,15 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
 
     #Simulate heat exchanger performance if the engine contains any
     if eng.model.model_name == "ducted_fan"
-        pare[ieRadiatorCoolantT,:] = eng.data.FC_temperature[:,imission]
-        pare[ieRadiatorCoolantP,:] = eng.data.FC_pressure[:,imission]
-        pare[ieRadiatorHeat,:] = eng.data.FC_heat[:,imission]
+        for ip in eachindex(ac.missions[imission].points)
+            pt = ac.missions[imission].points[ip]
+            pt.engine.RadCoolantT = eng.data.FC_temperature[ip, imission]
+            pt.engine.RadCoolantP = eng.data.FC_pressure[ip, imission]
+            pt.engine.Qradiator   = eng.data.FC_heat[ip, imission]
+        end
 
     end     
-    HXOffDesign!(eng.heat_exchangers, pare, ac.options.ifuel, imission)
+    HXOffDesign!(eng.heat_exchangers, ac.options.ifuel, imission, ac.missions[imission].points)
 
 #-------------------------------------------------------------------------
 
@@ -287,7 +298,7 @@ function fly_mission!(ac, imission = 1; itermax = 35, initializes_engine = true,
     end
 
     #Check if all engine points have converged, warns if not
-    check_engine_convergence_failure(pare)
+    check_engine_convergence_failure(ac, imission)
 
     #run takeoff calculation if converged (checks feasibility; populates iprotate entries)
     if Lconv
@@ -298,39 +309,36 @@ return
 end
 
 """
-    calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, parg, para, pare, wing, ΔTatmos, imission)
+    calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, ac, imission)
 
-Calculates the cruise altitude or lift coefficient based on the specified option. If "altitude" is selected, it calculates the lift coefficient 
+Calculates the cruise altitude or lift coefficient based on the specified option. If "altitude" is selected, it calculates the lift coefficient
 from the weight and density. If "CL" is selected, it calculates the altitude from the lift coefficient and updates the fuselage drag.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `opt_prescribed_cruise_parameter::String`: option for whether cruise altitude or lift coefficient is specified. Options are "altitude" or "CL"
     - `WMTO::Float64`: Maximum takeoff weight (N)
-    - `parg::Vector{Float64}`: vector with aircraft geometric parameters
-    - `para::Matrix{Float64}`: array with aerodynamic parameters
-    - `pare::Matrix{Float64}`: array with engine parameters
-    - `wing::Wing`: Wing model object
-    - `ΔTatmos::Float64`: Temperature difference between sea level and standard sea-level (K)
+    - `ac`: aircraft model object
     - `imission::Int64`: Mission index
 **Outputs:**
     - No explicit outputs. Computed quantities are saved to `par` arrays of `aircraft` model for the mission selected
 """
 function calculate_cruise_altitude_or_CL!(opt_prescribed_cruise_parameter, WMTO, ac, imission)
-    parg, parm, para, pare, _, fuse, _, wing, _, _, _ = unpack_ac(ac, imission)
+    parg, parm, para, _, fuse, _, wing, _, _, _, _ = unpack_ac(ac, imission)
 
     #Calculate ΔT for the atmosphere
     altTO = parm[imaltTO] 
     T_std = atmos(altTO).T
     ΔTatmos = parm[imT0TO] - T_std #temperature difference such that T(altTO) = T0TO
 
-    ρ0 = pare[ierho0, ipcruise1]
-    ρcab = max(parg[igpcabin], pare[iep0, ipcruise1]) / (RSL * TSL)
+    eng_cr = ac.missions[imission].points[ipcruise1].engine
+    ρ0 = eng_cr.rho0
+    ρcab = max(parg[igpcabin], eng_cr.p0) / (RSL * TSL)
     WbuoyCR = (ρcab - ρ0) * gee * parg[igcabVol]
-    
+
     ip = ipcruise1
     We = WMTO * para[iafracW, ip]
-    u0 = pare[ieu0, ip]
+    u0 = eng_cr.u0
     BW = We + WbuoyCR # Weight including buoyancy
     S = wing.layout.S
 

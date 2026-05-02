@@ -9,8 +9,6 @@ For this example, the design variables are:
 1. Aspect Ratio: `AR`
 2. Lift Coefficient: `Cl`  
 3. Wing Sweep: `Λ`
-4. Tt4 at Cruise: `Tt4`
-5. Fan Pressure ratio: `pif`
 
 ## Initialiation and loading models
 
@@ -43,12 +41,15 @@ size_aircraft!(default_model)
 ### Set the input parameters
 
 ```julia
+# Typed struct fields and parg/para arrays are supported by format_params.
+# Engine parameters (e.g. Tt4, pif) use typed EngineState — set them directly
+# in the objective/gradient function bodies:
+#   ac.missions[1].points[ipcruise1].engine.Tt4 = <value>
+#   ac.missions[1].points[ipcruise1].engine.pif = <value>
 input_params = [
-    :(ac.parg[igAR]), 
+    :(ac.wing.layout.AR),
     :(ac.para[iaCL,ipcruise1:ipcruise2,1]),
-    :(ac.parg[igsweep]),
-    :(ac.pare[ieTt4, ipcruise1:ipcruise2, 1]),
-    :(ac.pare[iepif, ipcruise1, 1]) ,
+    :(ac.wing.layout.sweep),
 ]
 
 # Formatting params for usage 
@@ -58,10 +59,9 @@ params = map(p -> TASOPT.format_params(TASOPT.expr_to_string(p)), input_params)
 ### Set the Upper and Lower limits for all design variables as well as initial values
 
 ```julia
-lower      = [9.0 , 0.53, 25.0, 1400.0, 1.25]
-upper      = [11.0, 0.60, 30.0, 1650.0, 2.0 ] 
-initial    = [10.5, 0.57, 26.0, 1580.0, 1.685]
-
+lower   = [9.0 , 0.53, 25.0]
+upper   = [11.0, 0.60, 30.0]
+initial = [10.5, 0.57, 26.0]
 ```
 
 ## Objective and Constraint Functions
@@ -87,7 +87,7 @@ end
 
 function tt3_fn(ac)
     maxtt3 = 900
-    return maximum(ac.pare[ieTt3, :, 1])/maxtt3
+    return maximum(p.engine.Tt3 for p in ac.missions[1].points)/maxtt3
 end
 
 # Make an array that stores all these functions
@@ -102,11 +102,14 @@ con_f_arr = [
 # Function that sizes aircraft and returns both objective value and constraint values
 function sizing_ac(x::T...) where {T<:Real}
     ac = deepcopy(default_model)
-    # Set params
+    # Set parg/para/struct params via generic API
     for (i,x_i) in enumerate(x)
         field_path, index = params[i]
         TASOPT.setNestedProp!(ac, field_path, x_i, index)
     end
+    # Engine design parameters use typed EngineState — set directly, e.g.:
+    #   ac.missions[1].points[ipcruise1].engine.Tt4 = 1580.0
+    #   ac.missions[1].points[ipcruise1].engine.pif = 1.685
 
     try
         size_aircraft!(ac,printiter=false)
@@ -115,7 +118,7 @@ function sizing_ac(x::T...) where {T<:Real}
         println("size_aircraft! FAILED")
         return [Inf for i in 1:length(con_f_arr)]
     end
-    
+
 end
 ```
 
@@ -124,11 +127,14 @@ end
 ```julia
 function gradient_all(x::T...) where {T<:Real}
     ac = deepcopy(default_model)
-    # Set params
+    # Set parg/para/struct params via generic API
     for (i,x_i) in enumerate(x)
         field_path, index = params[i]
         TASOPT.setNestedProp!(ac, field_path, x_i, index)
     end
+    # Engine design parameters use typed EngineState — set directly, e.g.:
+    #   ac.missions[1].points[ipcruise1].engine.Tt4 = 1580.0
+    #   ac.missions[1].points[ipcruise1].engine.pif = 1.685
     return TASOPT.get_sensitivity(input_params; model_state=ac, eps=epsilon, optimizer=true, f_out_fn=con_f_arr)
 end
 ```

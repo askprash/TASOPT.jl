@@ -7,18 +7,22 @@ Example Usage:
 using TASOPT
 include(__TASOPTindices__)
 # List of the parameters you want to update as symbols
-    params = [
-    :(ac.parg[igetas]),
-    :(ac.pare[ieepolf,:,:]),
-    :(ac.pare[iepihc,ipclimbn:ipcruise1,1]),
+params = [
+    :(ac.parg[igWfmax]),
+    :(ac.para[iaCL, ipcruise1, 1]),
     :(ac.fuselage.layout.cross_section.radius)
 ]
+# Engine parameters (Tt4, pif, pihc, epolf, …) live in typed EngineState:
+#   ac.missions[1].points[ip].engine.Tt4
+#   ac.missions[1].points[ip].engine.pif
+#   ac.missions[1].points[ip].engine.design.epolf
+# Set these via direct assignment before calling size_aircraft!.
 epsilon = 1e-5
 default_model = load_default_model()
 size_aircraft!(default_model)
 TASOPT.get_sensitivity(params, model_state = default_model, eps = epsilon)
 
-If you want the default model as the model state and epsilon as 1e-5 
+If you want the default model as the model state and epsilon as 1e-5
 you can also call the function directly with just the params:
 
 TASOPT.get_sensitivity(params)

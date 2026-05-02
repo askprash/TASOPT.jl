@@ -13,12 +13,9 @@ saving as an aircraft model file)
 function read_input(k::String, dict::AbstractDict=data, 
     default_dict::AbstractDict = default)
 
-    get!(dict, k) do 
+    get!(dict, k) do
         if k in keys(default_dict)
-            println("\n")
-            @info """$k not found in user specified input file. 
-            Reading $k from default TASOPT input:
-            \n$k = $(default_dict[k])\n\n"""
+            @debug "$k not found in user specified input file; using default: $(default_dict[k])"
             default_dict[k]
         else
             error("Requested key/parameter is not supported. Check the default 
@@ -35,8 +32,7 @@ function get_template_input_file(designrange)
     elseif designrange <= 8500 * nmi_to_m
         templatefile = joinpath(TASOPT.__TASOPTroot__, "../example/defaults/default_wide.toml")
     else
-        println("\n")
-        @warn """Requested aircraft design range exceeds expected capability. Selecting Wide Body Aircraft Template, but be warned. """
+        @warn "Requested aircraft design range exceeds expected capability. Selecting Wide Body Aircraft Template, but be warned."
         templatefile = joinpath(TASOPT.__TASOPTroot__, "../example/defaults/default_wide.toml")
     end
     return templatefile
@@ -99,7 +95,7 @@ data = TOML.parsefile(datafile)
 # Get template input file, with appropriate user notices when needed
 # handle default templatefile value
 if templatefile == ""
-    @info "No template input file provided. Proceeding with template file as determined by design mission range."
+    @debug "No template input file provided. Proceeding with template file as determined by design mission range."
     templatefile = nothing
 # check if provided template input file is extant
 elseif !isfile(templatefile)
@@ -112,7 +108,7 @@ if isnothing(templatefile)
     #determine appropriate template input file based on mission range
     designrange = Distance.(data["Mission"]["range"])[1] #in meters
     templatefile = get_template_input_file(designrange)
-    @info "Template input file selected: $templatefile"
+    @debug "Template input file selected: $templatefile"
 end
 
 default = TOML.parsefile(templatefile)
@@ -130,7 +126,7 @@ nmisx = readmis("N_missions")
 parg = zeros(Float64, igtotal)
 parm = zeros(Float64, (imtotal, nmisx))
 para = zeros(Float64, (iatotal, iptotal, nmisx))
-pare = zeros(Float64, (ietotal, iptotal, nmisx))
+missions_vec = [Mission{Float64}(iptotal) for _ in 1:nmisx]
 
 wing = Wing()
 htail = Tail()
@@ -211,9 +207,9 @@ fueltype = readfuel("fuel_type")
 #TODO this needs to be updated once Prash includes Gas.jl into TASOPT
 
 #check input, perform actions based on fuel type
+Tfuel_init = zero(Float64)  # tasopt-j9l.45.7: default 0.0; overwritten for JET-A below
 if compare_strings(fueltype, "JET-A")
-    pare[ieTft, :, :] .= readfuel("fuel_temp") #Temperature of fuel in fuel tank
-    pare[ieTfuel, :, :] .= readfuel("fuel_temp") #Initialize fuel temperature as temperature in tank
+    Tfuel_init = readfuel("fuel_temp")
     parg[igrhofuel] = readfuel("fuel_density")
     ifuel = 24
 elseif compare_strings(fueltype, "LH2") 
@@ -227,8 +223,26 @@ end
 
 has_centerbox_fuel  = readfuel("fuel_in_wingcen")
 parg[igrWfmax] = readfuel("fuel_usability_factor")
-pare[iehvap, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of the fuel
-pare[iehvapcombustor, :, :] .= readfuel("fuel_enthalpy_vaporization") #Heat of vaporization of fuel, if vaporized in combustor
+hvap_init = readfuel("fuel_enthalpy_vaporization")
+
+# tasopt-j9l.45.7: mirror Tfuel to typed engine state from local Tfuel_init (not bare pare).
+# JET-A: Tfuel_init = fuel_temp; LH2/CH4: Tfuel_init = 0.0 matches zero-init EngineState default.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        missions_vec[im].points[ip].engine.Tfuel      = Tfuel_init
+        missions_vec[im].points[ip].engine.Tfuel_tank = Tfuel_init
+    end
+end
+
+# tasopt-j9l.61/tasopt-w82/tasopt-p1e: populate typed hvap (initial, const) and hvapcombustor
+# directly from TOML at parse time.  eng.hvap is never modified by solvers; resetHXs reads it
+# to reset eng.hvapcombustor back to the initial value without touching bare pare[iehvap].
+for im in 1:nmisx
+    for ip in 1:iptotal
+        missions_vec[im].points[ip].engine.hvap          = hvap_init
+        missions_vec[im].points[ip].engine.hvapcombustor = hvap_init
+    end
+end
 
 ##Takeoff
 takeoff = readmis("Takeoff")
@@ -850,16 +864,27 @@ if lowercase(propsys) == "tf"
     parg[igfTt4CL1] = readprop("Tt4_frac_bottom_of_climb")
     parg[igfTt4CLn] = readprop("Tt4_frac_top_of_climb")
 
-    pare[ieTt4, :, :] .= transpose(Temp.(readprop("Tt4_cruise"))) #transpose for proper broadcasting
+    # tasopt-j9l.45.7: build Tt4 schedule locally so typed state can be populated
+    # from local variables (not from bare pare reads).
+    Tt4_cruise  = Temp.(readprop("Tt4_cruise"))   # scalar or nmisx-vector of cruise Tt4
+    Tt4_takeoff = Temp.(readprop("Tt4_takeoff"))  # scalar or nmisx-vector of takeoff Tt4
 
-    Tt4TO = transpose(Temp.(readprop("Tt4_takeoff")))
-    pare[ieTt4, ipstatic, :] .= Tt4TO
-    pare[ieTt4, iprotate, :] .= Tt4TO
-    pare[ieTt4, iptakeoff, :] .= Tt4TO
-
-    pare[ieT0, ipstatic, :] .= T0TO
-    pare[ieT0, iprotate, :] .= T0TO
-    pare[ieT0, iptakeoff, :] .= T0TO
+    # tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+    # tasopt-j9l.45.7: mirror Tt4 and takeoff T0 to typed engine state from local variables.
+    # Tt4_cruise and Tt4_takeoff hold the values just written to bare pare.
+    # T0TO is already in parm[imT0TO, im] (set a few lines above).
+    for im in 1:nmisx
+        _Tt4c_im  = isa(Tt4_cruise,  AbstractVector) ? Tt4_cruise[im]  : Tt4_cruise
+        _Tt4to_im = isa(Tt4_takeoff, AbstractVector) ? Tt4_takeoff[im] : Tt4_takeoff
+        for ip in 1:iptotal
+            missions_vec[im].points[ip].engine.st4.Tt =
+                (ip == ipstatic || ip == iprotate || ip == iptakeoff) ? _Tt4to_im : _Tt4c_im
+        end
+        _T0to_im = parm[imT0TO, im]
+        missions_vec[im].points[ipstatic].engine.T0  = _T0to_im
+        missions_vec[im].points[iprotate].engine.T0  = _T0to_im
+        missions_vec[im].points[iptakeoff].engine.T0 = _T0to_im
+    end
 
     # Core in clean-flow -> 0; Core ingests KE defect -> 1
     eng_has_BLI_cores = !readprop("core_in_clean_flow")
@@ -901,29 +926,48 @@ comb = read_input("Combustor", prop, dprop)
 dcomb = dprop["Combustor"]
     etab = read_input("combustion_efficiency", comb, dcomb)
 
-pare[iepid, :, :] .= pid
-pare[iepib, :, :] .= pib
-pare[iepifn, :, :] .= pifn
-pare[iepitn, :, :] .= pitn
-pare[iepif, :, :] .= pif
-pare[iepilc, :, :] .= pilc
-pare[iepihc, :, :] .= pihc
-pare[ieepolf, :, :] .= epolf
-pare[ieepollc, :, :] .= epollc
-pare[ieepolhc, :, :] .= epolhc
-pare[ieepolht, :, :] .= epolht
-pare[ieepollt, :, :] .= epollt
-pare[ieetab, :, :] .= etab
-pare[ieBPR, :, :] .= BPR
-pare[ieM2, :, :] .= M2
-pare[ieM25, :, :] .= M25
-pare[ieepsl, :, :] .= epsl
-pare[ieepsh, :, :] .= epsh
+# tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+# tasopt-j9l.43: populate typed engine state directly from local variables.
+# All turbomachinery design constants are scalar TOML inputs, uniform across ip/im.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        eng = missions_vec[im].points[ip].engine
+        eng.design.pid    = pid
+        eng.design.pib    = pib
+        eng.design.pifn   = pifn
+        eng.design.pitn   = pitn
+        eng.design.epolf  = epolf
+        eng.design.epollc = epollc
+        eng.design.epolhc = epolhc
+        eng.design.epolht = epolht
+        eng.design.epollt = epollt
+        eng.design.etab   = etab
+        eng.design.M2     = M2
+        eng.design.M25    = M25
+        eng.design.epsl   = epsl
+        eng.design.epsh   = epsh
+        eng.pif  = pif
+        eng.pilc = pilc
+        eng.pihc = pihc
+        eng.BPR  = BPR
+    end
+end
 
 parg[igGearf] = Gearf
 parg[igHTRf] = HTRf
 parg[igHTRlc] = HTRlc
 parg[igHTRhc] = HTRhc
+
+# tasopt-j9l.62: populate turbomachinery geometry into typed engine state.
+for im in 1:nmisx
+    for ip in 1:iptotal
+        eng = missions_vec[im].points[ip].engine
+        eng.design.Gearf = Gearf
+        eng.design.HTRf  = HTRf
+        eng.design.HTRlc = HTRlc
+        eng.design.HTRhc = HTRhc
+    end
+end
 
 # Cooling
 cool = readprop("Cooling")
@@ -939,17 +983,26 @@ readcool(x) = read_input(x, cool, dcool)
     M41 = readcool("M41")
     ruc = readcool("cooling_air_V_ratio")
 
-    pare[ieM4a, :, :] .= M41
-    pare[ieruc, :, :] .= ruc
-    pare[iedTstrk, :, :] .= dTstrk
-    pare[ieMtexit, :, :] .= Mtexit
-    pare[ieStA, :, :] .= StA
-    pare[ieefilm, :, :] .= efilm
-    pare[ietfilm, :, :] .= tfilm
-
     #HPT cooled efficiency
-    pare[iedehtdfc,:,:] .= readcool("HPT_efficiency_derivative_with_cooling")
-    pare[iefc0,:,:] .= readcool("baseline_cooling_fraction")
+    dehtdfc = readcool("HPT_efficiency_derivative_with_cooling")
+    fc0     = readcool("baseline_cooling_fraction")
+
+    # tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+    # tasopt-j9l.43: populate typed DesignState directly from local variables.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            eng = missions_vec[im].points[ip].engine
+            eng.design.M4a    = M41
+            eng.design.ruc    = ruc
+            eng.design.dTstrk = dTstrk
+            eng.design.Mtexit = Mtexit
+            eng.design.StA    = StA
+            eng.design.efilm  = efilm
+            eng.design.tfilm  = tfilm
+            eng.design.fc0     = fc0
+            eng.design.dehtdfc = dehtdfc
+        end
+    end
 
 # Offtakes
 off = readprop("Offtakes")
@@ -964,10 +1017,17 @@ readoff(x) = read_input(x, off, doff)
     Ttdischarge = readoff("Tt_offtake_air")
     Ptdischarge = readoff("Pt_offtake_air")
 
-    # TODO Tt9 is really a terrible numbering convention for the discharge temp 
+    # TODO Tt9 is really a terrible numbering convention for the discharge temp
 
-    pare[ieTt9, :, :] .= Ttdischarge
-    pare[iept9, :, :] .= Ptdischarge
+    # tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+    # tasopt-j9l.43: populate typed engine state directly from local variables.
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            eng = missions_vec[im].points[ip].engine
+            eng.st25off.Tt = Ttdischarge
+            eng.st25off.pt = Ptdischarge
+        end
+    end
 
     parg[igmofWpay] = mofftpax ./ parm[imWperpax, 1]
     parg[igmofWMTO] = mofftmMTO / gee
@@ -999,39 +1059,43 @@ readfnoz(x) = read_input(x, fannoz, dfannoz)
     A7descent1 = readfnoz("descentstart")
     A7descentn = readfnoz("descentend")
 
-    pare[ieA7fac, ipstatic, :] .= A7static
-    pare[ieA7fac, iprotate, :] .= A7takeoff
-    pare[ieA7fac, iptakeoff, :] .= A7takeoff
-    pare[ieA7fac, ipcutback, :] .= A7cutback
+    # tasopt-j9l.45.7: build per-ip nozzle area factor schedule as local vectors so typed
+    # engine state can be populated from local variables (not bare pare reads).
+    # The schedule is identical across missions (broadcast over `:` dim in bare pare writes).
+    A7fac_ip = Vector{Float64}(undef, iptotal)
+    A5fac_ip = Vector{Float64}(undef, iptotal)
 
-    pare[ieA5fac, ipstatic, :] .= A5static
-    pare[ieA5fac, iprotate, :] .= A5takeoff
-    pare[ieA5fac, iptakeoff, :] .= A5takeoff
-    pare[ieA5fac, ipcutback, :] .= A5cutback
+    A7fac_ip[ipstatic]  = A7static;  A5fac_ip[ipstatic]  = A5static
+    A7fac_ip[iprotate]  = A7takeoff; A5fac_ip[iprotate]  = A5takeoff
+    A7fac_ip[iptakeoff] = A7takeoff; A5fac_ip[iptakeoff] = A5takeoff
+    A7fac_ip[ipcutback] = A7cutback; A5fac_ip[ipcutback] = A5cutback
 
     for ip = ipclimb1:ipclimbn
-
-        frac = (ip - ipclimb1) /  (ipclimbn - ipclimb1)
-
-        pare[ieA7fac, ip, :] .= A7climb1 * (1.0 - frac) + A7climbn * frac
-        pare[ieA5fac, ip, :] .= A5climb1 * (1.0 - frac) + A5climbn * frac
-
+        frac = (ip - ipclimb1) / (ipclimbn - ipclimb1)
+        A7fac_ip[ip] = A7climb1 * (1.0 - frac) + A7climbn * frac
+        A5fac_ip[ip] = A5climb1 * (1.0 - frac) + A5climbn * frac
     end
 
-    pare[ieA7fac, ipcruise1:ipcruisen, :] .= 1.0
-    pare[ieA5fac, ipcruise1:ipcruisen, :] .= 1.0
+    A7fac_ip[ipcruise1:ipcruisen] .= 1.0
+    A5fac_ip[ipcruise1:ipcruisen] .= 1.0
 
     for ip = ipdescent1:ipdescentn
-
         frac = (ip - ipdescent1) / (ipdescentn - ipdescent1)
-
-        pare[ieA7fac, ip, :] .= A7descent1 * (1.0 - frac) + A7descentn * frac
-        pare[ieA5fac, ip, :] .= A5descent1 * (1.0 - frac) + A5descentn * frac
-
+        A7fac_ip[ip] = A7descent1 * (1.0 - frac) + A7descentn * frac
+        A5fac_ip[ip] = A5descent1 * (1.0 - frac) + A5descentn * frac
     end
 
-    pare[ieA7fac, iptest, :] .= A7static
-    pare[ieA5fac, iptest, :] .= A5static
+    A7fac_ip[iptest] = A7static
+    A5fac_ip[iptest] = A5static
+
+    # tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+    # Populate typed engine state from local schedule vectors (not bare pare reads).
+    for im in 1:nmisx
+        for ip in 1:iptotal
+            missions_vec[im].points[ip].engine.A5fac = A5fac_ip[ip]
+            missions_vec[im].points[ip].engine.A7fac = A7fac_ip[ip]
+        end
+    end
 
 elseif lowercase(propsys) == "constant_tsfc" #For constant TSFC model
     ROCdes = readprop("rate_of_climb")
@@ -1040,9 +1104,27 @@ elseif lowercase(propsys) == "constant_tsfc" #For constant TSFC model
     else
         para[iaROCdes,ipclimb1:ipclimbn,:] .= Speed(ROCdes)
     end
-    pare[ieTSFC,ipclimb1:ipclimbn,:] .= readprop("climb_TSFC")
-    pare[ieTSFC,ipcruise1:ipcruisen,:] .= readprop("cruise_TSFC")
-    pare[ieTSFC,ipdescent1:ipdescentn,:] .= readprop("descent_TSFC")
+    # tasopt-j9l.45.7: store per-phase TSFC as local variables so typed engine state
+    # can be populated without reading back from bare pare.
+    tsfc_climb   = readprop("climb_TSFC")
+    tsfc_cruise  = readprop("cruise_TSFC")
+    tsfc_descent = readprop("descent_TSFC")
+    # tasopt-j9l.45.14.4: bare pare writes removed; typed state is the source of truth.
+    # Populate typed engine state from local variables (not bare pare reads).
+    for im in 1:nmisx
+        _c  = isa(tsfc_climb,   AbstractVector) ? tsfc_climb[im]   : tsfc_climb
+        _cr = isa(tsfc_cruise,  AbstractVector) ? tsfc_cruise[im]  : tsfc_cruise
+        _d  = isa(tsfc_descent, AbstractVector) ? tsfc_descent[im] : tsfc_descent
+        for ip in ipclimb1:ipclimbn
+            missions_vec[im].points[ip].engine.TSFC = _c
+        end
+        for ip in ipcruise1:ipcruisen
+            missions_vec[im].points[ip].engine.TSFC = _cr
+        end
+        for ip in ipdescent1:ipdescentn
+            missions_vec[im].points[ip].engine.TSFC = _d
+        end
+    end
 
 else #unrecognized input
     @warn("The engine type is not recognized")
@@ -1099,7 +1181,10 @@ elseif compare_strings(propsys,"fuel_cell_with_ducted_fan")
     enginecalc! = calculate_fuel_cell_with_ducted_fan!
     engineweight! = fuel_cell_with_ducted_fan_weight!
     enginemodel = TASOPT.engine.FuelCellDuctedFan(modelname, enginecalc!, engineweightname, engineweight!, eng_has_BLI_cores)
-    pare[iePfanmax,:,:] .= 20e6
+    # tasopt-j9l.45.14.4: bare pare write removed; typed state is the source of truth.
+    for im in 1:nmisx, ip in 1:iptotal
+        missions_vec[im].points[ip].engine.Pfanmax = 20e6
+    end
 
     fcdata = TASOPT.engine.FuelCellDuctedFanData(2)
 
@@ -1115,9 +1200,6 @@ elseif compare_strings(propsys,"fuel_cell_with_ducted_fan")
     fcdata.thickness_anode  = 250e-6
     fcdata.thickness_cathode  = 250e-6
     fcdata.design_voltage = 200.0
-    pare[ieRadiatorepsilon,:,:] .= 0.7
-    pare[ieRadiatorMp,:,:] .= 0.12
-    pare[ieDi,:,:] .= 0.4
 
     para[iaROCdes, ipclimb1:ipclimbn,:] .= 500 * ft_to_m / 60
     engdata = fcdata
@@ -1147,7 +1229,7 @@ if "HeatExchangers" in keys(prop) && !isempty(prop["HeatExchangers"])
     
     has_recirculation = read_input("has_recirculation", HEx, dHEx)
     recircT = Temp(read_input("recirculation_temperature", HEx, dHEx))
-    pare[ieDi, :, :] .= Distance(read_input("core_inner_diameter", HEx, dHEx))
+    HX_Di = Distance(read_input("core_inner_diameter", HEx, dHEx))
     HXmaxL = Distance(read_input("maximum_heat_exchanger_length", HEx, dHEx))
     
     PreCorder = read_input("precooler_order", HEx, dHEx)
@@ -1183,7 +1265,7 @@ if "HeatExchangers" in keys(prop) && !isempty(prop["HeatExchangers"])
                 push!(ε_des, all_eps[ind])
         end
     end
-    nmis = size(pare)[3]
+    nmis = nmisx
             
     for (i,HXtype) in enumerate(HXtypes)
         #Create heat exchanger struct
@@ -1194,6 +1276,7 @@ if "HeatExchangers" in keys(prop) && !isempty(prop["HeatExchangers"])
         HX.design_Mach = Mp_in[i]
         HX.added_mass_fraction = HX_add_mass
         HX.maximum_length = HXmaxL
+        HX.Di = HX_Di
         if i == 1 #For first HX
             HX.has_recirculation = has_recirculation
             HX.recirculation_temperature = recircT
@@ -1268,13 +1351,14 @@ ac_options = TASOPT.Options(
     
 #Create aircraft object
 ac = TASOPT.aircraft(name, description, ac_options,
-    parg, parm, para, pare, is_sized, 
-    fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear)
+    parg, parm, para, is_sized,
+    fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear,
+    missions_vec, 1)
 
 # ---------------------------------
 # Recalculate cabin length
 if calculate_cabin #Resize the cabin if desired, keeping deltas
-    @info "Fuselage and stabilizer layouts have been overwritten; deltas will be maintained."
+    @debug "Fuselage and stabilizer layouts have been overwritten; deltas will be maintained."
     update_fuse_for_pax!(ac) #update fuselage dimensions
 end
 

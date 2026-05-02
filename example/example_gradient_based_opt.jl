@@ -7,20 +7,20 @@ include(__TASOPTindices__)
 # Set relative tolerance for Finite difference method
 epsilon = 1e-5
 
-# Set design variables
+# Set design variables (parg/para params and typed struct fields supported by format_params)
+# Engine parameters (e.g. Tt4, pif) use typed EngineState — set directly in the
+# objective/gradient functions via ac.missions[1].points[ip].engine.Tt4 etc.
 input_params = [
-    :(ac.parg[igAR]), 
+    :(ac.wing.layout.AR),
     :(ac.para[iaCL,ipcruise1:ipcruise2,1]),
-    :(ac.parg[igsweep]),
-    :(ac.pare[ieTt4, ipcruise1:ipcruise2, 1]),
-    :(ac.pare[iepif, ipcruise1, 1]) ,
+    :(ac.wing.layout.sweep),
 ]
 params = map(p -> TASOPT.format_params(TASOPT.expr_to_string(p)), input_params)
 
-# Set box constraints
-lower      = [9.0 , 0.53, 25.0, 1400.0, 1.25]
-upper      = [11.0, 0.60, 30.0, 1650.0, 2.0 ] 
-initial    = [10.5, 0.57, 26.0, 1580.0, 1.685]
+# Set box constraints  (AR, CL, sweep)
+lower   = [9.0 , 0.53, 25.0]
+upper   = [11.0, 0.60, 30.0]
+initial = [10.5, 0.57, 26.0]
 
 # Load default model
 default_model = load_default_model() 
@@ -45,7 +45,7 @@ end
 
 function tt3_fn(ac)
     maxtt3 = 900
-    return maximum(ac.pare[ieTt3, :, 1])/maxtt3
+    return maximum(p.engine.Tt3 for p in ac.missions[1].points)/maxtt3
 end
 
 # Create an array that stores above functions
@@ -57,11 +57,14 @@ con_f_arr = [
 # Function that sizes aircraft and returns both objective value and constraint values
 function sizing_ac(x::T...) where {T<:Real}
     ac = deepcopy(default_model)
-    # Set params
+    # Set parg/para/struct params via generic API
     for (i,x_i) in enumerate(x)
         field_path, index = params[i]
         TASOPT.setNestedProp!(ac, field_path, x_i, index)
     end
+    # Engine design parameters use typed EngineState — set directly, e.g.:
+    #   ac.missions[1].points[ipcruise1].engine.Tt4 = 1580.0
+    #   ac.missions[1].points[ipcruise1].engine.pif = 1.685
 
     try
         size_aircraft!(ac,printiter=false)
@@ -70,17 +73,20 @@ function sizing_ac(x::T...) where {T<:Real}
         println("size_aircraft! FAILED")
         return [Inf for i in 1:length(con_f_arr)]
     end
-    
+
 end
 
 # Function that uses TASOPT Sensitivity module to get Finite difference of both objective and constraints
 function gradient_all(x::T...) where {T<:Real}
     ac = deepcopy(default_model)
-    # Set params
+    # Set parg/para/struct params via generic API
     for (i,x_i) in enumerate(x)
         field_path, index = params[i]
         TASOPT.setNestedProp!(ac, field_path, x_i, index)
     end
+    # Engine design parameters use typed EngineState — set directly, e.g.:
+    #   ac.missions[1].points[ipcruise1].engine.Tt4 = 1580.0
+    #   ac.missions[1].points[ipcruise1].engine.pif = 1.685
     return TASOPT.get_sensitivity(input_params; model_state=ac, eps=epsilon, optimizer=true, f_out_fn=con_f_arr)
 end
 

@@ -49,7 +49,7 @@ function CostEst(pari, parg, pare, parm, parpt, prod_Q)
     # a modified OEW (in kg) that assigns more weight to systems with a higher cost per pound
     # based on methods using in Markish (2000), with componenent weights determined from data for a 777-200
     #println(Wmod)
-    Vmax = maximum(pare[ieu0,:]) * 3.6 #maximum velocity (km/h)
+    Vmax = NaN  # TODO: update CostEst to typed EngineState before using (was pare[ieu0,:] * 3.6)
     #println(Vmax)
     Npax =  parm[imWpay]/215/lbf_to_N #number of pax
     P_hp = parpt[ipt_Ptshaft]/745.7 #turboshaft gas turbine engine power [hp]
@@ -63,8 +63,7 @@ function CostEst(pari, parg, pare, parm, parpt, prod_Q)
     # c = 7.36953400e-02
     # d = -1.50392850e+01
     # EINOx = P3^0.4*(a*T3^3 + b*T3^2 + c*T3 +d) #for RQL combustor on CFM56
-    # mdotf_max = maximum(pare[iemdotf,:])
-    # mdot_nox = EINOx*mdotf_max
+    # mdot_nox = EINOx*mdotf_max  # TODO: compute from typed EngineState
     # life_nox = mdot_nox*8000*3.6 #in tons, using lifetime value in Sorrels 2014
 
     PPI = 242.8/144.8 #aerospace producer price index ratio from 1999 to 2020 (from US BLS)

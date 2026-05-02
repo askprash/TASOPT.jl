@@ -20,7 +20,7 @@ function stickfig(ac::aircraft; plot_obj = nothing, label_fs = 16,
     end
 
     # Unpack aircraft components
-    parg, parm, para, pare, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac,1) #imission = 1 
+    parg, parm, para, options, fuse, fuse_tank, wing, htail, vtail, engine = unpack_ac(ac,1) #imission = 1
 
     # Wing
         co = wing.layout.root_chord
@@ -615,7 +615,7 @@ weight and drag buildup stacked bar charts to present results.
 """
 function plot_details(ac::aircraft; imission::Int=1)
 
-    parg, parm, para, pare, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
+    parg, parm, para, options, fuselage, fuse_tank, wing, htail, vtail, engine, landing_gear = unpack_ac(ac, imission)
 
   ## Gather data to be plotted
     # Drag build-up for subplot 2
@@ -672,10 +672,7 @@ function plot_details(ac::aircraft; imission::Int=1)
     # For subplot 3
     h     = [para[iaalt,ipclimb1:ipcruisen]; 0.0]./ft_to_m./1000 # show in 1000s of ft.
     R     = [para[iaRange,ipclimb1:ipcruisen]; para[iaRange, ipdescentn]]./nmi_to_m
-    deNOx = pare[iedeNOx, :]
     fracW = [para[iafracW, ipclimb1:ipcruisen]; para[iafracW, ipdescentn]]
-    mdotf = pare[iemdotf, :]
-    mdotH2O = pare[iemdotf, :].*9.0
     gamV = [para[iagamV, ipclimb1:ipcruisen]; para[iagamV, ipdescentn]]
 
     bar_width = 0.2
@@ -1082,11 +1079,13 @@ function PayloadRange(ac_og::TASOPT.aircraft;
 
     #Duplicate design mission as second aircraft, which will be modified
     parm = cat(ac_og.parm[:,1], ac_og.parm[:,1], dims=2)
-    pare = cat(ac_og.pare[:,:,1], ac_og.pare[:,:,1], dims=3)
     para = cat(ac_og.para[:,:,1], ac_og.para[:,:,1], dims=3)
+    # Duplicate typed missions so fly_mission!(ac, 2) can access typed engine state.
+    missions = [deepcopy(ac_og.missions[1]), deepcopy(ac_og.missions[1])]
     ac = aircraft(ac_og.name, ac_og.description,
-    ac_og.options, ac_og.parg, parm, para, pare, [true], 
-    ac_og.fuselage, ac_og.fuse_tank, ac_og.wing, ac_og.htail, ac_og.vtail, ac_og.engine, ac_og.landing_gear)
+    ac_og.options, ac_og.parg, parm, para, [true],
+    ac_og.fuselage, ac_og.fuse_tank, ac_og.wing, ac_og.htail, ac_og.vtail, ac_og.engine, ac_og.landing_gear,
+    missions)
 
     for HX in ac.engine.heat_exchangers
         HX.HXgas_mission = cat(HX.HXgas_mission[:,1], HX.HXgas_mission[:,1], dims=2)
