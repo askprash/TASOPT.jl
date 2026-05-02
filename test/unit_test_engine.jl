@@ -4777,4 +4777,95 @@ isGradient = false
         @test (savefig(p_full, tmp_full); isfile(tmp_full))
 
     end  # engine_plots
+
+    @testset "SizingResult parametric type (tasopt-eac.13)" begin
+        # Verify that SizingResult{T} accepts both Float64 and ForwardDiff.Dual values.
+        # This guards the AD contract: the struct must not hard-wire Float64 so that a
+        # caller differentiating through tfsize! can propagate Dual values end-to-end.
+
+        # ── helper: build a SizingResult with a given numeric type ─────────────
+        function make_sizing_result(v)
+            TASOPT.engine.SizingResult(
+                [v, v, v, v], [v, v, v, v],   # epsrow, Tmrow
+                v, v, v, v, v,                  # TSFC, Fsp, hfuel, ff, mcore
+                # st0
+                v, v, v, v, v,
+                # st12
+                v, v, v, v, v,
+                # st2a
+                v, v, v, v, v,
+                # st2ac
+                v, v, v, v, v,
+                # st2
+                v, v, v, v, v,
+                # st13
+                v, v, v, v, v,
+                # st25
+                v, v, v, v, v,
+                # st25c
+                v, v, v, v, v,
+                # st3
+                v, v, v, v, v,
+                # st4 (no Tt4 — it's an INPUT)
+                v, v, v, v,
+                # st41
+                v, v, v, v, v,
+                # st45
+                v, v, v, v, v,
+                # st5
+                v, v, v, v, v,
+                # st8
+                v, v, v, v, v,
+                # st18
+                v, v, v, v, v,
+                # u0
+                v,
+                # station 2 statics
+                v, v, v, v, v, v,
+                # station 25 statics
+                v, v, v, v, v, v,
+                # station 5 statics
+                v, v, v, v, v, v,
+                # station 6 statics
+                v, v, v, v, v, v,
+                # station 7 statics
+                v, v, v, v, v, v,
+                # station 8 statics
+                v, v, v, v, v, v,
+                # offtake
+                v, v,
+                # polytropic losses
+                v, v, v, v, v,
+                # adiabatic efficiencies
+                v, v, v, v, v,
+                # convergence flag (Bool — not parameterised)
+                true
+            )
+        end
+
+        SR = TASOPT.engine.SizingResult
+
+        # Float64 baseline
+        r64 = make_sizing_result(1.0)
+        @test r64 isa SR{Float64}
+        @test r64.TSFC === 1.0
+        @test r64.Lconv === true
+        @test eltype(r64.epsrow) === Float64
+
+        # Float32 — struct must accept any Real subtype
+        r32 = make_sizing_result(Float32(1.0))
+        @test r32 isa SR{Float32}
+        @test r32.TSFC === Float32(1.0)
+        @test eltype(r32.epsrow) === Float32
+
+        # ForwardDiff.Dual — the primary AD use-case
+        d = ForwardDiff.Dual(1.0, 0.1)   # value=1.0, partial=0.1
+        rd = make_sizing_result(d)
+        @test rd isa SR{<:ForwardDiff.Dual}
+        @test ForwardDiff.value(rd.TSFC) === 1.0
+        @test ForwardDiff.partials(rd.TSFC)[1] === 0.1
+        @test eltype(rd.epsrow) <: ForwardDiff.Dual
+        # Bool convergence flag is unaffected by numeric type
+        @test rd.Lconv === true
+    end  # SizingResult parametric type
 end

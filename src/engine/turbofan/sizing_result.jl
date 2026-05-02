@@ -1,12 +1,17 @@
 """
-    SizingResult
+    SizingResult{T<:Real}
 
-Named container for the outputs of `tfsize!`.
+Named container for the outputs of `tfsize!`, parametric on the numeric type `T`.
 
 Fields correspond 1-to-1 to the positional tuple elements previously returned by
 `tfsize!`, in the same order.  Replacing the 50-variable positional destructure
 with named field access eliminates silent mismatch between the return position and
 the caller's variable name.
+
+The type parameter `T` tracks the element type of all thermodynamic scalars and
+the cooling arrays.  `T = Float64` in normal operation; `T = ForwardDiff.Dual{...}`
+when the caller differentiates through `tfsize!` via forward-mode AD.  The
+convergence flag `Lconv::Bool` is non-numeric and is excluded from `T`.
 
 Station naming convention mirrors the `EngineState` flow-station names (st0, st2,
 st25, st3, st4, st41, st45, st5, st8, st18, etc.).  The static-state group at
@@ -15,92 +20,92 @@ the suffix `_25s` to distinguish them from the station-25 total-state group abov
 
 See also: [`tfsize!`](@ref), [`tfcalc!`](@ref).
 """
-struct SizingResult
+struct SizingResult{T<:Real}
     # Cooling arrays
-    epsrow ::Vector{Float64}   # cooling flow fractions (ncrowx = 4 rows)
-    Tmrow  ::Vector{Float64}   # blade-row metal temperatures [K]
+    epsrow ::Vector{T}   # cooling flow fractions (ncrowx = 4 rows)
+    Tmrow  ::Vector{T}   # blade-row metal temperatures [K]
 
     # Thermodynamic performance scalars
-    TSFC  ::Float64   # thrust-specific fuel consumption [kg/N/s]
-    Fsp   ::Float64   # specific thrust [N/(kg/s)]
-    hfuel ::Float64   # fuel specific enthalpy [J/kg]
-    ff    ::Float64   # fuel-to-air ratio [—]
-    mcore ::Float64   # core mass flow [kg/s]
+    TSFC  ::T   # thrust-specific fuel consumption [kg/N/s]
+    Fsp   ::T   # specific thrust [N/(kg/s)]
+    hfuel ::T   # fuel specific enthalpy [J/kg]
+    ff    ::T   # fuel-to-air ratio [—]
+    mcore ::T   # core mass flow [kg/s]
 
     # Station 0 — freestream totals
-    Tt0 ::Float64; ht0 ::Float64; pt0 ::Float64; cpt0 ::Float64; Rt0 ::Float64
+    Tt0 ::T; ht0 ::T; pt0 ::T; cpt0 ::T; Rt0 ::T
 
     # Station 12 — fan-face outer totals
-    Tt12 ::Float64; ht12 ::Float64; pt12 ::Float64; cpt12 ::Float64; Rt12 ::Float64
+    Tt12 ::T; ht12 ::T; pt12 ::T; cpt12 ::T; Rt12 ::T
 
     # Station 2a — fan-face LPC totals
-    Tt2a ::Float64; ht2a ::Float64; pt2a ::Float64; cpt2a ::Float64; Rt2a ::Float64
+    Tt2a ::T; ht2a ::T; pt2a ::T; cpt2a ::T; Rt2a ::T
 
     # Station 2ac — pre-cooler exit totals
-    Tt2ac ::Float64; ht2ac ::Float64; pt2ac ::Float64; cpt2ac ::Float64; Rt2ac ::Float64
+    Tt2ac ::T; ht2ac ::T; pt2ac ::T; cpt2ac ::T; Rt2ac ::T
 
     # Station 2 — fan-face totals
-    Tt2 ::Float64; ht2 ::Float64; pt2 ::Float64; cpt2 ::Float64; Rt2 ::Float64
+    Tt2 ::T; ht2 ::T; pt2 ::T; cpt2 ::T; Rt2 ::T
 
     # Station 13 — fan exit totals
-    Tt13 ::Float64; ht13 ::Float64; pt13 ::Float64; cpt13 ::Float64; Rt13 ::Float64
+    Tt13 ::T; ht13 ::T; pt13 ::T; cpt13 ::T; Rt13 ::T
 
     # Station 25 — LPC exit totals
-    Tt2_5 ::Float64; ht2_5 ::Float64; pt2_5 ::Float64; cpt2_5 ::Float64; Rt2_5 ::Float64
+    Tt2_5 ::T; ht2_5 ::T; pt2_5 ::T; cpt2_5 ::T; Rt2_5 ::T
 
     # Station 25c — inter-cooler exit totals
-    Tt2_5c ::Float64; ht2_5c ::Float64; pt2_5c ::Float64; cpt2_5c ::Float64; Rt2_5c ::Float64
+    Tt2_5c ::T; ht2_5c ::T; pt2_5c ::T; cpt2_5c ::T; Rt2_5c ::T
 
     # Station 3 — HPC exit totals
-    Tt3 ::Float64; ht3 ::Float64; pt3 ::Float64; cpt3 ::Float64; Rt3 ::Float64
+    Tt3 ::T; ht3 ::T; pt3 ::T; cpt3 ::T; Rt3 ::T
 
     # Station 4 — combustor exit totals (Tt4 is an INPUT; only the derived outputs returned)
-    ht4 ::Float64; pt4 ::Float64; cpt4 ::Float64; Rt4 ::Float64
+    ht4 ::T; pt4 ::T; cpt4 ::T; Rt4 ::T
 
     # Station 41 — turbine inlet totals (after cooling mixing)
-    Tt4_1 ::Float64; ht4_1 ::Float64; pt4_1 ::Float64; cpt4_1 ::Float64; Rt4_1 ::Float64
+    Tt4_1 ::T; ht4_1 ::T; pt4_1 ::T; cpt4_1 ::T; Rt4_1 ::T
 
     # Station 45 — HPT exit totals
-    Tt4_5 ::Float64; ht4_5 ::Float64; pt4_5 ::Float64; cpt4_5 ::Float64; Rt4_5 ::Float64
+    Tt4_5 ::T; ht4_5 ::T; pt4_5 ::T; cpt4_5 ::T; Rt4_5 ::T
 
     # Station 5 — LPT exit totals
-    Tt5 ::Float64; ht5 ::Float64; pt5 ::Float64; cpt5 ::Float64; Rt5 ::Float64
+    Tt5 ::T; ht5 ::T; pt5 ::T; cpt5 ::T; Rt5 ::T
 
     # Station 8 — core nozzle throat totals
-    Tt8 ::Float64; ht8 ::Float64; pt8 ::Float64; cpt8 ::Float64; Rt8 ::Float64
+    Tt8 ::T; ht8 ::T; pt8 ::T; cpt8 ::T; Rt8 ::T
 
     # Station 18 — fan nozzle throat totals
-    Tt18 ::Float64; ht18 ::Float64; pt18 ::Float64; cpt18 ::Float64; Rt18 ::Float64
+    Tt18 ::T; ht18 ::T; pt18 ::T; cpt18 ::T; Rt18 ::T
 
     # Freestream velocity (updated for BLI)
-    u0 ::Float64
+    u0 ::T
 
     # Station 2 statics
-    T2 ::Float64; u2 ::Float64; p2 ::Float64; cp2 ::Float64; R2 ::Float64; A2 ::Float64
+    T2 ::T; u2 ::T; p2 ::T; cp2 ::T; R2 ::T; A2 ::T
 
     # Station 25 statics (tfsize! internal name: T2_5c/u2_5c/…; tfcalc! historically T2_5/u2_5/…)
-    T2_5 ::Float64; u2_5 ::Float64; p2_5 ::Float64; cp2_5 ::Float64; R2_5 ::Float64; A2_5 ::Float64
+    T2_5 ::T; u2_5 ::T; p2_5 ::T; cp2_5 ::T; R2_5 ::T; A2_5 ::T
 
     # Station 5/8 statics (core nozzle throat)
-    T5 ::Float64; u5 ::Float64; p5 ::Float64; cp5 ::Float64; R5 ::Float64; A5 ::Float64
+    T5 ::T; u5 ::T; p5 ::T; cp5 ::T; R5 ::T; A5 ::T
 
     # Station 6/9 statics (core nozzle exit)
-    T6 ::Float64; u6 ::Float64; p6 ::Float64; cp6 ::Float64; R6 ::Float64; A6 ::Float64
+    T6 ::T; u6 ::T; p6 ::T; cp6 ::T; R6 ::T; A6 ::T
 
     # Station 7/18 statics (fan nozzle throat)
-    T7 ::Float64; u7 ::Float64; p7 ::Float64; cp7 ::Float64; R7 ::Float64; A7 ::Float64
+    T7 ::T; u7 ::T; p7 ::T; cp7 ::T; R7 ::T; A7 ::T
 
     # Station 8/19 statics (fan nozzle exit)
-    T8 ::Float64; u8 ::Float64; p8 ::Float64; cp8 ::Float64; R8 ::Float64; A8 ::Float64
+    T8 ::T; u8 ::T; p8 ::T; cp8 ::T; R8 ::T; A8 ::T
 
     # Offtake discharge
-    u9 ::Float64; A9 ::Float64
+    u9 ::T; A9 ::T
 
     # Component polytropic loss fractions
-    epf ::Float64; eplc ::Float64; ephc ::Float64; epht ::Float64; eplt ::Float64
+    epf ::T; eplc ::T; ephc ::T; epht ::T; eplt ::T
 
     # Component adiabatic efficiencies
-    etaf ::Float64; etalc ::Float64; etahc ::Float64; etaht ::Float64; etalt ::Float64
+    etaf ::T; etalc ::T; etahc ::T; etaht ::T; etalt ::T
 
     # Convergence flag
     Lconv ::Bool
