@@ -758,7 +758,8 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
                         etalt = (ht5 - ht4_5) / (ht4_9i - ht4_5)
                         
                         Lconv = true
-                        return epsrow, Tmrow,
+                        return SizingResult(
+                        epsrow, Tmrow,
                         TSFC, Fsp, hfuel, ff, mcore,
                         Tt0, ht0, pt0, cpt0, Rt0,
                         Tt12, ht12, pt12, cpt12, Rt12,
@@ -785,7 +786,7 @@ function tfsize!(gee, M0, T0, p0, a0, M2, M2_5,
                         u9, A9,
                         epf, eplc, ephc, epht, eplt,
                         etaf, etalc, etahc, etaht, etalt,
-                        Lconv
+                        Lconv)
                   end
 
             end

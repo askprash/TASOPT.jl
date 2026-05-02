@@ -624,34 +624,7 @@ isGradient = false
         Δp_InterC = 0.0
         Δp_Regen = 0.0
 
-        epsrow, Tmrow,
-        TSFC, Fsp, hfuel, ff, mcore,
-        Tt0, ht0, pt0, cpt0, Rt0,
-        Tt18, ht18, pt18, cpt18, Rt18,
-        Tt19, ht19, pt19, cpt19, Rt19,
-        Tt19c, ht19c, pt19c, cpt19c, Rt19c,
-        Tt2, ht2, pt2, cpt2, Rt2,
-        Tt21, ht21, pt21, cpt21, Rt21,
-        Tt25, ht25, pt25, cpt25, Rt25,
-        Tt25c, ht25c, pt25c, cpt25c, Rt25c,
-        Tt3, ht3, pt3, cpt3, Rt3,
-        ht4, pt4, cpt4, Rt4,
-        Tt41, ht41, pt41, cpt41, Rt41,
-        Tt45, ht45, pt45, cpt45, Rt45,
-        Tt49, ht49, pt49, cpt49, Rt49,
-        Tt8, ht8, pt8, cpt8, Rt8,
-        Tt18, ht18, pt18, cpt18, Rt18,
-        u0,
-        T2, u2, p2, cp2, R2, A2,
-        T25c, u25c, p25c, cp25c, R25c, A25,
-        T5, u5, p5, cp5, R5, A5,
-        T6, u6, p6, cp6, R6, A6,
-        T7, u7, p7, cp7, R7, A7,
-        T8, u8, p8, cp8, R8, A8,
-        u9, A9,
-        epf, eplc, ephc, epht, eplt,
-        etaf, etalc, etahc, etaht, etalt,
-        Lconv = TASOPT.engine.tfsize!(gee, M0, T0, p0, a0, M2, M25,
+        r = TASOPT.engine.tfsize!(gee, M0, T0, p0, a0, M2, M25,
             Feng, Phiinl, Kinl, eng_has_BLI_cores,
             BPR, pif, pilc, pihc,
             pid, pib, pifn, pitn,
@@ -665,18 +638,16 @@ isGradient = false
             fc0, epht_fc,
             M4a, ruc,
             ncrowx, ncrow,
-            epsrow, Tmrow, 
+            epsrow, Tmrow,
             Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
-
-
-        @test etaf == 0.8539899545024271
-        @test etalc ==  0.8298895182207285
-        @test etahc == 0.8384795893726779
-        @test etaht ==  0.8978789812518558
-        @test etalt == 0.9191845671925591
-        @test Tmrow[1] ≈ 1119.1584455133655  rtol = 1e-10
+        @test r.etaf  == 0.8539899545024271
+        @test r.etalc == 0.8298895182207285
+        @test r.etahc == 0.8384795893726779
+        @test r.etaht == 0.8978789812518558
+        @test r.etalt == 0.9191845671925591
+        @test r.Tmrow[1] ≈ 1119.1584455133655 rtol = 1e-10
 
         if isGradient
             # AD
@@ -769,34 +740,7 @@ isGradient = false
         Tmrow = [1114.7762513333382, 1102.6358896742904, 1098.9326716275868, 1021.0788483883676]
 
 
-        epsrow, Tmrow,
-        TSFC, Fsp, hfuel, ff, mcore,
-        Tt0, ht0, pt0, cpt0, Rt0,
-        Tt18, ht18, pt18, cpt18, Rt18,
-        Tt19, ht19, pt19, cpt19, Rt19,
-        Tt19c, ht19c, pt19c, cpt19c, Rt19c,
-        Tt2, ht2, pt2, cpt2, Rt2,
-        Tt21, ht21, pt21, cpt21, Rt21,
-        Tt25, ht25, pt25, cpt25, Rt25,
-        Tt25c, ht25c, pt25c, cpt25c, Rt25c,
-        Tt3, ht3, pt3, cpt3, Rt3,
-        ht4, pt4, cpt4, Rt4,
-        Tt41, ht41, pt41, cpt41, Rt41,
-        Tt45, ht45, pt45, cpt45, Rt45,
-        Tt49, ht49, pt49, cpt49, Rt49,
-        Tt8, ht8, pt8, cpt8, Rt8,
-        Tt18, ht18, pt18, cpt18, Rt18,
-        u0,
-        T2, u2, p2, cp2, R2, A2,
-        T25c, u25c, p25c, cp25c, R25c, A25,
-        T5, u5, p5, cp5, R5, A5,
-        T6, u6, p6, cp6, R6, A6,
-        T7, u7, p7, cp7, R7, A7,
-        T8, u8, p8, cp8, R8, A8,
-        u9, A9,
-        epf, eplc, ephc, epht, eplt,
-        etaf, etalc, etahc, etaht, etalt,
-        Lconv = TASOPT.engine.tfsize!(gee, M0, T0, p0, a0, M2, M25,
+        r2 = TASOPT.engine.tfsize!(gee, M0, T0, p0, a0, M2, M25,
             Feng, Phiinl, Kinl, eng_has_BLI_cores,
             BPR, pif, pilc, pihc,
             pid, pib, pifn, pitn,
@@ -813,7 +757,7 @@ isGradient = false
             epsrow, Tmrow, Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
-        @test epsrow[1] ≈ 0.1303162243242347 rtol = 1e-10
+        @test r2.epsrow[1] ≈ 0.1303162243242347 rtol = 1e-10
 
     end
 

@@ -31,6 +31,7 @@ export write_sweep_toml, ENGINE_BASELINE_PATH, regenerate_engine_baseline
 export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
 export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
 export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
+export SizingResult
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!
 export DuctedFanState, pare_to_ducted_fan_state!
 export run_ducted_fan_design_point, run_ducted_fan_sweep
@@ -66,6 +67,7 @@ include("turbofan/compressor.jl")
 include("turbofan/splitter.jl")
 include("turbofan/nozzle.jl")
 include("turbofan/tfcool.jl")
+include("turbofan/sizing_result.jl")
 include("turbofan/tfsize.jl")
 include("thrust_from_ROC.jl")
 include("gaussn.jl")
