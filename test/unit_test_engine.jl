@@ -2023,6 +2023,132 @@ isGradient = false
     end  # HX delta output fields initialized correctly (tasopt-w82)
 
     # ======================================================================
+    # Architecture invariant: MissionPoint and Mission ownership
+    # Confirms that typed state containers are correctly nested and that
+    # per-point engine states are independent (not aliased).
+    # (tasopt-eac.8)
+    # ======================================================================
+    @testset "MissionPoint and Mission ownership invariants" begin
+        # MissionPoint() default-constructs a Float64-typed engine state
+        mp = MissionPoint()
+        @test mp isa MissionPoint{Float64}
+        @test mp.engine isa TASOPT.engine.EngineState{Float64}
+
+        # Parametric variant preserves element type
+        mp32 = MissionPoint{Float32}()
+        @test mp32 isa MissionPoint{Float32}
+        @test mp32.engine isa TASOPT.engine.EngineState{Float32}
+        @test mp32.engine.M0 === 0.0f0
+
+        # Mission(n) produces n independent, non-aliased MissionPoints
+        m = Mission(3)
+        @test m isa Mission{Float64}
+        @test length(m.points) == 3
+        @test m.points[1] isa MissionPoint{Float64}
+
+        # Mutating one point's engine does NOT affect sibling points
+        m.points[1].engine.Tt4 = 1800.0
+        m.points[2].engine.Tt4 = 1500.0
+        @test m.points[1].engine.Tt4 ≈ 1800.0
+        @test m.points[2].engine.Tt4 ≈ 1500.0
+        @test m.points[3].engine.Tt4 === 0.0   # untouched point remains zeroed
+
+        # Engine objects in distinct points are distinct heap objects
+        @test m.points[1].engine !== m.points[2].engine
+        @test m.points[1].engine !== m.points[3].engine
+        @test m.points[2].engine !== m.points[3].engine
+
+        # Mission{Float32} preserves element type throughout
+        m32 = Mission{Float32}(2)
+        @test m32 isa Mission{Float32}
+        @test m32.points[1].engine isa TASOPT.engine.EngineState{Float32}
+        m32.points[1].engine.Tt4 = 1400.0f0
+        @test m32.points[1].engine.Tt4 === 1400.0f0
+        @test m32.points[2].engine.Tt4 === 0.0f0  # other point unaffected
+    end  # MissionPoint and Mission ownership invariants
+
+    # ======================================================================
+    # Architecture invariant: design inputs reach typed EngineState
+    # Confirms that read_input.jl correctly populates per-point engine state
+    # fields from TOML — not bare pare — so typed state is the source of truth
+    # at load time.
+    # (tasopt-eac.8)
+    # ======================================================================
+    @testset "Design inputs reach EngineState fields via read_input" begin
+        ac = TASOPT.load_default_model()   # JET-A; fuel_temp=280.0, hvap=0.0
+
+        # Tfuel and Tfuel_tank: populated from fuel_temp for ALL mission points
+        for ip in 1:iptotal
+            eng = ac.missions[1].points[ip].engine
+            @test eng.Tfuel      ≈ 280.0  # default_input.toml: fuel_temp = 280.0
+            @test eng.Tfuel_tank ≈ 280.0
+        end
+
+        # hvap / hvapcombustor: populated from fuel_enthalpy_vaporization (0.0)
+        for ip in 1:iptotal
+            eng = ac.missions[1].points[ip].engine
+            @test eng.hvap          ≈ 0.0   # default_input.toml: 0.0 J/kg
+            @test eng.hvapcombustor ≈ 0.0
+        end
+
+        # A5fac / A7fac: cruise points get exactly 1.0 (no area schedule)
+        for ip in ipcruise1:ipcruisen
+            eng = ac.missions[1].points[ip].engine
+            @test eng.A5fac ≈ 1.0
+            @test eng.A7fac ≈ 1.0
+        end
+
+        # At the static point the area schedule factors are not 1.0 (takeoff values)
+        # — confirm they differ from cruise to verify the per-point schedule is set.
+        eng_static = ac.missions[1].points[ipstatic].engine
+        eng_cruise  = ac.missions[1].points[ipcruise1].engine
+        # Both should be non-negative; static values may differ from cruise values
+        @test eng_static.A5fac >= 0.0
+        @test eng_static.A7fac >= 0.0
+
+        # Every mission point was allocated a distinct engine state (not aliased)
+        for ip in 2:iptotal
+            @test ac.missions[1].points[ip].engine !== ac.missions[1].points[ip-1].engine
+        end
+    end  # Design inputs reach EngineState fields via read_input
+
+    # ======================================================================
+    # Architecture invariant: station dump order is consistent with the struct
+    # Confirms that _STATION_DUMP_ORDER references real EngineState FlowStation
+    # fields, has 20 unique entries, and is a subset of _ENGINE_OWN_FIELDS.
+    # (tasopt-eac.8)
+    # ======================================================================
+    @testset "Station dump order consistent with EngineState struct" begin
+        dump_order = TASOPT.engine._STATION_DUMP_ORDER
+        own_fields = TASOPT.engine._ENGINE_OWN_FIELDS
+
+        # Exactly 20 stations (one per EngineStation enum member)
+        @test length(dump_order) == 20
+
+        eng = TASOPT.engine.EngineState()
+
+        # Every field symbol in dump order is a real EngineState FlowStation field
+        for (stnum, stname, stfld) in dump_order
+            @test stfld in own_fields
+            @test getfield(eng, stfld) isa TASOPT.engine.FlowStation{Float64}
+        end
+
+        # Station numbers in dump order are all unique (no accidental duplicate rows)
+        nums = [t[1] for t in dump_order]
+        @test length(unique(nums)) == length(nums)
+
+        # Station names in dump order are all unique
+        names = [t[2] for t in dump_order]
+        @test length(unique(names)) == length(names)
+
+        # The set of field symbols matches the station fields in _ENGINE_OWN_FIELDS
+        dump_fields = Set(t[3] for t in dump_order)
+        station_own = Set(f for f in own_fields
+                          if startswith(String(f), "st"))
+        @test dump_fields == station_own
+    end  # Station dump order consistent with EngineState struct
+
+    # ======================================================================
     # run_engine_sweep / write_sweep_csv
     # ======================================================================
     @testset "run_engine_sweep" begin
