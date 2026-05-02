@@ -10,13 +10,21 @@ using NLsolve
 using LinearAlgebra
 using Random
 
+# ── Public API: typed state and engine entry points ──────────────────────────
+# These are the intended extension surface for aircraft sizing and analysis.
+# Component equation kernels (compressor_pratd, turbine_efficiency, etc.) are
+# exported so callers can assemble custom Newton systems; low-level gas functions
+# and turbomachinery map helpers are internal — access them as engine.gassum etc.
 export Engine
 
-export CalcMode, CoolingOpt, EngineStation, station_number, station_description
+# State types and configuration
+export CalcMode, CoolingOpt, EngineStation
 export DesignState
 export GasState, AIR_ALPHA
 export FlowStation
 export EngineState
+
+# Component types and their Newton-kernel entry points
 export Inlet, inlet_diffuser!, inlet_bli_mixing!
 export Combustor, combustor_exit!, combustor_burnd
 export Compressor, compressor_efficiency, compressor_exit!, compressor_Nb_residual, compressor_pratd
@@ -25,23 +33,43 @@ export Splitter, bypass_ratio
 export Nozzle, nozzle_exit, nozzle_massflow_residual, nozzle_gross_thrust
 export TurbineMap, Turbine, turbine_efficiency, turbine_delhd, turbine_exit!, turbine_mb_residual
 export dump_stations
+
+# Turbofan calculation entry points and results
+export tfwrap!, tfcalc!, mcool
+export tfweightwrap!, tfweight, tfsize!, tfoper!
+export SizingResult
+
+# Turbofan design-point and sweep runners
 export run_engine_design_point
 export SweepResult, run_engine_sweep, write_sweep_csv
 export write_sweep_toml, ENGINE_BASELINE_PATH, regenerate_engine_baseline
-export set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
-export tfwrap!, tfcalc!, mcool, Tmcalc, gas_tset, gaschem
-export tfweightwrap!, tfweight, ddct, ddat, gct, gat, tfsize!, Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap, tfoper!
-export SizingResult
+
+# Ducted-fan entry points and results
 export ductedfanoper!, ductedfansize!, ductedfancalc!, ductedfanweight, fuel_cell_with_ducted_fan_weight!
 export DuctedFanState, pare_to_ducted_fan_state!
 export run_ducted_fan_design_point, run_ducted_fan_sweep
 export write_ducted_fan_sweep_toml, DUCTED_FAN_BASELINE_PATH, regenerate_ducted_fan_baseline
 
-export gassum, gassumd, gas_prat, gas_delh, gas_delhd, gas_burn, gas_burnd, gas_mach, gas_machd, gas_mass, gasfuel, fuelLHV, gasPr
+# Gas thermodynamics utilities used outside the engine module
+export fuelLHV, gasPr
+
+# Heat-exchanger public API
 export hxdesign!, radiator_design!, hxweight, resetHXs, HXOffDesign!, RadiatorOffDesign!, check_HX_overwriting
+
+# Fuel-cell / ducted-fan coupling
 export calculate_fuel_cell_with_ducted_fan!, ductedfanweight!
 
 export check_engine_convergence_failure
+
+# ── Internal symbols (not exported) ──────────────────────────────────────────
+# Access via engine.<symbol> when needed from tests or scripts:
+#   station_number, station_description
+#   set_total_from_Tt!, set_static_from_M!, apply_pratio_from!, apply_delh_from!
+#   Tmcalc, gas_tset, gaschem
+#   gassum, gassumd, gas_prat, gas_delh, gas_delhd, gas_burn, gas_burnd
+#   gas_mach, gas_machd, gas_mass, gasfuel
+#   ddct, ddat, gct, gat
+#   Ncmap, ecmap, Ncmap1, ecmap1, etmap, Pimap
 
 import ..TASOPT: __TASOPTindices__, __TASOPTroot__, StructuralAlloy, unpack_ac, compare_strings
 import ..TASOPT.atmosphere: atmos
