@@ -62,6 +62,7 @@ Helper function to unpack aircraft physical components.
     - `wing::Wing` : wing object
     - `htail::Tail` : horizontal stabilizer object
     - `vtail::Tail` : vertical stabilizer object
+    - `engine::Engine` : engine object
     - `landing_gear::LandingGear`: landing gear object
 """
 function unpack_ac_components(ac)
@@ -72,6 +73,7 @@ function unpack_ac_components(ac)
     wing = ac.wing
     htail = ac.htail
     vtail = ac.vtail
+    engine = ac.engine
     landing_gear = ac.landing_gear
 
     return parg, options, fuse, fuse_tank, wing, htail, vtail, engine, landing_gear

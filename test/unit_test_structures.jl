@@ -498,6 +498,10 @@ Rmin = TASOPT.structures.find_minimum_radius_for_seats_per_row(5, ac_test)
 #Test landing gear sizing
 ac = load_default_model()
 
+@testset "unpack_ac_components returns the aircraft's engine" begin
+    @test TASOPT.unpack_ac_components(ac)[8] === ac.engine
+end
+
 #Test simple sizing based on mass fractions
 WMTO = 80e4
 ac.parg[igWMTO] = WMTO
