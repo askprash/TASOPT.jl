@@ -310,6 +310,32 @@ end
     return props.s0, cp / t, props.h, cp, cp, _cp_T(gas, t), IdealGasThermo.R(gas)
 end
 
+# Lower temperature limit of the NASA-9 fits in IdealGasThermo.
+const _IGT_TMIN = 200.0
+
+# H2 below _IGT_TMIN (LH2 coolant, cold H2 fuel): use the tabulated data in
+# gasdata.jl (20.369-200 K), shifted so that h and s equal the NASA-9 values
+# at _IGT_TMIN. h and s are then continuous at the switch; cp jumps by 0.6%.
+const _H2_TAB_TMIN = get_thermo(4124.9, 0.0, _IGT_TMIN, H2.t, H2.tl, H2.cp, H2.cpt, H2.h, H2.s)
+const _H2_IGT_TMIN = IdealGasThermo.props(_IGT_H2, _IGT_TMIN)
+
+@inline function _h2_table(t)
+    s, h, cp, _ = get_thermo(4124.9, 0.0, t, H2.t, H2.tl, H2.cp, H2.cpt, H2.h, H2.s)
+    return s - _H2_TAB_TMIN[1] + _H2_IGT_TMIN.s0, h - _H2_TAB_TMIN[2] + _H2_IGT_TMIN.h, cp
+end
+
+function _h2_cryo_thermo(t)
+    s, h, cp = _h2_table(t)
+    return s, h, cp, IdealGasThermo.R(_IGT_H2)
+end
+
+function _h2_cryo_thermod(t)
+    s, h, cp = _h2_table(t)
+    dt = 0.01
+    cp_t = (_h2_table(t + dt)[3] - _h2_table(t - dt)[3]) / (2 * dt)
+    return s, cp / t, h, cp, cp, cp_t, IdealGasThermo.R(_IGT_H2)
+end
+
 function gasfund(igas, t)
     if (igas == 1)
         return _fast_thermod(_IGT_N2, t)
@@ -334,7 +360,7 @@ function gasfund(igas, t)
     elseif (igas == 24)
         return _fast_thermod(_IGT_JETA, t)
     elseif (igas == 40)
-        return _fast_thermod(_IGT_H2, t)
+        return t < _IGT_TMIN ? _h2_cryo_thermod(t) : _fast_thermod(_IGT_H2, t)
     else
         error("GASFUN: undefined gas index: ", igas, " & code=0")
     end
@@ -351,4 +377,4 @@ gas_C3H8(t1) = _fast_thermo(_IGT_C3H8, t1)
 gas_C4H10(t1) = _fast_thermo(_IGT_C4H10, t1)
 gas_C8H18(t1) = _fast_thermo(_IGT_C8H18, t1)
 gas_C14H30(t1) = _fast_thermo(_IGT_JETA, t1)
-gas_H2(t1) = _fast_thermo(_IGT_H2, t1)
+gas_H2(t1) = t1 < _IGT_TMIN ? _h2_cryo_thermo(t1) : _fast_thermo(_IGT_H2, t1)
