@@ -83,6 +83,44 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         end
     end
 
+    @testset "H2 below 200 K (LH2 coolant range)" begin
+        # NASA-9 fits start at 200 K. Below that, H2 must follow the legacy
+        # tabulated data (20.369-200 K), which the heat-exchanger models rely
+        # on for LH2 coolant and the burner for cold H2 fuel.
+        igas = 40
+        Tlow = 200.0
+        _, _, h_n200, _, _, _ = E.gasfun(igas, Tlow)
+        s_n200 = E.gasfun(igas, Tlow)[1]
+        s_o200, _, h_o200, _, _, _ = L.gasfun(igas, Tlow)
+        for T in (20.369, 25.0, 40.0, 60.0, 100.0, 150.0, 190.0)
+            s_n, s_tn, h_n, h_tn, cp_n, r_n = E.gasfun(igas, T)
+            s_o, _, h_o, _, cp_o, _ = L.gasfun(igas, T)
+            @test cp_n ≈ cp_o rtol = 1e-3
+            @test abs((h_n - h_n200) - (h_o - h_o200)) < 1e-3 * cp_o * T
+            @test abs((s_n - s_n200) - (s_o - s_o200)) < 1e-3 * r_n
+            @test h_tn == cp_n
+            @test s_tn ≈ cp_n / T rtol = 1e-14
+        end
+        # h and s are continuous where the data source switches
+        ε = 1e-9
+        _, _, h_lo, _, cp_lo, _ = E.gasfun(igas, Tlow - ε)
+        _, _, h_hi, _, cp_hi, _ = E.gasfun(igas, Tlow + ε)
+        @test abs(h_hi - h_lo) < 1e-6 * cp_hi
+        @test abs(E.gasfun(igas, Tlow + ε)[1] - E.gasfun(igas, Tlow - ε)[1]) < 1e-6
+        # gasfund (summed by gassum/gassumd) agrees with gasfun below 200 K,
+        # and its dcp/dT matches a central difference of cp
+        for T in (30.0, 120.0)
+            s, s_t, h, h_t, cp, cp_t, r = E.gasfund(igas, T)
+            @test (s, s_t, h, h_t, cp, r) == E.gasfun(igas, T)
+            @test cp_t ≈ (E.gasfun(igas, T + 0.01)[5] - E.gasfun(igas, T - 0.01)[5]) / 0.02 rtol = 1e-3
+        end
+        # enthalpy inversion works in the cryogenic range
+        for T in (25.0, 60.0, 150.0)
+            hT = E.gasfun(igas, T)[3]
+            @test E.gas_tset_single(igas, hT, 100.0) ≈ T rtol = 1e-8
+        end
+    end
+
     @testset "Temperature derivatives are consistent" begin
         alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
         n = length(alpha)
