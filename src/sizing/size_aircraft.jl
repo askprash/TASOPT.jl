@@ -202,10 +202,12 @@ function _size_aircraft!(ac; itermax=35,
         Δp = parg[igpcabin] - pare[iep0, ipcruise1] * wcd
         parg[igdeltap] = Δp
 
+        # Fuel weight carried aft for fuselage sizing; set below for fuselage tanks
+        Waftfuel = 0.0
+
        # Engine weight mounted on tailcone, if any
         if options.opt_engine_location == EngineLocation.Wing # Eng on "wing" or aft "fuselage"
             Wengtail = 0.0
-            Waftfuel = 0.0
         elseif options.opt_engine_location == EngineLocation.Fuselage
             Wengtail = parg[igWeng]
         end

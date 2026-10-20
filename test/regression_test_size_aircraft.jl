@@ -131,3 +131,15 @@ end
     @test ac.parm[imPFEI] ≈ 1.0042440592543385 rtol=1e-4
 
 end
+
+@testset "Fuselage-mounted engines with wing fuel" verbose=true begin
+    # No shipped input uses this combination; it used to throw UndefVarError
+    # because the aft-fuel weight passed to fusew! was never assigned.
+    ac = load_default_model()
+    ac.options.opt_engine_location = EngineLocation.Fuselage
+    @test ac.options.has_wing_fuel
+
+    size_aircraft!(ac; printiter=false)
+
+    @test isfinite(ac.parm[imPFEI]) && ac.parm[imPFEI] > 0.0
+end
