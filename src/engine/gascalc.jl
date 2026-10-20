@@ -139,7 +139,8 @@ end # gassum
 """
     gassumd(alpha, n, t)
     
-Same as gassum, but also returns cp_t
+Same as gassum, but also returns cp_t (the analytic derivative of the
+NASA-9 cp polynomial; the legacy table version used a finite difference).
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
@@ -153,8 +154,8 @@ Same as gassum, but also returns cp_t
     - `h`: complete enthalpy function h[T]
     - `h_t`: dh/dT
     - `cp`: specific heat cp[T]
-    - `r`: ideal-gas constant R
     - `cp_t`: dcp / dT
+    - `r`: ideal-gas constant R
 """
 function gassumd(alpha, n, t)
 
@@ -182,6 +183,26 @@ end # gassumd
 
 @inline _gas_state(p, t, h, s, cp, r) = (p = p, T = t, h = h, s = s, cp = cp, R = r)
 
+"""
+    gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
+
+Same calculation as [`gas_pratd`](@ref): the state after a polytropic process
+with pressure ratio `pratio` and polytropic efficiency `epol`, starting from
+`(po, to, ho, so, cpo, ro)` with fixed composition `alpha` (n constituents).
+Returns the result as two NamedTuples instead of a 25-element tuple, and
+leaves out the per-constituent composition partials (use
+[`gas_pressure_ratio_composition_direction`](@ref) for those).
+
+!!! details "🔃 Inputs and Outputs"
+    **Outputs:**
+    - `state`: `(p, T, h, s, cp, R)` at the end of the process
+    - `partials`: `(p_po, p_so, T_so, h_so, s_so, p_pratio, T_pratio,
+      h_pratio, s_pratio, p_epol, T_epol, h_epol, s_epol)`, where `x_y` is
+      ``\\partial x/\\partial y``
+
+Prints a message and returns `nothing` if the Newton iteration for T does not
+converge.
+"""
 function gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
       itmax = 10
       ttol = 0.000001
@@ -231,6 +252,24 @@ function gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, 
       println("To pratio =", to, pratio)
 end
 
+"""
+    gas_enthalpy_change_partials(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
+
+Same calculation as [`gas_delhd`](@ref): the state after adding the enthalpy
+`delh` with polytropic efficiency `epol`, starting from
+`(po, to, ho, so, cpo, ro)` with fixed composition `alpha` (n constituents).
+Returns two NamedTuples and leaves out the per-constituent composition
+partials (use [`gas_enthalpy_change_composition_direction`](@ref) for those).
+
+!!! details "🔃 Inputs and Outputs"
+    **Outputs:**
+    - `state`: `(p, T, h, s, cp, R)` at the end of the process
+    - `partials`: `(p_so, p_po, p_epol, p_ho, T_ho, h_ho, s_ho, p_delh,
+      T_delh, h_delh, s_delh)`, where `x_y` is ``\\partial x/\\partial y``
+
+Prints a message and returns `nothing` if the Newton iteration for T does not
+converge.
+"""
 function gas_enthalpy_change_partials(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
       itmax = 15
       ttol = 0.000001
@@ -371,12 +410,32 @@ end
       )
 end
 
+"""
+    gas_pressure_ratio_composition_direction(alpha, n, t, so, dalpha)
+
+Sensitivity of the end state of a pressure-ratio process
+([`gas_pressure_ratio_partials`](@ref)) to a change of composition in the
+direction `dalpha`, evaluated at the converged end temperature `t` with start
+entropy `so`. Equal to `sum(x_al .* dalpha)` for the per-constituent arrays
+`x_al` returned by [`gas_pratd`](@ref), without building those arrays.
+
+Returns `(p, T, h, s, cp, R)`; `p` is zero because the end pressure is
+`po*pratio` regardless of composition.
+"""
 function gas_pressure_ratio_composition_direction(alpha, n, t, so, dalpha)
       s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
       al = _gas_temperature_composition_direction(n, t, dalpha)
       return _pressure_ratio_composition_direction(al, s, s_t, h_t, cp_t, r, so)
 end
 
+"""
+    gas_pressure_ratio_composition_directions(alpha, n, t, so, d1, d2, d3, d4, d5, d6, d7)
+
+[`gas_pressure_ratio_composition_direction`](@ref) for seven directions at
+once, sharing one pass over the constituents. Returns a 7-tuple of
+`(p, T, h, s, cp, R)` NamedTuples. Seven is the number of operating
+variables whose composition sensitivities `tfoper!` needs.
+"""
 function gas_pressure_ratio_composition_directions(alpha, n, t, so, d1, d2, d3, d4, d5, d6, d7)
       s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
       al1, al2, al3, al4, al5, al6, al7 = _gas_temperature_composition_directions7(n, t, d1, d2, d3, d4, d5, d6, d7)
@@ -391,12 +450,31 @@ function gas_pressure_ratio_composition_directions(alpha, n, t, so, d1, d2, d3, 
       )
 end
 
+"""
+    gas_enthalpy_change_composition_direction(alpha, n, p, t, so, epol, dalpha)
+
+Sensitivity of the end state of an enthalpy-change process
+([`gas_enthalpy_change_partials`](@ref)) to a change of composition in the
+direction `dalpha`, evaluated at the converged end state `(p, t)` with start
+entropy `so` and polytropic efficiency `epol`. Equal to
+`sum(x_al .* dalpha)` for the per-constituent arrays `x_al` returned by
+[`gas_delhd`](@ref).
+
+Returns `(p, T, h, s, cp, R)`.
+"""
 function gas_enthalpy_change_composition_direction(alpha, n, p, t, so, epol, dalpha)
       s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
       al = _gas_temperature_composition_direction(n, t, dalpha)
       return _enthalpy_change_composition_direction(al, p, s, s_t, h_t, cp_t, r, so, epol)
 end
 
+"""
+    gas_enthalpy_change_composition_directions(alpha, n, p, t, so, epol, d1, d2, d3, d4, d5, d6, d7)
+
+[`gas_enthalpy_change_composition_direction`](@ref) for seven directions at
+once, sharing one pass over the constituents. Returns a 7-tuple of
+`(p, T, h, s, cp, R)` NamedTuples.
+"""
 function gas_enthalpy_change_composition_directions(alpha, n, p, t, so, epol, d1, d2, d3, d4, d5, d6, d7)
       s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
       al1, al2, al3, al4, al5, al6, al7 = _gas_temperature_composition_directions7(n, t, d1, d2, d3, d4, d5, d6, d7)

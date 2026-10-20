@@ -277,6 +277,10 @@ isdefined(@__MODULE__, :LegacyThermo) ||
             cp_p = E.gassum(alpha, n, T + δ)[5]
             cp_m = E.gassum(alpha, n, T - δ)[5]
             @test cp_t ≈ (cp_p - cp_m) / (2δ) rtol = 1e-6
+            # automatic differentiation through gassum agrees with the
+            # analytic derivatives (the legacy table code rejected Dual numbers)
+            @test TASOPT.ForwardDiff.derivative(x -> E.gassum(alpha, n, x)[3], T) ≈ cp rtol = 1e-12
+            @test TASOPT.ForwardDiff.derivative(x -> E.gassum(alpha, n, x)[5], T) ≈ cp_t rtol = 1e-10
             # dh/dT and ds/dT against central differences of h and s
             @test h_t ≈ (E.gassum(alpha, n, T + δ)[3] - E.gassum(alpha, n, T - δ)[3]) / (2δ) rtol = 1e-8
             @test s_t ≈ (E.gassum(alpha, n, T + δ)[1] - E.gassum(alpha, n, T - δ)[1]) / (2δ) rtol = 1e-8

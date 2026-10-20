@@ -8,9 +8,15 @@ include("gasdata.jl")
 Computes properties of a thermally-perfect gas
 with some variable specific heat cp[T].
 
+Properties come from IdealGasThermo.jl NASA-9 fits (see the "Property data"
+section of the gas calculations docs for the species list and the two
+exceptions: H2 below 200 K and the C14H30 fuel surrogate). Same as
+[`gasfund`](@ref) without `cp_t`.
+
 !!! details "🔃 Inputs and Outputs"
     **Input:**
-    - `igas`: index specifying the gas (see if blocks below for list)
+    - `igas`: gas index: 1 N2, 2 O2, 3 CO2, 4 H2O, 5 Ar, 11 CH4, 12 C2H6,
+      13 C3H8, 14 C4H10, 18 C8H18, 24 C14H30, 40 H2
     - `t`: temperature T in Kelvin
 
     **Output:**
@@ -40,7 +46,8 @@ Returns number of C,H,O,N atoms in gas molecule, for the gases implemented in fu
 
 !!! details "🔃 Inputs and Outputs"
     **Input:**
-    - `igas`: index specifying the gas (see if blocks below for list)
+    - `igas`: gas index: 1 N2, 2 O2, 3 CO2, 4 H2O, 5 Ar, 11 CH4, 12 C2H6,
+      13 C3H8, 14 C4H10, 18 C8H18, 24 C14H30, 40 H2
 
     **Output:**
     - `nchon(.)`: number of C,H,O,N atoms in gas molecule
@@ -255,6 +262,27 @@ end
     return s, cp / t, h, cp, cp, _cp_T(_IGT_JETA, t), r
 end
 
+"""
+    gasfund(igas, t)
+
+Properties of gas `igas` at temperature `t` [K], including dcp/dT. This is
+the single place that maps the gas index to its property data;
+[`gasfun`](@ref), [`gassum`](@ref) and [`gassumd`](@ref) all go through it.
+
+!!! details "🔃 Inputs and Outputs"
+    **Input:**
+    - `igas`: gas index (see [`gasfun`](@ref))
+    - `t`: temperature T in Kelvin
+
+    **Output:**
+    `(s, s_t, h, h_t, cp, cp_t, r)`: entropy-complement function, ds/dT,
+    enthalpy (formation-inclusive), dh/dT, cp, dcp/dT and gas constant,
+    in J/kg-based SI units.
+
+Throws an error for an undefined index. For H2 below 200 K only `Float64`
+temperatures are supported (table data); elsewhere `t` may be any `Real`,
+e.g. a ForwardDiff dual number.
+"""
 function gasfund(igas, t)
     if (igas == 1)
         return _fast_thermod(_IGT_N2, t)
