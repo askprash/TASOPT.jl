@@ -36,7 +36,7 @@ include(joinpath(__TASOPTroot__,"data_structs/fuselage_geometry.jl"))
 
 include(joinpath(__TASOPTroot__,"data_structs/wingSections.jl"))
 include(joinpath(__TASOPTroot__,"data_structs/wing.jl"))
-export WingSection,TailSection,Wing,Tail,wing_additional_weight 
+export WingSection,Wing,Tail,wing_additional_weight 
 
 #include sizing of surfaces
 include(joinpath(__TASOPTroot__,"structures/calculate_centroid_offset.jl"))
