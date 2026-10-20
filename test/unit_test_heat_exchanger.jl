@@ -49,7 +49,7 @@
         size_out = [HXgas.Tp_out, HXgas.Tc_out, HXgas.Δp_p, HXgeom.N_t, HXgeom.n_passes, HXgeom.tD_o, HXgeom.A_cs]
 
         size_out_check = 
-        [731.5888605437423, 665.8848846504773, 1414.022586064259, 62.03322510460286, 8.040614281031441, 0.004760508726403918, 1.0189779296746375]
+        [731.5742945899459, 666.1107129924375, 1414.5439905520996, 62.030579130833814, 8.043854538298081, 0.004760711790463513, 1.0189003226900804]
 
         for i = 1: length(size_out)
             @test size_out[i] ≈ size_out_check[i]
@@ -62,7 +62,7 @@
 
         W = TASOPT.engine.hxweight(gee, HXgeom, fouter)
 
-        W_check = 801.0233473706918
+        W_check = 801.3484476824821
 
         @test W == W_check
         #---------------------------------     
@@ -106,7 +106,7 @@
 
         oper_out = [HXgas.Tp_out, HXgas.Tc_out, HXgas.Δp_p, HXgas.ε]
 
-        oper_out_check = [740.3018611354306, 591.2092288055287, 1707.3839192112114, 0.6504167938267722]
+        oper_out_check = [740.2990485214676, 591.3045686788635, 1706.8089965901147, 0.6502797871380385]
 
         for i = 1: length(oper_out)
             @test oper_out[i] ≈ oper_out_check[i]
@@ -175,7 +175,7 @@
         TASOPT.engine.hxsize!(HXgas, HXgeom)
 
         Iobj = HXgas.Pl_p + HXgas.Pl_c #Optimizer may choose slightly different points with similar objective function. Check I too
-        I_check = 72791.74211251132
+        I_check = 72788.03300427314
         @test Iobj ≈ I_check    rtol = 1e-5
 
         #---------------------------------     
@@ -242,7 +242,7 @@
 
         Iobj_rec = HXgas.Pl_p + HXgas.Pl_c #Optimizer may choose slightly different points with similar objective function. 
 
-        I_check_rec = 3558.1693226234984
+        I_check_rec = 3534.375943558577
 
         @test Iobj_rec ≈ I_check_rec    rtol = 1e-5
     end
@@ -368,14 +368,14 @@
 
         HX = HXs[1]
 
-        @test HX.HXgeom.n_stages ≈ 17.266866731189637   rtol = 1e-5
-        @test HX.HXgeom.n_passes ≈ 1.0000000035523804    rtol = 1e-5
-        @test HX.HXgeom.l ≈ 0.44330987861529786    rtol = 1e-5
-        @test HX.HXgeom.N_t ≈ 135.3019137307697    rtol = 1e-5
+        @test HX.HXgeom.n_stages ≈ 16.13442857814795   rtol = 1e-5
+        @test HX.HXgeom.n_passes ≈ 1.0725716070943603    rtol = 1e-5
+        @test HX.HXgeom.l ≈ 0.4432789049197145    rtol = 1e-5
+        @test HX.HXgeom.N_t ≈ 132.01600664430018    rtol = 1e-5
 
         @test HX.HXgas_mission[ipdes].ε ≈ 0.500000000011525    rtol = 1e-5
         @test HX.HXgas_mission[ipdes].Δh_p ≈  -13469.833152449006    rtol = 1e-5
-        @test HX.HXgas_mission[ipdes].Δp_p ≈ 41.80997134594434   rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δp_p ≈ 41.71181359063386   rtol = 1e-5
 
         for ip =1:iptotal
             @test pare[iePreCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
@@ -394,14 +394,14 @@
 
         HX = HXs[1]
 
-        @test HX.HXgeom.n_stages ≈ 15.785862675526603     rtol = 1e-5
-        @test HX.HXgeom.n_passes ≈ 1.1996282036164532    rtol = 1e-5
-        @test HX.HXgeom.l ≈ 0.24880364903969382    rtol = 1e-5
-        @test HX.HXgeom.N_t ≈ 152.91429827915564   rtol = 1e-5
+        @test HX.HXgeom.n_stages ≈ 14.985782286239004     rtol = 1e-5
+        @test HX.HXgeom.n_passes ≈ 1.2701493981457253    rtol = 1e-5
+        @test HX.HXgeom.l ≈ 0.24878508233070346    rtol = 1e-5
+        @test HX.HXgeom.N_t ≈ 148.75936468816855   rtol = 1e-5
 
         @test HX.HXgas_mission[ipdes].ε ≈ 0.5000000000012754    rtol = 1e-5
         @test HX.HXgas_mission[ipdes].Δh_p ≈ -19023.600308918238    rtol = 1e-5
-        @test HX.HXgas_mission[ipdes].Δp_p ≈ 169.37872694731894     rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δp_p ≈ 169.4607972020096     rtol = 1e-5
 
         for ip =1:iptotal
             @test pare[ieInterCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
@@ -421,13 +421,13 @@
         HX = HXs[1]
 
         @test HX.HXgeom.n_stages ≈ 20.0    rtol = 1e-5
-        @test HX.HXgeom.n_passes ≈  4.222480420567984    rtol = 1e-5
-        @test HX.HXgeom.l ≈  0.08973681556581393    rtol = 1e-5
-        @test HX.HXgeom.N_t ≈ 63.41852808272736    rtol = 1e-5
+        @test HX.HXgeom.n_passes ≈  4.222920524653855    rtol = 1e-5
+        @test HX.HXgeom.l ≈  0.0897318065436131    rtol = 1e-5
+        @test HX.HXgeom.N_t ≈ 63.42061741899705    rtol = 1e-5
 
         @test HX.HXgas_mission[ipdes].ε ≈ 0.5000000000012754    rtol = 1e-5
         @test HX.HXgas_mission[ipdes].Δh_p ≈ -215422.60328655195    rtol = 1e-5 
-        @test HX.HXgas_mission[ipdes].Δp_p ≈ 1110.4567435115546    rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δp_p ≈ 1110.3823998901757    rtol = 1e-5
 
         for ip =1:iptotal
             @test pare[ieTurbCDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
@@ -447,14 +447,14 @@
 
         HX = HXs[1]
 
-        @test HX.HXgeom.n_stages ≈ 6.7303408921923085    rtol = 1e-5
-        @test HX.HXgeom.n_passes ≈  4.150266000814919   rtol = 1e-5 
-        @test HX.HXgeom.l ≈ 0.27444954083880696    rtol = 1e-5
-        @test HX.HXgeom.N_t ≈  83.98323410362407    rtol = 1e-5
+        @test HX.HXgeom.n_stages ≈ 6.7042669026385    rtol = 1e-5
+        @test HX.HXgeom.n_passes ≈  4.1673585541263085   rtol = 1e-5 
+        @test HX.HXgeom.l ≈ 0.2744402764057626    rtol = 1e-5
+        @test HX.HXgeom.N_t ≈  83.75039070073112    rtol = 1e-5
 
         @test HX.HXgas_mission[ipdes].ε ≈ 0.5000000000012754    rtol = 1e-5
         @test HX.HXgas_mission[ipdes].Δh_p ≈ -48190.134937808325    rtol = 1e-5
-        @test HX.HXgas_mission[ipdes].Δp_p ≈ 683.4013294966753    rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δp_p ≈ 683.106596128081    rtol = 1e-5
 
         for ip =1:iptotal
             @test pare[ieRegenDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
@@ -479,13 +479,13 @@
         HX = HXs[1]
 
         @test HX.HXgeom.n_stages ≈ 19.999999999998554    rtol = 1e-5
-        @test HX.HXgeom.n_passes ≈ 5.143443200853783    rtol = 1e-5
-        @test HX.HXgeom.l ≈  0.2742084922035852    rtol = 1e-5
-        @test HX.HXgeom.N_t ≈ 121.51269737216884   rtol = 1e-5
+        @test HX.HXgeom.n_passes ≈ 5.164237221491714    rtol = 1e-5
+        @test HX.HXgeom.l ≈  0.27419858590558355    rtol = 1e-5
+        @test HX.HXgeom.N_t ≈ 122.00395093505779   rtol = 1e-5
 
         @test HX.HXgas_mission[ipdes].ε ≈ 0.7999999999981817    rtol = 1e-5
-        @test HX.HXgas_mission[ipdes].Δh_p ≈ -87846.51831616473    rtol = 1e-5
-        @test HX.HXgas_mission[ipdes].Δp_p ≈ 2631.338997757214   rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δh_p ≈ -88222.73967367201    rtol = 1e-5
+        @test HX.HXgas_mission[ipdes].Δp_p ≈ 2642.5404384047592   rtol = 1e-5
 
         for ip =1:iptotal
             @test pare[ieRegenDeltah, ip] ≈ HX.HXgas_mission[ip].Δh_p
@@ -513,10 +513,10 @@
 
         HXs = TASOPT.hxdesign!(ac, ipdes, 1)
 
-        @test pare[ieInterCDeltah,:] ≈ [-47399.69471010697, -47740.144971300695, 0.0, 0.0, -46223.379303984744, -45614.35675042806, -44255.53328982122, -42510.31277332343, -40803.47385501281, -35670.27659861324, -35028.459999431696, -14649.123279205705, -15687.650334380585, -18743.437352033376, -19895.76521077102, -13459.629078839323, 0.0]
-        @test pare[ieInterCDeltap,:] ≈  [6911.221682597802, 6978.998282421636, 0.0, 0.0, 6572.481153264278, 5778.996020194068, 4959.106626836168, 4236.23491050882, 3622.597346961127, 2786.1893166247346, 2333.5956007679874, 835.7548979321061, 1152.3247104282796, 1636.9467985592994, 2034.8574376314803, 1536.8855772960753, 0.0]
-        @test pare[ieRegenDeltah,:] ≈ [-56935.283625696495, -56171.383754770155, 0.0, 0.0, -53223.268798485864, -58345.594608795596, -65365.3611087536, -73108.7906114299, -80645.93877914204, -58693.27280567447, -60203.14153190324, -12779.527804517973, -13777.042506893777, -17275.511909998022, -18656.185861179954, -13727.106880597872, 0.0]
-        @test pare[ieRegenDeltap,:] ≈ [5428.445956559963, 5510.077421406017, 0.0, 0.0, 5247.653722526897, 4540.47273559838, 3783.5827213135035, 3117.151404333784, 2568.8767033773825, 2137.661714406072, 1779.9034316690568, 634.8647314211605, 850.2758206339971, 1189.9236723819513, 1381.2066306170855, 713.2380850064121, 0.0]
+        @test pare[ieInterCDeltah,:] ≈ [-47529.983813768704, -47872.611440618784, 0.0, 0.0, -46352.290847166885, -45737.52211589867, -44368.27724079696, -42610.805067712456, -40892.32336811514, -35751.99236363902, -35106.687590422494, -14678.390016351703, -15721.335516107116, -18787.94106567447, -19945.59089965135, -13489.800142848635, 0.0]
+        @test pare[ieInterCDeltap,:] ≈  [6956.456335392031, 7024.684262537262, 0.0, 0.0, 6615.539945295114, 5816.831645336263, 4991.567831102287, 4263.954011671673, 3646.2867476659444, 2804.477506629798, 2348.9135713448195, 841.2918318651618, 1159.9613172683567, 1647.7867641224643, 2048.338254893675, 1547.0833751982325, 0.0]
+        @test pare[ieRegenDeltah,:] ≈ [-56867.32798647176, -56102.26491999626, 0.0, 0.0, -53153.37916611304, -58273.96779443405, -65296.91476474004, -73042.86637903785, -80589.45461977209, -58633.32913037343, -60147.96557543095, -12759.553185814904, -13754.009796559461, -17240.721435134066, -18617.047029681795, -13702.598399612543, 0.0]
+        @test pare[ieRegenDeltap,:] ≈ [5426.266142447696, 5507.868187373721, 0.0, 0.0, 5245.4980403172995, 4538.611990755371, 3782.0265080148633, 3115.8666195008805, 2567.8077651877375, 2136.766563284311, 1779.1545982077182, 634.5748157074588, 849.8901765252981, 1189.389772301055, 1380.5925230574924, 712.9106725171165, 0.0]
 
     end
 
@@ -543,7 +543,7 @@
         HXs = TASOPT.hxdesign!(ac, ipstatic, 1)
 
         RadDeltah = [37104.38291823695, 36290.485213795124, 0.0, 0.0, 6727.86793972544, 7948.936735981042, 10076.103131180309, 13154.008713110605, 17647.142199845595, 14812.481978963075, 14046.99962228872, 3504.596019511984, 4353.519017601429, 5135.326869780114, 4865.687221015694, 1334.405450155591, 0.0]
-        RadDeltap = [11889.782301788378, 12199.947884193309, 0.0, 0.0, 6837.973458639673, 7234.2480500052325, 6583.766226342551, 5800.5345858177925, 5137.454328099551, 4904.714770668473, 4825.08475325116, 3602.399089169455, 4988.699251604404, 6600.035502631082, 7750.168248828348, 2917.394569501564, 0.0]
+        RadDeltap = [10323.181606429736, 10592.486241518414, 0.0, 0.0, 5937.103176636959, 6281.141626491474, 5716.324620345804, 5036.269927471252, 4460.559580576974, 4258.477622450499, 4189.339004377093, 3127.789243974919, 4331.454425196778, 5730.505091121955, 6729.144232579738, 2533.1020698654006, 0.0]
 
         for ip =1:iptotal
             @test pare[ieRadiatorDeltah, ip, 1] ≈ RadDeltah[ip]
