@@ -147,6 +147,124 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         end
     end
 
+    @testset "Process functions agree with legacy" begin
+        air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        n = length(air)
+        lam = (air .+ 0.025 .* E.gasfuel(24, n + 1)[1:n]) ./ 1.025 # burned gas
+        state(M, a, T) = (s = M.gassum(a, n, T); (s[1], s[3], s[5], s[6])) # s, h, cp, R
+        rel(a, b) = abs(a / b - 1)
+
+        @testset "gas_tset" begin
+            # temperature reached after adding Δh to a gas at T1
+            for (a, T1, dh) in ((air, 250.0, 5e4), (air, 600.0, 3e5), (lam, 1500.0, -3e5))
+                T_new = E.gas_tset(a, n, E.gassum(a, n, T1)[3] + dh, T1)
+                T_old = L.gas_tset(a, n, L.gassum(a, n, T1)[3] + dh, T1)
+                @test rel(T_new, T_old) < 5e-4
+            end
+        end
+        @testset "gas_prat" begin
+            for (a, T1, pr, ep) in ((air, 288.15, 1.6, 0.9), (air, 400.0, 10.0, 0.9),
+                                    (lam, 1600.0, 0.2, 1 / 0.9), (lam, 1100.0, 0.5, 1 / 0.9))
+                sn, hn, cpn, rn = state(E, a, T1)
+                so, ho, cpo, ro = state(L, a, T1)
+                p_n, T_n, h_n = E.gas_prat(a, n, 1e5, T1, hn, sn, cpn, rn, pr, ep)
+                p_o, T_o, h_o = L.gas_prat(a, n, 1e5, T1, ho, so, cpo, ro, pr, ep)
+                @test p_n == p_o
+                @test rel(T_n, T_o) < 5e-4
+                @test rel(h_n - hn, h_o - ho) < 1e-3 # work
+            end
+        end
+        @testset "gas_delh" begin
+            for (a, T1, dh, ep) in ((air, 288.15, 3e5, 0.9), (air, 500.0, 5e5, 0.9), (lam, 1600.0, -4e5, 1 / 0.9))
+                sn, hn, cpn, rn = state(E, a, T1)
+                so, ho, cpo, ro = state(L, a, T1)
+                p_n, T_n = E.gas_delh(a, n, 1e5, T1, hn, sn, cpn, rn, dh, ep)
+                p_o, T_o = L.gas_delh(a, n, 1e5, T1, ho, so, cpo, ro, dh, ep)
+                @test rel(T_n, T_o) < 5e-4
+                @test rel(p_n, p_o) < 2e-3
+            end
+        end
+        @testset "gas_mach" begin
+            for (a, T1, M) in ((air, 300.0, 0.5), (air, 300.0, 0.9), (lam, 1200.0, 1.0))
+                sn, hn, cpn, rn = state(E, a, T1)
+                so, ho, cpo, ro = state(L, a, T1)
+                p_n, T_n = E.gas_mach(a, n, 1e5, T1, hn, sn, cpn, rn, 0.0, M, 1.0)
+                p_o, T_o = L.gas_mach(a, n, 1e5, T1, ho, so, cpo, ro, 0.0, M, 1.0)
+                @test rel(T_n, T_o) < 5e-4
+                @test rel(p_n, p_o) < 5e-4
+            end
+        end
+        @testset "gas_mass" begin
+            for (a, T1, mflux) in ((air, 300.0, 150.0), (lam, 1200.0, 60.0))
+                sn, hn, cpn, rn = state(E, a, T1)
+                so, ho, cpo, ro = state(L, a, T1)
+                p_n, T_n = E.gas_mass(a, n, 1e5, T1, hn, sn, cpn, rn, mflux, 0.3)
+                p_o, T_o = L.gas_mass(a, n, 1e5, T1, ho, so, cpo, ro, mflux, 0.3)
+                @test rel(T_n, T_o) < 5e-4
+                @test rel(p_n, p_o) < 5e-4
+            end
+        end
+        @testset "gas_burn" begin
+            # H2 makes 8.9 kg of H2O per kg of fuel, so its fuel/air ratio
+            # carries the H2O sensible-enthalpy difference (legacy table vs
+            # NASA-9: +0.29% from 298 to 1600 K): f +0.15%. Jet-A +0.07%,
+            # CH4 +0.02%.
+            air6 = [air; 0.0]
+            beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+            for (ifuel, Tair, Tfuel, Tb) in ((24, 800.0, 300.0, 1600.0), (40, 800.0, 300.0, 1600.0),
+                                             (40, 800.0, 50.0, 1600.0), (11, 700.0, 250.0, 1400.0))
+                f_n, l_n = E.gas_burn(air6, beta, E.gasfuel(ifuel, 6), 6, ifuel, Tair, Tfuel, Tb, 0.0)
+                f_o, l_o = L.gas_burn(air6, beta, L.gasfuel(ifuel, 6), 6, ifuel, Tair, Tfuel, Tb, 0.0)
+                @test rel(f_n, f_o) < 2e-3
+                @test maximum(abs.(l_n .- l_o)) < 2e-4
+            end
+        end
+    end
+
+    @testset "Partials helpers match gas_pratd / gas_delhd" begin
+        # tfoper uses the NamedTuple partials functions and per-direction
+        # composition sensitivities; they must reproduce the array-based
+        # gas_pratd / gas_delhd exactly (same property data on both sides).
+        n = 5
+        lam = [0.74, 0.15, 0.06, 0.03, 0.02]
+        dirs = ([0.01, -0.03, 0.02, 0.005, -0.005], [0.0, 0.001, -0.002, 0.003, -0.002],
+                [-0.02, 0.01, 0.0, 0.01, 0.0], [0.1, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 1.0], [0.3, -0.1, 0.2, -0.1, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0])
+        s1, _, h1, _, cp1, r1 = E.gassum(lam, n, 1500.0)
+        args = (lam, n, 1.0e6, 1500.0, h1, s1, cp1, r1)
+        # relative 1e-10, with an absolute floor of 1e-10 for quantities that
+        # are exactly zero in one form and cancel to round-off in the other
+        # (e.g. dh/dalpha at fixed delh)
+        close(a, b) = abs(a - b) <= 1e-10 * max(abs(a), abs(b), 1.0)
+
+        o = E.gas_pratd(args..., 0.3, 1 / 0.9)
+        st, d = E.gas_pressure_ratio_partials(args..., 0.3, 1 / 0.9)
+        @test all(close.((st.p, st.T, st.h, st.s, st.cp, st.R), o[1:6]))
+        @test all(close.((d.p_po, d.p_so, d.T_so, d.h_so, d.s_so, d.p_pratio, d.T_pratio, d.h_pratio,
+                          d.s_pratio, d.p_epol, d.T_epol, d.h_epol, d.s_epol), o[7:19]))
+        p_al, T_al, h_al, s_al, cp_al, R_al = o[20:25]
+        for (k, dk) in enumerate(E.gas_pressure_ratio_composition_directions(lam, n, st.T, s1, dirs...))
+            @test close(dk.T, sum(T_al .* dirs[k]))
+            @test close(dk.h, sum(h_al .* dirs[k]))
+            @test close(dk.s, sum(s_al .* dirs[k]))
+            @test close(dk.cp, sum(cp_al .* dirs[k]))
+            @test close(dk.R, sum(R_al .* dirs[k]))
+        end
+
+        o = E.gas_delhd(args..., -3e5, 1 / 0.9)
+        st, d = E.gas_enthalpy_change_partials(args..., -3e5, 1 / 0.9)
+        @test all(close.((st.p, st.T, st.h, st.s, st.cp, st.R), o[1:6]))
+        @test all(close.((d.p_so, d.p_po, d.p_epol, d.p_ho, d.T_ho, d.h_ho, d.s_ho,
+                          d.p_delh, d.T_delh, d.h_delh, d.s_delh), o[7:17]))
+        p_al, T_al, h_al, s_al, cp_al, R_al = o[18:23]
+        for (k, dk) in enumerate(E.gas_enthalpy_change_composition_directions(lam, n, st.p, st.T, s1, 1 / 0.9, dirs...))
+            @test close(dk.p, sum(p_al .* dirs[k]))
+            @test close(dk.T, sum(T_al .* dirs[k]))
+            @test close(dk.h, sum(h_al .* dirs[k]))
+            @test close(dk.s, sum(s_al .* dirs[k]))
+        end
+    end
+
     @testset "Temperature derivatives are consistent" begin
         alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
         n = length(alpha)
