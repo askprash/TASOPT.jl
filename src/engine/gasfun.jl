@@ -29,36 +29,7 @@ The adiabatic pressure change over a process 1->2 with some polytropic efficienc
 ``\\ p2  = \\ p1  exp [ (1/epol) (s2-s1)/R ] ``   expansion
 """
 function gasfun(igas, t)
-
-    if (igas == 1)
-        s, h, cp, r = gas_N2(t)
-    elseif (igas == 2)
-        s, h, cp, r = gas_O2(t)
-    elseif (igas == 3)
-        s, h, cp, r = gas_CO2(t)
-    elseif (igas == 4)
-        s, h, cp, r = gas_H2O(t)
-    elseif (igas == 5)
-        s, h, cp, r = gas_Ar(t)
-    elseif (igas == 11)
-        s, h, cp, r = gas_CH4(t)
-    elseif (igas == 12)
-        s, h, cp, r = gas_C2H6(t)
-    elseif (igas == 13)
-        s, h, cp, r = gas_C3H8(t)
-    elseif (igas == 14)
-        s, h, cp, r = gas_C4H10(t)
-    elseif (igas == 18)
-        s, h, cp, r = gas_C8H18(t)
-    elseif (igas == 24)
-        s, h, cp, r = gas_C14H30(t)
-    elseif (igas == 40)
-        s, h, cp, r = gas_H2(t)
-    else
-        error("GASFUN: undefined gas index: ", igas, " & code=0")
-    end
-    s_t = cp / t
-    h_t = cp
+    s, s_t, h, h_t, cp, _, r = gasfund(igas, t)
     return s, s_t, h, h_t, cp, r
 end # gasfun
 
@@ -127,79 +98,6 @@ function gaschem(igas)
     nchon = copy(buf)
     return nchon
 end # gaschem
-
-function gas_N2(t1, t, tl, cp, cpt, h, s)
-    r = 296.94
-    hform = 0.0000
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_N2
-
-function gas_O2(t1, t, tl, cp, cpt, h, s)
-    r = 259.82
-    hform = 0.000
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_O2
-
-function gas_Ar(t1, t, tl, cp, cpt, h, s)
-    r = 208.00
-    hform = 0.0000
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_Ar
-
-function gas_CO2(t1, t, tl, cp, cpt, h, s)
-    r = 188.96
-    hform = -0.89430E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_CO2
-
-function gas_H2O(t1, t, tl, cp, cpt, h, s)
-    r = 461.91
-    hform = -0.13433E+08
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_H2O
-
-function gas_CH4(t1, t, tl, cp, cpt, h, s)
-    r = 519.65
-    hform = -0.46750E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_CH4
-
-function gas_C2H6(t1, t, tl, cp, cpt, h, s)
-    r = 277.15
-    hform = -0.27930E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_C2H6
-
-function gas_C3H8(t1, t, tl, cp, cpt, h, s)
-    r = 188.50
-    hform = -0.23570E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_C3H8
-
-function gas_C4H10(t1, t, tl, cp, cpt, h, s)
-    r = 143.30
-    hform = -0.21640E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_C4H10
-
-function gas_C8H18(t1, t, tl, cp, cpt, h, s)
-    r = 72.900
-    hform = -0.18280E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_C8H18
-
-function gas_C14H30(t1, t, tl, cp, cpt, h, s)
-    r = 167.00
-    hform = -0.16700E+07
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-    # gas_C14H30 
-end
-
-function gas_H2(t1, t, tl, cp, cpt, h, s)
-    r = 4124.9
-    hform = 0.0000
-    get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
-end # gas_H2
 
 """
     findsegment(x::T, xarr::Vector{T})
