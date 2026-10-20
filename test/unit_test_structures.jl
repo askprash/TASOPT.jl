@@ -630,4 +630,20 @@ end
     end
 end
 
+@testset "size_floor! moment uses the floor weight it sizes" begin
+    # A fresh aircraft has no floor weight yet; the returned moment must come
+    # from the weight sized in this call, not the one left by a previous call.
+    fuse_ = deepcopy(fuselage)
+    layout_ = fuse_.layout
+    P = (Wpaymax + fuse_.seat.W) * Nland / fuse_.n_decks
+    floor_half_width = layout_.bubble_center_y_offset + layout_.radius
+    x_floor = 0.5 * (layout_.x_pressure_shell_fwd + layout_.x_pressure_shell_aft)
+
+    fuse_.floor.weight.W = 0.0
+    xWfloor = TASOPT.structures.size_floor!(fuse_, P, layout_.l_floor,
+        floor_half_width; mid_span_support = false)
+    @test fuse_.floor.weight.W > 0.0
+    @test xWfloor == fuse_.floor.weight.W * x_floor
+end
+
 end

@@ -268,11 +268,11 @@ function size_floor!(fuse, load, floor_length, floor_half_width;
       W_floor_panels = 2 * floor_half_width * floor_length * fuse.floor_W_per_area
 
       floor_weight = fuse.n_decks * (W_floor_beam + W_floor_panels)
-      xWfloor = fuse.floor.weight.W * 0.5 * (layout.x_pressure_shell_fwd + layout.x_pressure_shell_aft)
 
       # average floor-beam cap thickness ("smeared" over entire floor)
       fuse.floor.thickness = 0.5*Afcap/layout.l_floor # half since two flanges in an I beam
       fuse.floor.weight.W = floor_weight
+      xWfloor = fuse.floor.weight.W * 0.5 * (layout.x_pressure_shell_fwd + layout.x_pressure_shell_aft)
 
       return xWfloor
 end  # function size_floor!
