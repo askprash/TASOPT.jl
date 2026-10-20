@@ -38,6 +38,8 @@
       const imtotal = 35
 
 #---- indices for geometry (airframe) variables and other sizing variables
+#     Entries marked "unused" are never read or written; they are kept so the
+#     numbering (and saved par arrays) stay unchanged.
       const igRange    =   1
       const igWMTO     =   2
       const igWpay     =   3
@@ -103,33 +105,33 @@
       const ighobst    = 63
       const iglBFmax   = 64
       const iggtocmin  = 65
-      const igdBSLmax  = 66
-      const igdBCBmax  = 67
+      const igdBSLmax  = 66 # unused
+      const igdBCBmax  = 67 # unused
       const igmofWpay  = 68
       const igmofWMTO  = 69
       const igPofWpay  = 70
       const igPofWMTO  = 71
 
       # Adding indices to store TE weights and locations
-      const igWtshaft  = 72
-      const igWgen     = 73
-      const igWinv     = 74
-      const igWmot     = 75
-      const igWfan     = 76
+      const igWtshaft  = 72 # unused
+      const igWgen     = 73 # unused
+      const igWinv     = 74 # unused
+      const igWmot     = 75 # unused
+      const igWfan     = 76 # unused
       const igWftank   = 77
 
       const igxtshaft  = 78
       const igxgen     = 79
-      const igxinv     = 80
-      const igxmot     = 81
-      const igxfan     = 82
+      const igxinv     = 80 # unused
+      const igxmot     = 81 # unused
+      const igxfan     = 82 # unused
       const igxftank   = 83
       
-      const igxcables  = 84
-      const igWcables  = 85
+      const igxcables  = 84 # unused
+      const igWcables  = 85 # unused
 
       const igxcat     = 86
-      const igWcat     = 87
+      const igWcat     = 87 # unused
 
       const igWtesys   = 88
       const igxWtesys  = 89
@@ -139,37 +141,37 @@
       const igxWftank  = 92
       
       const igRftank   = 93
-      const igWc3des   = 94
+      const igWc3des   = 94 # unused
 
       const igdaftfan  = 95
       const iglnaceaft = 96
 
-      const igneout    = 97
-      const igyeout    = 98
-      const igyeinn    = 99
+      const igneout    = 97 # unused
+      const igyeout    = 98 # unused
+      const igyeinn    = 99 # unused
       const iglftankin = 100 #lftank input
       const igLHVfuel  = 101
-      const igWfburn   = 102
+      const igWfburn   = 102 # unused
 
-      const igWaftfan  = 103
-      const igWfanGB   = 104
-      const igWaftfanGB   = 105
-      const igWrect    = 106
-      const igWtms     = 107
+      const igWaftfan  = 103 # unused
+      const igWfanGB   = 104 # unused
+      const igWaftfanGB   = 105 # unused
+      const igWrect    = 106 # unused
+      const igWtms     = 107 # unused
 
-      const igfanPCT   = 108
+      const igfanPCT   = 108 # unused
 
-      const iggamVtarget = 109
+      const iggamVtarget = 109 # unused
 
       const igWpaymax    = 110
 
-      const ig_YC = 111
-      const ig_YH = 112
-      const ig_YO = 113
-      const ig_YN = 114
-      const ig_MW = 115
-      const ighfuel      = 116
-      const igTfuel      = 117
+      const ig_YC = 111 # unused
+      const ig_YH = 112 # unused
+      const ig_YO = 113 # unused
+      const ig_YN = 114 # unused
+      const ig_MW = 115 # unused
+      const ighfuel      = 116 # unused
+      const igTfuel      = 117 # unused
 
       const igxftankaft  = 118
       const igdxeng2wbox = 119
