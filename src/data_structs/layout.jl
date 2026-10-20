@@ -15,25 +15,7 @@ $TYPEDFIELDS
     radius::Float64 = 1.0
     """Downward shift of lower bubbles (dRfuse) [m] """
     bubble_lower_downward_shift::Float64 = 0.0
-    """Skin thickness [m]"""
-    skin_thickness::Float64 = 0.0
-
-    # SingleBubble(radius, bubble_lower_downward_shift, Δp, σ) = 
-    # calc_skin_thickness(new(radius, bubble_lower_downward_shift), Δp, σ)
-
 end
-
-"""
-"""
-function calc_skin_thickness(cs::AbstractCrossSection, Δp, σ)
-    cs.skin_thickness = Δp * cs.radius / 100.0
-    return cs
-end  # function calc_skin_thickness
-
-
-# function SingleBubble(radius, dz, Δp)
-
-# end
 
 """
 $TYPEDEF
@@ -52,10 +34,6 @@ $TYPEDFIELDS
     bubble_center_y_offset::Float64 = 0.2
     """Number of webs [-]"""
     n_webs::Int64 = 1
-    """Skin thickness [m]"""
-    skin_thickness::Float64 = 0.0
-    """Web thickness [m]"""
-    web_thickness::Float64 = 0.0
 end
 
 # Trying to access these properties form a SingleBubble just gives
@@ -64,8 +42,6 @@ function Base.getproperty(obj::SingleBubble, sym::Symbol)
     if sym === :n_webs
         return 0
     elseif sym === :bubble_center_y_offset
-        return 0.0
-    elseif sym === :web_thickness
         return 0.0
     elseif sym === :perimeter
         return get_perimeter(obj)

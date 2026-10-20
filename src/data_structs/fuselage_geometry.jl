@@ -87,24 +87,6 @@ end
 
 
 """
-    skin_thickness(xSection::AbstractCrossSection, Δp::AbstractFloat, σ::AbstractFloat)
-
-TBW
-"""
-function skin_thickness(xSection::AbstractCrossSection, Δp::AbstractFloat, σ::AbstractFloat)
-    return Δp * xSection.radius / σ
-end
-
-"""
-    web_thickness(xSection::AbstractCrossSection, Δp::AbstractFloat, σ::AbstractFloat)
-
-TBW
-"""
-function web_thickness(xSection::AbstractCrossSection, Δp::AbstractFloat, σ::AbstractFloat)
-    return 2 * Δp * xSection.bubble_center_y_offset / σ
-end
-
-"""
     web_geometry(cs::MultiBubble) -> WebGeometry
 
 Returns derived web geometry terms for multi-bubble fuselage cross-sections.
@@ -135,37 +117,6 @@ function web_geometry(cs::SingleBubble)
     effective_web_length = 0.0
     return WebGeometry(θ_web, h_web, sin2θ, cosθ, effective_web_length)
 end
-
-"""
-    Iy(cs::AbstractCrossSection)
-Calculates the second moment of area about the y-axis (i.e., the horizontal 
-axis w.r.t the cross-section)
-
-"""
-function Iy(cs::AbstractCrossSection)
-    wg = web_geometry(cs)
-    n_webs = cs.n_webs
-    R = cs.radius
-    skin =
-        (
-            (π + n_webs * (2wg.θ_web + wg.sin2θ)) * R^2 +
-            8 * n_webs * wg.cosθ * ΔR / 2 * R +
-            (2π + 4n_webs * wg.θ_web) * (ΔR / 2)^2
-        ) *
-        R *
-        t_shell
-
-    web = 2 // 3 * n_webs * (wg.h_web + ΔR / 2)^3 * t_web
-
-    return skin + web
-
-end  # function Iy
-
-# """
-# """
-# function Iz(cs::AbstractCrossSection)
-
-# end  # function Iz
 
 """
     $(TYPEDSIGNATURES)
