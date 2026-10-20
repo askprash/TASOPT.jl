@@ -14,10 +14,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_N2(t1)
 
-        @test s1 == 2358.21669383134
-        @test h1 == 2.43487432826e6
-        @test cp1 == 1301.485606111
-        @test r1 == 296.94
+        @test s1 ≈ 9197.414667785586 rtol = 1e-12
+        @test h1 ≈ 2.43439586824231e6 rtol = 1e-12
+        @test cp1 ≈ 1300.5839551802371 rtol = 1e-12
+        @test r1 ≈ 296.8043864721883 rtol = 1e-12
 
         if isGradient
             ds_dt = gradient(t1 -> TASOPT.engine.gas_N2(t1)[1], t1)[1]
@@ -38,10 +38,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_Ar(t1)
 
-        @test s1 == 1070.0677477147947
-        @test h1 == 1.0582e6
-        @test cp1 == 520.0
-        @test r1 == 208.0
+        @test s1 ≈ 4946.688462364205 rtol = 1e-12
+        @test h1 ≈ 1.0587989588194808e6 rtol = 1e-12
+        @test cp1 ≈ 520.3326763066746 rtol = 1e-12
+        @test r1 ≈ 208.13307299489335 rtol = 1e-12
 
         # =========================
         # gas_CO2
@@ -50,10 +50,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_CO2(t1)
 
-        @test s1 == 2382.871389635858
-        @test h1 == -6.405596226739999e6
-        @test cp1 == 1389.688099952
-        @test r1 == 188.96
+        @test s1 ≈ 7240.364704689438 rtol = 1e-12
+        @test h1 ≈ -6.404074106157261e6 rtol = 1e-12
+        @test cp1 ≈ 1389.062198178346 rtol = 1e-12
+        @test r1 ≈ 188.92511844033675 rtol = 1e-12
 
         # =========================
         # gas_H2O
@@ -62,10 +62,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_H2O(t1)
 
-        @test s1 == 4656.047912649002
-        @test h1 == -8.43504044348e6
-        @test cp1 == 2943.545113578
-        @test r1 == 461.91
+        @test s1 ≈ 15156.947666544678 rtol = 1e-12
+        @test h1 ≈ -8.39153728735259e6 rtol = 1e-12
+        @test cp1 ≈ 2991.7224626943803 rtol = 1e-12
+        @test r1 ≈ 461.5248833212695 rtol = 1e-12
 
 
         # =========================
@@ -75,10 +75,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_CH4(t1)
 
-        @test s1 == 8467.631968582504
-        @test h1 == 4.574569283279987e6
-        @test cp1 == 5288.091482799951
-        @test r1 == 519.65
+        @test s1 ≈ 20288.017781392107 rtol = 1e-12
+        @test h1 ≈ 5.517643696713035e6 rtol = 1e-12
+        @test cp1 ≈ 6642.589660217368 rtol = 1e-12
+        @test r1 ≈ 518.2808621620376 rtol = 1e-12
 
 
         # =========================
@@ -88,10 +88,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_C2H6(t1)
 
-        @test s1 == 7408.861495898641
-        @test h1 == 5.381058419279992e6
-        @test cp1 == 4498.240840800101
-        @test r1 == 277.15
+        @test s1 ≈ 15126.46309577772 rtol = 1e-12
+        @test h1 ≈ 5.923209255040159e6 rtol = 1e-12
+        @test cp1 ≈ 5415.480746043032 rtol = 1e-12
+        @test r1 ≈ 276.5136499203167 rtol = 1e-12
 
 
         # =========================
@@ -101,10 +101,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_C3H8(t1)
 
-        @test s1 == 7209.141132729834
-        @test h1 == 6.1354732452e6
-        @test cp1 == 4411.240840800101
-        @test r1 == 188.5
+        @test s1 ≈ 13405.862888348518 rtol = 1e-12
+        @test h1 ≈ 6.037560242090118e6 rtol = 1e-12
+        @test cp1 ≈ 5179.116086249305 rtol = 1e-12
+        @test r1 ≈ 188.55614231073292 rtol = 1e-12
 
 
         # =========================
@@ -114,10 +114,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_C4H10(t1)
 
-        @test s1 == 7230.2763377713845
-        @test h1 == 5.908308419279992e6
-        @test cp1 == 4448.240840800101
-        @test r1 == 143.3
+        @test s1 ≈ 12532.953612537325 rtol = 1e-12
+        @test h1 ≈ 6.121143971554433e6 rtol = 1e-12
+        @test cp1 ≈ 5062.627717484907 rtol = 1e-12
+        @test r1 ≈ 143.05205239994356 rtol = 1e-12
 
         # =========================
         # gas_C8H18
@@ -126,10 +126,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_C8H18(t1)
 
-        @test s1 == 7262.8799183106685
-        @test h1 == 6.234133419279992e6
-        @test cp1 == 4443.240840800101
-        @test r1 == 72.9
+        @test s1 ≈ 11031.155678755624 rtol = 1e-12
+        @test h1 ≈ 6.108569746053431e6 rtol = 1e-12
+        @test cp1 ≈ 4787.876779269284 rtol = 1e-12
+        @test r1 ≈ 72.7883019056887 rtol = 1e-12
 
         # =========================
         # gas_C14H30
@@ -138,10 +138,10 @@ isGradient = false
         t1 = 2333.00e0
         s1, h1, cp1, r1 = TASOPT.engine.gas_C14H30(t1)
 
-        @test s1 == 7253.868041333698
-        @test h1 == 6.369750419279992e6
-        @test cp1 == 4432.240840800101
-        @test r1 == 167.0
+        @test s1 ≈ 10829.841041162073 rtol = 1e-12
+        @test h1 ≈ 6.579722895088454e6 rtol = 1e-12
+        @test cp1 ≈ 4889.362882032815 rtol = 1e-12
+        @test r1 ≈ 49.694873655064676 rtol = 1e-12
         #    
 
 
@@ -153,12 +153,12 @@ isGradient = false
         t = 2333.00e0
         s, s_t, h, h_t, cp, r = TASOPT.engine.gasfun(igas, t)
 
-        @test s == 7230.2763377713845
-        @test s_t == 1.9066613119588947
-        @test h == 5.908308419279992e6
-        @test h_t == 4448.240840800101
-        @test cp == 4448.240840800101
-        @test r == 143.3
+        @test s ≈ 12532.953612537325 rtol = 1e-12
+        @test s_t ≈ 2.1700075942927164 rtol = 1e-12
+        @test h ≈ 6.121143971554433e6 rtol = 1e-12
+        @test h_t ≈ 5062.627717484907 rtol = 1e-12
+        @test cp ≈ 5062.627717484907 rtol = 1e-12
+        @test r ≈ 143.05205239994356 rtol = 1e-12
 
         if isGradient
             igas = 14
@@ -184,6 +184,7 @@ isGradient = false
         nchon = TASOPT.engine.gaschem(igas)
 
         @test nchon == [3, 8, 0, 0]
+        @test TASOPT.engine.gaschem(24) == [14, 30, 0, 0]
 
     end
 
@@ -201,22 +202,22 @@ isGradient = false
         s, s_t, h, h_t, cp, r = TASOPT.engine.gassum(alpha, n_air, t)
 
 
-        @test s == -329.0381537005463
-        @test s_t == 4.684344004111629
-        @test h == -87237.76845599999
-        @test h_t == 1007.1339608840001
-        @test cp == 1007.1339608840001
-        @test r == 288.29530400000004
+        @test s ≈ 6391.71908335634 rtol = 1e-12
+        @test s_t ≈ 4.68444642227367 rtol = 1e-12
+        @test h ≈ -87387.48730888343 rtol = 1e-12
+        @test h_t ≈ 1007.1559807888392 rtol = 1e-12
+        @test cp ≈ 1007.1559807888392 rtol = 1e-12
+        @test r ≈ 288.19439464085355 rtol = 1e-12
 
         s, s_t, h, h_t, cp, cp_t, r = TASOPT.engine.gassumd(alpha, n_air, t)
 
-        @test s == -329.0381537005463
-        @test s_t == 4.684344004111629
-        @test h == -87237.76845599999
-        @test h_t == 1007.1339608840001
-        @test cp == 1007.1339608840001
-        @test cp_t == 0.009382799699317275
-        @test r == 288.29530400000004
+        @test s ≈ 6391.71908335634 rtol = 1e-12
+        @test s_t ≈ 4.68444642227367 rtol = 1e-12
+        @test h ≈ -87387.48730888343 rtol = 1e-12
+        @test h_t ≈ 1007.1559807888392 rtol = 1e-12
+        @test cp ≈ 1007.1559807888392 rtol = 1e-12
+        @test cp_t ≈ 0.009792083697506929 rtol = 1e-12
+        @test r ≈ 288.19439464085355 rtol = 1e-12
 
         # =========================
         # gas_tset, gas_tsetd
@@ -225,12 +226,12 @@ isGradient = false
         tguess = 200.0
         t = TASOPT.engine.gas_tset(alpha, n_air, h, tguess)
 
-        @test t == 214.99999914397367
+        @test t ≈ 215.00000000000222 rtol = 1e-12
 
         t, t_hspec, t_al = TASOPT.engine.gas_tsetd(alpha, n_air, h, tguess)
-        @test t == 214.99999914397367
-        @test t_hspec == 0.000992916572022094
-        @test t_al == [85.64080275342843, 75.32364484439914, 8945.435851261927, 13490.80321923344, 42.8542796904542]
+        @test t ≈ 215.00000000000222 rtol = 1e-12
+        @test t_hspec ≈ 0.0009928948634319436 rtol = 1e-12
+        @test t_al ≈ [85.79812053634437, 75.43620415103699, 8943.853296553658, 13481.338008863426, 42.95825410769557] rtol = 1e-12
 
         # =========================
         # gas_prat, gas_pratd
@@ -255,12 +256,12 @@ isGradient = false
 
         p, t, h, s, cp, r = TASOPT.engine.gas_delh(alpha, n, p, t, h, s, cp, r, delh, epol)
 
-        @test p == 25717.186436176951
-        @test t == 224.92715529368544
-        @test h == -77237.768461931657
-        @test s == -283.57571753601650
-        @test cp == 1007.2429752832797
-        @test r == 288.29530400000004
+        @test p ≈ 25719.228981375054 rtol = 1e-12
+        @test t ≈ 224.92841821913333 rtol = 1e-12
+        @test h ≈ -77387.48730888162 rtol = 1e-12
+        @test s ≈ 6437.188726374598 rtol = 1e-12
+        @test cp ≈ 1007.2686236705617 rtol = 1e-12
+        @test r ≈ 288.19439464085355 rtol = 1e-12
 
         # =========================
         # gas_burn, gas_burnd
@@ -278,16 +279,16 @@ isGradient = false
 
         f, lambda = TASOPT.engine.gas_burn(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
 
-        @test f == -0.45350655959892078
-        @test lambda[1] == 1.4291113895654686
+        @test f ≈ -0.4501932405704256 rtol = 1e-12
+        @test lambda[1] ≈ 1.4204990873707866 rtol = 1e-12
 
         f, lambda, f_to, f_tf, f_t, l_to, l_tf, l_t = TASOPT.engine.gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
-        @test f_to == 4.3531820788987320E-004
-        @test f_tf == -3.2351348482849527E-004
-        @test f_t == -5.1186081193040599E-004
-        @test l_to[1] == -1.1383818413704377E-003
-        @test l_tf[1] == 8.4600613962923770E-004
-        @test l_t[1] == 1.3385450988489609E-003
+        @test f_to ≈ 4.321350732599855E-004 rtol = 1e-12
+        @test f_tf ≈ -3.184736778321327E-004 rtol = 1e-12
+        @test f_t ≈ -5.082141091148197E-004 rtol = 1e-12
+        @test l_to[1] ≈ -1.1164785929943556E-003 rtol = 1e-12
+        @test l_tf[1] ≈ 8.228192195772921E-004 rtol = 1e-12
+        @test l_t[1] ≈ 1.3130389283237437E-003 rtol = 1e-12
 
         # =========================
         # gas_mach, gas_machd
@@ -304,12 +305,12 @@ isGradient = false
 
         p, t, h, s, cp, r = TASOPT.engine.gas_mach(alpha, n - 1, po, to, ho, so, cpo, ro, mo, m, epol)
 
-        @test p ≈ 154338.88081676030 rtol = 1e-10
-        @test t ≈ 417.96446969196779 rtol = 1e-10
-        @test h ≈ 117997.67846481415 rtol = 1e-10
-        @test s ≈ 342.75772292744381 rtol = 1e-10
-        @test cp ≈ 1019.5701545538500 rtol = 1e-10
-        @test r ≈ 288.29530400000004 rtol = 1e-10
+        @test p ≈ 154353.6514477732 rtol = 1e-10
+        @test t ≈ 417.99112234120366 rtol = 1e-10
+        @test h ≈ 117895.51806158677 rtol = 1e-10
+        @test s ≈ 7063.621189120306 rtol = 1e-10
+        @test cp ≈ 1019.8305958387673 rtol = 1e-10
+        @test r ≈ 288.19439464085355 rtol = 1e-10
 
         # =========================
         # gas_mass
@@ -328,12 +329,12 @@ isGradient = false
 
         p, t, h, s, cp, r = TASOPT.engine.gas_mass(alpha, n - 1, po, to, ho + rho * u^2 / 2, so, cpo, ro, mflux, Mguess)
 
-        @test p ≈ 118662.19814638462 rtol = 1e-10
-        @test t ≈ 388.25628795926565 rtol = 1e-10
-        @test h ≈ 87768.12641472857 rtol = 1e-10
-        @test s ≈ 267.72827064815743 rtol = 1e-10
-        @test cp ≈ 1015.8338429023191 rtol = 1e-10
-        @test r ≈ 288.29530400000004 rtol = 1e-10
+        @test p ≈ 118649.55895027966 rtol = 1e-10
+        @test t ≈ 388.2772972055459 rtol = 1e-10
+        @test h ≈ 87648.59547586476 rtol = 1e-10
+        @test s ≈ 6988.559442099661 rtol = 1e-10
+        @test cp ≈ 1016.1652280555454 rtol = 1e-10
+        @test r ≈ 288.19439464085355 rtol = 1e-10
 
         n = 6
         alpha = [0.781, 0.209, 0.0004, 0.0, 0.00965, 0.0]
@@ -634,12 +635,12 @@ isGradient = false
 
 
 
-        @test etaf == 0.8539899545024271
-        @test etalc ==  0.8298895182207285
-        @test etahc == 0.8384795893726779
-        @test etaht ==  0.8978789812518558
-        @test etalt == 0.9191845671925591
-        @test Tmrow[1] ≈ 1119.1584455133655  rtol = 1e-10
+        @test etaf ≈ 0.85400131729976236 rtol = 1e-12
+        @test etalc ≈ 0.82991688904304883 rtol = 1e-12
+        @test etahc ≈ 0.83848957587727224 rtol = 1e-12
+        @test etaht ≈ 0.8978631224318473 rtol = 1e-12
+        @test etalt ≈ 0.9191720842856027 rtol = 1e-12
+        @test Tmrow[1] ≈ 1118.9908011526477  rtol = 1e-10
 
         if isGradient
             # AD
@@ -776,7 +777,7 @@ isGradient = false
             epsrow, Tmrow, Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
-        @test epsrow[1] ≈ 0.1303162243242347 rtol = 1e-10
+        @test epsrow[1] ≈ 0.13023066495301824 rtol = 1e-10
 
     end
 
@@ -955,17 +956,17 @@ isGradient = false
             Δp_PreC, Δp_InterC, Δp_Regen)
 
 
-        @test etaf ≈ 0.8741690445868673 atol = 1e-8
-        @test etalc ≈ 0.8367067552587594 atol = 1e-8
-        @test etahc ≈ 0.8393327258267146 atol = 1e-8
-        @test etaht ≈ 0.8974130931530157  atol = 1e-8
-        @test etalt ≈ 0.9176389341085217 atol = 1e-8
+        @test etaf ≈ 0.8740107095556703 atol = 1e-8
+        @test etalc ≈ 0.8367939935371028 atol = 1e-8
+        @test etahc ≈ 0.8393504559418431 atol = 1e-8
+        @test etaht ≈ 0.8974255312113559  atol = 1e-8
+        @test etalt ≈ 0.9176402081771461 atol = 1e-8
 
         Tt4_ref = 1783.8000000000002
-        ht4_ref = 470172.6605599733
-        pt4_ref = 2.7406297732608365e6
-        cpt4_ref = 1312.0669933280028
-        Rt4_ref =  288.12027917359467
+        ht4_ref = 474953.0181727429
+        pt4_ref = 2.741927820205688e6
+        cpt4_ref = 1312.7849452015246
+        Rt4_ref = 288.0046524837111
         @test Tt4 ≈ Tt4_ref atol = 1e-8 * Tt4_ref
         @test ht4 ≈ ht4_ref atol = 1e-8 * ht4_ref
         @test pt4 ≈ pt4_ref atol = 1e-8 * pt4_ref
@@ -1120,17 +1121,17 @@ isGradient = false
             Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
             Δp_PreC, Δp_InterC, Δp_Regen)
 
-        @test etaf ≈ 0.8862602081467577 rtol = 1e-6
-        @test etalc ≈ 0.6539900828671803 rtol = 1e-6
-        @test etahc ≈ 0.8390003200177845 rtol = 1e-6
-        @test etaht ≈ 0.8977614695292404 rtol = 1e-6
-        @test etalt ≈ 0.8649073213143893 rtol = 1e-6
+        @test etaf ≈ 0.8862758656790135 rtol = 1e-6
+        @test etalc ≈ 0.6540190125142584 rtol = 1e-6
+        @test etahc ≈ 0.8389937956278297 rtol = 1e-6
+        @test etaht ≈ 0.8977584767094359 rtol = 1e-6
+        @test etalt ≈ 0.8649300259702869 rtol = 1e-6
 
         @test Tt4 ≈ 1783.8000000000002 rtol = 1e-6
-        @test ht4 ≈ 292168.48621470056  rtol = 1e-6
-        @test pt4 ≈ 1.0428916387810945e6  rtol = 1e-6
-        @test cpt4 ≈ 1323.0363088269542 rtol = 1e-6
-        @test Rt4 ≈ 288.2159811164396  rtol = 1e-6
+        @test ht4 ≈ 297777.14203050715  rtol = 1e-6
+        @test pt4 ≈ 1.0431091557245867e6  rtol = 1e-6
+        @test cpt4 ≈ 1323.8804752732765 rtol = 1e-6
+        @test Rt4 ≈ 288.09753366232883  rtol = 1e-6
     end
 
     @testset "tfweight.jl" begin

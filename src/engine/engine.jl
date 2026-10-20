@@ -9,6 +9,7 @@ using Roots
 using NLsolve
 using LinearAlgebra
 using Random
+import IdealGasThermo
 
 export Engine
 

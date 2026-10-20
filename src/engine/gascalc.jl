@@ -123,14 +123,15 @@ function gassum(alpha, n, t)
       r = 0.0
       s_t = 0.0
       h_t = 0.0
-      for i = 1:n
-            si, s_ti, hi, h_ti, cpi, ri = gasfun(i, t)
-            s = s + si * alpha[i]
-            h = h + hi * alpha[i]
-            cp = cp + cpi * alpha[i]
-            r = r + ri * alpha[i]
-            s_t = s_t + s_ti * alpha[i]
-            h_t = h_t + h_ti * alpha[i]
+      @inbounds for i = 1:n
+            si, s_ti, hi, h_ti, cpi, _, ri = gasfund(i, t)
+            ai = alpha[i]
+            s = s + si * ai
+            h = h + hi * ai
+            cp = cp + cpi * ai
+            r = r + ri * ai
+            s_t = s_t + s_ti * ai
+            h_t = h_t + h_ti * ai
       end
       return s, s_t, h, h_t, cp, r
 end # gassum
@@ -163,28 +164,252 @@ function gassumd(alpha, n, t)
       r = 0.0
       s_t = 0.0
       h_t = 0.0
-      for i = 1:n
-            si, s_ti, hi, h_ti, cpi, ri = gasfun(i, t)
-            s = s + si * alpha[i]
-            h = h + hi * alpha[i]
-            cp = cp + cpi * alpha[i]
-            r = r + ri * alpha[i]
-            s_t = s_t + s_ti * alpha[i]
-            h_t = h_t + h_ti * alpha[i]
-      end
-
-      #---- set dcp/dt via finite difference
-      dt = 0.01
       cp_t = 0.0
-      for i = 1:n
-            si, s_ti, hi, h_ti, cpi1, ri = gasfun(i, t - dt)
-            si, s_ti, hi, h_ti, cpi2, ri = gasfun(i, t + dt)
-            cp_ti = (cpi2 - cpi1) * 0.5 / dt
-            cp_t = cp_t + cp_ti * alpha[i]
+      @inbounds for i = 1:n
+            si, s_ti, hi, h_ti, cpi, cp_ti, ri = gasfund(i, t)
+            ai = alpha[i]
+            s = s + si * ai
+            h = h + hi * ai
+            cp = cp + cpi * ai
+            r = r + ri * ai
+            s_t = s_t + s_ti * ai
+            h_t = h_t + h_ti * ai
+            cp_t = cp_t + cp_ti * ai
       end
 
       return s, s_t, h, h_t, cp, cp_t, r
 end # gassumd
+
+@inline _gas_state(p, t, h, s, cp, r) = (p = p, T = t, h = h, s = s, cp = cp, R = r)
+
+function gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
+      itmax = 10
+      ttol = 0.000001
+
+      gexp = ro / (cpo * epol)
+      t = to * pratio^gexp
+      pile = log(pratio) / epol
+
+      dt = 0.0
+      for iter = 1:itmax
+            s, s_t, h, h_t, cp, r = gassum(alpha, n, t)
+            res = (s - so) / r - pile
+            res_t = s_t / r
+
+            dt = -res / res_t
+            t = t + dt
+
+            if abs(dt) < ttol
+                  s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+                  res_t = s_t / r
+
+                  res_so = -1.0 / r
+                  res_pi = -1.0 / (epol * pratio)
+                  res_ep = pile / epol
+
+                  t_so = -res_so / res_t
+                  t_pi = -res_pi / res_t
+                  t_ep = -res_ep / res_t
+
+                  p = po * pratio
+                  p_po = pratio
+                  p_so = zero(p)
+                  p_pi = po
+                  p_ep = zero(p)
+
+                  return _gas_state(p, t, h, s, cp, r),
+                         (
+                              p_po = p_po,
+                              p_so = p_so, T_so = t_so, h_so = h_t * t_so, s_so = s_t * t_so,
+                              p_pratio = p_pi, T_pratio = t_pi, h_pratio = h_t * t_pi, s_pratio = s_t * t_pi,
+                              p_epol = p_ep, T_epol = t_ep, h_epol = h_t * t_ep, s_epol = s_t * t_ep,
+                         )
+            end
+      end
+
+      println("gas_pressure_ratio_partials: convergence failed.  dT =", dt)
+      println("To pratio =", to, pratio)
+end
+
+function gas_enthalpy_change_partials(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
+      itmax = 15
+      ttol = 0.000001
+
+      t = to + delh / cpo
+      t = max(t, 0.2 * to)
+
+      dt = 0.0
+      for iter = 1:itmax
+            s, s_t, h, h_t, cp, r = gassum(alpha, n, t)
+            res = h - ho - delh
+            res_t = h_t
+
+            dt = -res / res_t
+
+            rlx = 1.0
+            if rlx * dt < -0.4 * t
+                  rlx = -0.4 * t / dt
+            end
+            if rlx * dt > 0.6 * t
+                  rlx = 0.6 * t / dt
+            end
+
+            t = t + rlx * dt
+
+            if abs(dt) < ttol
+                  s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+
+                  t_ho = 1.0 / h_t
+                  t_dh = 1.0 / h_t
+
+                  p = po * exp(epol * (s - so) / r)
+                  p_s = p * epol / r
+                  p_so = -p_s
+                  p_po = exp(epol * (s - so) / r)
+                  p_ep = p * (s - so) / r
+                  p_t = p_s * s_t
+                  p_ho = p_t * t_ho
+                  p_dh = p_t * t_dh
+
+                  return _gas_state(p, t, h, s, cp, r),
+                         (
+                              p_so = p_so, p_po = p_po, p_epol = p_ep,
+                              p_ho = p_ho, T_ho = t_ho, h_ho = h_t * t_ho, s_ho = s_t * t_ho,
+                              p_delh = p_dh, T_delh = t_dh, h_delh = h_t * t_dh, s_delh = s_t * t_dh,
+                         )
+            end
+      end
+
+      println("gas_enthalpy_change_partials: convergence failed.  dT =", dt)
+end
+
+function _gas_temperature_composition_direction(n, t, dalpha)
+      z = zero(t * dalpha[1])
+      s_al = z
+      h_al = z
+      cp_al = z
+      r_al = z
+      @inbounds for i = 1:n
+            si, _, hi, _, cpi, _, ri = gasfund(i, t)
+            dai = dalpha[i]
+            s_al = s_al + si * dai
+            h_al = h_al + hi * dai
+            cp_al = cp_al + cpi * dai
+            r_al = r_al + ri * dai
+      end
+      return (s = s_al, h = h_al, cp = cp_al, R = r_al)
+end
+
+function _gas_temperature_composition_directions7(n, t, d1, d2, d3, d4, d5, d6, d7)
+      z = zero(t * d1[1])
+      s1 = z; h1 = z; cp1 = z; r1 = z
+      s2 = z; h2 = z; cp2 = z; r2 = z
+      s3 = z; h3 = z; cp3 = z; r3 = z
+      s4 = z; h4 = z; cp4 = z; r4 = z
+      s5 = z; h5 = z; cp5 = z; r5 = z
+      s6 = z; h6 = z; cp6 = z; r6 = z
+      s7 = z; h7 = z; cp7 = z; r7 = z
+
+      @inbounds for i = 1:n
+            si, _, hi, _, cpi, _, ri = gasfund(i, t)
+            a1 = d1[i]
+            a2 = d2[i]
+            a3 = d3[i]
+            a4 = d4[i]
+            a5 = d5[i]
+            a6 = d6[i]
+            a7 = d7[i]
+
+            s1 += si * a1; h1 += hi * a1; cp1 += cpi * a1; r1 += ri * a1
+            s2 += si * a2; h2 += hi * a2; cp2 += cpi * a2; r2 += ri * a2
+            s3 += si * a3; h3 += hi * a3; cp3 += cpi * a3; r3 += ri * a3
+            s4 += si * a4; h4 += hi * a4; cp4 += cpi * a4; r4 += ri * a4
+            s5 += si * a5; h5 += hi * a5; cp5 += cpi * a5; r5 += ri * a5
+            s6 += si * a6; h6 += hi * a6; cp6 += cpi * a6; r6 += ri * a6
+            s7 += si * a7; h7 += hi * a7; cp7 += cpi * a7; r7 += ri * a7
+      end
+
+      return (
+            (s = s1, h = h1, cp = cp1, R = r1),
+            (s = s2, h = h2, cp = cp2, R = r2),
+            (s = s3, h = h3, cp = cp3, R = r3),
+            (s = s4, h = h4, cp = cp4, R = r4),
+            (s = s5, h = h5, cp = cp5, R = r5),
+            (s = s6, h = h6, cp = cp6, R = r6),
+            (s = s7, h = h7, cp = cp7, R = r7),
+      )
+end
+
+@inline function _pressure_ratio_composition_direction(al, s, s_t, h_t, cp_t, r, so)
+      res_t = s_t / r
+      res_al = al.s / r - (s - so) / r^2 * al.R
+      t_al = -res_al / res_t
+
+      return (
+            p = zero(t_al),
+            T = t_al,
+            h = h_t * t_al + al.h,
+            s = s_t * t_al + al.s,
+            cp = cp_t * t_al + al.cp,
+            R = al.R,
+      )
+end
+
+@inline function _enthalpy_change_composition_direction(al, p, s, s_t, h_t, cp_t, r, so, epol)
+      t_al = -al.h / h_t
+      p_r = -p * epol * (s - so) / r^2
+      p_s = p * epol / r
+      p_t = p_s * s_t
+
+      return (
+            p = p_t * t_al + p_s * al.s + p_r * al.R,
+            T = t_al,
+            h = h_t * t_al + al.h,
+            s = s_t * t_al + al.s,
+            cp = cp_t * t_al + al.cp,
+            R = al.R,
+      )
+end
+
+function gas_pressure_ratio_composition_direction(alpha, n, t, so, dalpha)
+      s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+      al = _gas_temperature_composition_direction(n, t, dalpha)
+      return _pressure_ratio_composition_direction(al, s, s_t, h_t, cp_t, r, so)
+end
+
+function gas_pressure_ratio_composition_directions(alpha, n, t, so, d1, d2, d3, d4, d5, d6, d7)
+      s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+      al1, al2, al3, al4, al5, al6, al7 = _gas_temperature_composition_directions7(n, t, d1, d2, d3, d4, d5, d6, d7)
+      return (
+            _pressure_ratio_composition_direction(al1, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al2, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al3, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al4, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al5, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al6, s, s_t, h_t, cp_t, r, so),
+            _pressure_ratio_composition_direction(al7, s, s_t, h_t, cp_t, r, so),
+      )
+end
+
+function gas_enthalpy_change_composition_direction(alpha, n, p, t, so, epol, dalpha)
+      s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+      al = _gas_temperature_composition_direction(n, t, dalpha)
+      return _enthalpy_change_composition_direction(al, p, s, s_t, h_t, cp_t, r, so, epol)
+end
+
+function gas_enthalpy_change_composition_directions(alpha, n, p, t, so, epol, d1, d2, d3, d4, d5, d6, d7)
+      s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
+      al1, al2, al3, al4, al5, al6, al7 = _gas_temperature_composition_directions7(n, t, d1, d2, d3, d4, d5, d6, d7)
+      return (
+            _enthalpy_change_composition_direction(al1, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al2, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al3, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al4, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al5, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al6, p, s, s_t, h_t, cp_t, r, so, epol),
+            _enthalpy_change_composition_direction(al7, p, s, s_t, h_t, cp_t, r, so, epol),
+      )
+end
 
 """
     gas_prat(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
@@ -739,8 +964,7 @@ function gas_mach(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
       dt = 0.0
       #---- Newton iteration for actual temperature
       for iter = 1:itmax
-            s, s_t, h, h_t, cp, r = gassum(alpha, n, t)
-            cp_t = 0.0    # could evaluate this from the cp[T] splines (later)
+            s, s_t, h, h_t, cp, cp_t, r = gassumd(alpha, n, t)
             #
             #------ usq( t, cp(t,al), r[al] , m )
             usq = m^2 * cp * r / (cp - r) * t

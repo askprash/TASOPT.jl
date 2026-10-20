@@ -554,14 +554,27 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   epf = 1.0 / epf
             end
 
-            pt21, Tt21, ht21, st21, cpt21, Rt21,
-            pt21_pt2,
-            pt21_st2, Tt21_st2, ht21_st2, st21_st2,
-            pt21_pf, Tt21_pf, ht21_pf, st21_pf,
-            pt21_epf, Tt21_epf, ht21_epf, st21_epf,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
+            pt21 = pr_state.p
+            Tt21 = pr_state.T
+            ht21 = pr_state.h
+            st21 = pr_state.s
+            cpt21 = pr_state.cp
+            Rt21 = pr_state.R
+            pt21_pt2 = pr_partials.p_po
+            pt21_st2 = pr_partials.p_so
+            Tt21_st2 = pr_partials.T_so
+            ht21_st2 = pr_partials.h_so
+            st21_st2 = pr_partials.s_so
+            pt21_pf = pr_partials.p_pratio
+            Tt21_pf = pr_partials.T_pratio
+            ht21_pf = pr_partials.h_pratio
+            st21_pf = pr_partials.s_pratio
+            pt21_epf = pr_partials.p_epol
+            Tt21_epf = pr_partials.T_epol
+            ht21_epf = pr_partials.h_epol
+            st21_epf = pr_partials.s_epol
 
             pt21_pf = pt21_epf * epf_pf + pt21_pf
             Tt21_pf = Tt21_epf * epf_pf + Tt21_pf
@@ -663,14 +676,27 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   eplc_ml = 0.0
             end
 
-            pt25, Tt25, ht25, st25, cpt25, Rt25,
-            pt25_pt19c,
-            pt25_st19c, Tt25_st19c, ht25_st19c, st25_st19c,
-            pt25_pl, Tt25_pl, ht25_pl, st25_pl,
-            pt25_eplc, Tt25_eplc, ht25_eplc, st25_eplc,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
                   pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pl, eplc)
+            pt25 = pr_state.p
+            Tt25 = pr_state.T
+            ht25 = pr_state.h
+            st25 = pr_state.s
+            cpt25 = pr_state.cp
+            Rt25 = pr_state.R
+            pt25_pt19c = pr_partials.p_po
+            pt25_st19c = pr_partials.p_so
+            Tt25_st19c = pr_partials.T_so
+            ht25_st19c = pr_partials.h_so
+            st25_st19c = pr_partials.s_so
+            pt25_pl = pr_partials.p_pratio
+            Tt25_pl = pr_partials.T_pratio
+            ht25_pl = pr_partials.h_pratio
+            st25_pl = pr_partials.s_pratio
+            pt25_eplc = pr_partials.p_epol
+            Tt25_eplc = pr_partials.T_epol
+            ht25_eplc = pr_partials.h_epol
+            st25_eplc = pr_partials.s_epol
 
             pt25_pl = pt25_eplc * eplc_pl + pt25_pl
             Tt25_pl = Tt25_eplc * eplc_pl + Tt25_pl
@@ -727,14 +753,27 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   ephc_mh = 0.0
             end
 
-            pt3, Tt3, ht3, st3, cpt3, Rt3,
-            pt3_pt25c,
-            pt3_st25c, Tt3_st25c, ht3_st25c, st3_st25c,
-            pt3_ph, Tt3_ph, ht3_ph, st3_ph,
-            pt3_ephc, Tt3_ephc, ht3_ephc, st3_ephc,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
                   pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, ph, ephc)
+            pt3 = pr_state.p
+            Tt3 = pr_state.T
+            ht3 = pr_state.h
+            st3 = pr_state.s
+            cpt3 = pr_state.cp
+            Rt3 = pr_state.R
+            pt3_pt25c = pr_partials.p_po
+            pt3_st25c = pr_partials.p_so
+            Tt3_st25c = pr_partials.T_so
+            ht3_st25c = pr_partials.h_so
+            st3_st25c = pr_partials.s_so
+            pt3_ph = pr_partials.p_pratio
+            Tt3_ph = pr_partials.T_pratio
+            ht3_ph = pr_partials.h_pratio
+            st3_ph = pr_partials.s_pratio
+            pt3_ephc = pr_partials.p_epol
+            Tt3_ephc = pr_partials.T_epol
+            ht3_ephc = pr_partials.h_epol
+            st3_ephc = pr_partials.s_epol
 
             pt3_pl = pt3_pt25c * pt25c_pl +
                      pt3_st25c * st25c_pl
@@ -1312,15 +1351,27 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   dhb_Tb = ht41_Tb - h41_Tb
                   dhb_Mi = ht41_Mi - h41_Mi
                   epi = 1.0
-                  pt41, Tt41, ht41, st41, cpt41, Rt41,
-                  pt41_s41,
-                  pt41_p41,
-                  dum,
-                  pt41_h41, Tt41_h41, ht41_h41, st41_h41,
-                  pt41_dhb, Tt41_dhb, ht41_dhb, st41_dhb,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_delhd(lambdap, nair,
+                  dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
                         p41, T41, h41, s41, cp41, R41, dhb, epi)
+                  pt41 = dh_state.p
+                  Tt41 = dh_state.T
+                  ht41 = dh_state.h
+                  st41 = dh_state.s
+                  cpt41 = dh_state.cp
+                  Rt41 = dh_state.R
+                  pt41_s41 = dh_partials.p_so
+                  pt41_p41 = dh_partials.p_po
+                  pt41_h41 = dh_partials.p_ho
+                  Tt41_h41 = dh_partials.T_ho
+                  ht41_h41 = dh_partials.h_ho
+                  st41_h41 = dh_partials.s_ho
+                  pt41_dhb = dh_partials.p_delh
+                  Tt41_dhb = dh_partials.T_delh
+                  ht41_dhb = dh_partials.h_delh
+                  st41_dhb = dh_partials.s_delh
+                  pt41_lamp_pl, pt41_lamp_ph, pt41_lamp_mf, pt41_lamp_ml, pt41_lamp_mh, pt41_lamp_Tb, pt41_lamp_Mi =
+                        gas_enthalpy_change_composition_directions(lambdap, nair, pt41, Tt41, s41, epi,
+                              lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
                   pt41_pl = pt41_s41 * s41_pl +
                             pt41_p41 * p41_pl +
@@ -1349,16 +1400,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                             pt41_p41 * p41_Mi +
                             pt41_h41 * h41_Mi + pt41_dhb * dhb_Mi
 
-                  for i = 1:nair
-                        pt41_pl = pt41_pl + p_al[i] * lamp_pl[i]
-                        pt41_ph = pt41_ph + p_al[i] * lamp_ph[i]
-                        pt41_mf = pt41_mf + p_al[i] * lamp_mf[i]
-                        pt41_ml = pt41_ml + p_al[i] * lamp_ml[i]
-                        pt41_mh = pt41_mh + p_al[i] * lamp_mh[i]
-                        pt41_Tb = pt41_Tb + p_al[i] * lamp_Tb[i]
-                        pt41_Mi = pt41_Mi + p_al[i] * lamp_Mi[i]
-
-                  end
+                  pt41_pl += pt41_lamp_pl.p
+                  pt41_ph += pt41_lamp_ph.p
+                  pt41_mf += pt41_lamp_mf.p
+                  pt41_ml += pt41_lamp_ml.p
+                  pt41_mh += pt41_lamp_mh.p
+                  pt41_Tb += pt41_lamp_Tb.p
+                  pt41_Mi += pt41_lamp_Mi.p
 
             end
 
@@ -1515,15 +1563,28 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
            
             #---- HPT work to determine station 45
             epi = 1.0 / epht
-            pt45, Tt45, ht45, st45, cpt45, Rt45,
-            pt45_st41,
-            pt45_pt41,
-            pt45_epi,
-            pt45_ht41, Tt45_ht41, ht45_ht41, st45_ht41,
-            pt45_dhht, Tt45_dhht, ht45_dhht, st45_dhht,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_delhd(lambdap, nair,
+            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
                   pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epi)
+            pt45 = dh_state.p
+            Tt45 = dh_state.T
+            ht45 = dh_state.h
+            st45 = dh_state.s
+            cpt45 = dh_state.cp
+            Rt45 = dh_state.R
+            pt45_st41 = dh_partials.p_so
+            pt45_pt41 = dh_partials.p_po
+            pt45_epi = dh_partials.p_epol
+            pt45_ht41 = dh_partials.p_ho
+            Tt45_ht41 = dh_partials.T_ho
+            ht45_ht41 = dh_partials.h_ho
+            st45_ht41 = dh_partials.s_ho
+            pt45_dhht = dh_partials.p_delh
+            Tt45_dhht = dh_partials.T_delh
+            ht45_dhht = dh_partials.h_delh
+            st45_dhht = dh_partials.s_delh
+            pt45_lamp_pl, pt45_lamp_ph, pt45_lamp_mf, pt45_lamp_ml, pt45_lamp_mh, pt45_lamp_Tb, pt45_lamp_Mi =
+                  gas_enthalpy_change_composition_directions(lambdap, nair, pt45, Tt45, st41, epi,
+                        lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt45_epht = pt45_epi * (-epi / epht)
 
@@ -1584,42 +1645,40 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             st45_Mi = st45_ht41 * ht41_Mi + st45_dhht * dhht_Mi
 
 
-            for i = 1:nair
-                  pt45_pl = pt45_pl + p_al[i] * lamp_pl[i]
-                  Tt45_pl = Tt45_pl + T_al[i] * lamp_pl[i]
-                  ht45_pl = ht45_pl + h_al[i] * lamp_pl[i]
-                  st45_pl = st45_pl + s_al[i] * lamp_pl[i]
+            pt45_pl += pt45_lamp_pl.p
+            Tt45_pl += pt45_lamp_pl.T
+            ht45_pl += pt45_lamp_pl.h
+            st45_pl += pt45_lamp_pl.s
 
-                  pt45_ph = pt45_ph + p_al[i] * lamp_ph[i]
-                  Tt45_ph = Tt45_ph + T_al[i] * lamp_ph[i]
-                  ht45_ph = ht45_ph + h_al[i] * lamp_ph[i]
-                  st45_ph = st45_ph + s_al[i] * lamp_ph[i]
+            pt45_ph += pt45_lamp_ph.p
+            Tt45_ph += pt45_lamp_ph.T
+            ht45_ph += pt45_lamp_ph.h
+            st45_ph += pt45_lamp_ph.s
 
-                  pt45_mf = pt45_mf + p_al[i] * lamp_mf[i]
-                  Tt45_mf = Tt45_mf + T_al[i] * lamp_mf[i]
-                  ht45_mf = ht45_mf + h_al[i] * lamp_mf[i]
-                  st45_mf = st45_mf + s_al[i] * lamp_mf[i]
+            pt45_mf += pt45_lamp_mf.p
+            Tt45_mf += pt45_lamp_mf.T
+            ht45_mf += pt45_lamp_mf.h
+            st45_mf += pt45_lamp_mf.s
 
-                  pt45_ml = pt45_ml + p_al[i] * lamp_ml[i]
-                  Tt45_ml = Tt45_ml + T_al[i] * lamp_ml[i]
-                  ht45_ml = ht45_ml + h_al[i] * lamp_ml[i]
-                  st45_ml = st45_ml + s_al[i] * lamp_ml[i]
+            pt45_ml += pt45_lamp_ml.p
+            Tt45_ml += pt45_lamp_ml.T
+            ht45_ml += pt45_lamp_ml.h
+            st45_ml += pt45_lamp_ml.s
 
-                  pt45_mh = pt45_mh + p_al[i] * lamp_mh[i]
-                  Tt45_mh = Tt45_mh + T_al[i] * lamp_mh[i]
-                  ht45_mh = ht45_mh + h_al[i] * lamp_mh[i]
-                  st45_mh = st45_mh + s_al[i] * lamp_mh[i]
+            pt45_mh += pt45_lamp_mh.p
+            Tt45_mh += pt45_lamp_mh.T
+            ht45_mh += pt45_lamp_mh.h
+            st45_mh += pt45_lamp_mh.s
 
-                  pt45_Tb = pt45_Tb + p_al[i] * lamp_Tb[i]
-                  Tt45_Tb = Tt45_Tb + T_al[i] * lamp_Tb[i]
-                  ht45_Tb = ht45_Tb + h_al[i] * lamp_Tb[i]
-                  st45_Tb = st45_Tb + s_al[i] * lamp_Tb[i]
+            pt45_Tb += pt45_lamp_Tb.p
+            Tt45_Tb += pt45_lamp_Tb.T
+            ht45_Tb += pt45_lamp_Tb.h
+            st45_Tb += pt45_lamp_Tb.s
 
-                  pt45_Mi = pt45_Mi + p_al[i] * lamp_Mi[i]
-                  Tt45_Mi = Tt45_Mi + T_al[i] * lamp_Mi[i]
-                  ht45_Mi = ht45_Mi + h_al[i] * lamp_Mi[i]
-                  st45_Mi = st45_Mi + s_al[i] * lamp_Mi[i]
-            end
+            pt45_Mi += pt45_lamp_Mi.p
+            Tt45_Mi += pt45_lamp_Mi.T
+            ht45_Mi += pt45_lamp_Mi.h
+            st45_Mi += pt45_lamp_Mi.s
 
             #---- will also need cpt45,Rt45 derivatives
             st45, st45_Tt45,
@@ -1752,14 +1811,30 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
-            pt49, Tt49, ht49, st49, cpt49, Rt49,
-            pt49_pt45,
-            pt49_st45, Tt49_st45, ht49_st45, st49_st45,
-            pt49_pilt, Tt49_pilt, ht49_pilt, st49_pilt,
-            pt49_epi, Tt49_epi, ht49_epi, st49_epi,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(lambdap, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
                   pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, epi)
+            pt49 = pr_state.p
+            Tt49 = pr_state.T
+            ht49 = pr_state.h
+            st49 = pr_state.s
+            cpt49 = pr_state.cp
+            Rt49 = pr_state.R
+            pt49_pt45 = pr_partials.p_po
+            pt49_st45 = pr_partials.p_so
+            Tt49_st45 = pr_partials.T_so
+            ht49_st45 = pr_partials.h_so
+            st49_st45 = pr_partials.s_so
+            pt49_pilt = pr_partials.p_pratio
+            Tt49_pilt = pr_partials.T_pratio
+            ht49_pilt = pr_partials.h_pratio
+            st49_pilt = pr_partials.s_pratio
+            pt49_epi = pr_partials.p_epol
+            Tt49_epi = pr_partials.T_epol
+            ht49_epi = pr_partials.h_epol
+            st49_epi = pr_partials.s_epol
+            pt49_lamp_pl, pt49_lamp_ph, pt49_lamp_mf, pt49_lamp_ml, pt49_lamp_mh, pt49_lamp_Tb, pt49_lamp_Mi =
+                  gas_pressure_ratio_composition_directions(lambdap, nair, Tt49, st45,
+                        lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt49_Pc = pt49_pilt * pilt_Pc
             Tt49_Pc = Tt49_pilt * pilt_Pc
@@ -1818,42 +1893,40 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ht49_Mi = ht49_pt45 * pt45_Mi + ht49_st45 * st45_Mi + ht49_eplt * eplt_Mi
             st49_Mi = st49_pt45 * pt45_Mi + st49_st45 * st45_Mi + st49_eplt * eplt_Mi
 
-            for i = 1:nair
-                  pt49_pl = pt49_pl + p_al[i] * lamp_pl[i]
-                  Tt49_pl = Tt49_pl + T_al[i] * lamp_pl[i]
-                  ht49_pl = ht49_pl + h_al[i] * lamp_pl[i]
-                  st49_pl = st49_pl + s_al[i] * lamp_pl[i]
+            pt49_pl += pt49_lamp_pl.p
+            Tt49_pl += pt49_lamp_pl.T
+            ht49_pl += pt49_lamp_pl.h
+            st49_pl += pt49_lamp_pl.s
 
-                  pt49_ph = pt49_ph + p_al[i] * lamp_ph[i]
-                  Tt49_ph = Tt49_ph + T_al[i] * lamp_ph[i]
-                  ht49_ph = ht49_ph + h_al[i] * lamp_ph[i]
-                  st49_ph = st49_ph + s_al[i] * lamp_ph[i]
+            pt49_ph += pt49_lamp_ph.p
+            Tt49_ph += pt49_lamp_ph.T
+            ht49_ph += pt49_lamp_ph.h
+            st49_ph += pt49_lamp_ph.s
 
-                  pt49_mf = pt49_mf + p_al[i] * lamp_mf[i]
-                  Tt49_mf = Tt49_mf + T_al[i] * lamp_mf[i]
-                  ht49_mf = ht49_mf + h_al[i] * lamp_mf[i]
-                  st49_mf = st49_mf + s_al[i] * lamp_mf[i]
+            pt49_mf += pt49_lamp_mf.p
+            Tt49_mf += pt49_lamp_mf.T
+            ht49_mf += pt49_lamp_mf.h
+            st49_mf += pt49_lamp_mf.s
 
-                  pt49_ml = pt49_ml + p_al[i] * lamp_ml[i]
-                  Tt49_ml = Tt49_ml + T_al[i] * lamp_ml[i]
-                  ht49_ml = ht49_ml + h_al[i] * lamp_ml[i]
-                  st49_ml = st49_ml + s_al[i] * lamp_ml[i]
+            pt49_ml += pt49_lamp_ml.p
+            Tt49_ml += pt49_lamp_ml.T
+            ht49_ml += pt49_lamp_ml.h
+            st49_ml += pt49_lamp_ml.s
 
-                  pt49_mh = pt49_mh + p_al[i] * lamp_mh[i]
-                  Tt49_mh = Tt49_mh + T_al[i] * lamp_mh[i]
-                  ht49_mh = ht49_mh + h_al[i] * lamp_mh[i]
-                  st49_mh = st49_mh + s_al[i] * lamp_mh[i]
+            pt49_mh += pt49_lamp_mh.p
+            Tt49_mh += pt49_lamp_mh.T
+            ht49_mh += pt49_lamp_mh.h
+            st49_mh += pt49_lamp_mh.s
 
-                  pt49_Tb = pt49_Tb + p_al[i] * lamp_Tb[i]
-                  Tt49_Tb = Tt49_Tb + T_al[i] * lamp_Tb[i]
-                  ht49_Tb = ht49_Tb + h_al[i] * lamp_Tb[i]
-                  st49_Tb = st49_Tb + s_al[i] * lamp_Tb[i]
+            pt49_Tb += pt49_lamp_Tb.p
+            Tt49_Tb += pt49_lamp_Tb.T
+            ht49_Tb += pt49_lamp_Tb.h
+            st49_Tb += pt49_lamp_Tb.s
 
-                  pt49_Mi = pt49_Mi + p_al[i] * lamp_Mi[i]
-                  Tt49_Mi = Tt49_Mi + T_al[i] * lamp_Mi[i]
-                  ht49_Mi = ht49_Mi + h_al[i] * lamp_Mi[i]
-                  st49_Mi = st49_Mi + s_al[i] * lamp_Mi[i]
-            end
+            pt49_Mi += pt49_lamp_Mi.p
+            Tt49_Mi += pt49_lamp_Mi.T
+            ht49_Mi += pt49_lamp_Mi.h
+            st49_Mi += pt49_lamp_Mi.s
             Tt49_ht49 = 1 / cpt49
             st49_Tt49 = cpt49 / Tt49
 
@@ -1974,14 +2047,23 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- fan nozzle flow 7-8, use alpha mass fraction (air)
             pfn = p0 / pt7
             pfn_pt7 = -pfn / pt7
-            p7, T7, h7, s7, cp7, R7,
-            p7_pt7,
-            p7_st7, T7_st7, h7_st7, s7_st7,
-            p7_pfn, T7_pfn, h7_pfn, s7_pfn,
-            dum, dum, dum, dum,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
                   pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, 1.0)
+            p7 = pr_state.p
+            T7 = pr_state.T
+            h7 = pr_state.h
+            s7 = pr_state.s
+            cp7 = pr_state.cp
+            R7 = pr_state.R
+            p7_pt7 = pr_partials.p_po
+            p7_st7 = pr_partials.p_so
+            T7_st7 = pr_partials.T_so
+            h7_st7 = pr_partials.h_so
+            s7_st7 = pr_partials.s_so
+            p7_pfn = pr_partials.p_pratio
+            T7_pfn = pr_partials.T_pratio
+            h7_pfn = pr_partials.h_pratio
+            s7_pfn = pr_partials.s_pratio
             u7 = sqrt(2.0 * max(ht7 - h7, 0.0))
             M7 = u7 / sqrt(T7 * cp7 * R7 / (cp7 - R7))
 
@@ -2062,14 +2144,26 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             pcn = p0 / pt5
             pcn_pt5 = -pcn / pt5
 
-            p5, T5, h5, s5, cp5, R5,
-            p5_pt5,
-            p5_st5, T5_st5, h5_st5, s5_st5,
-            p5_pcn, T5_pcn, h5_pcn, s5_pcn,
-            dum, dum, dum, dum,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_pratd(lambdap, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
                   pt5, Tt5, ht5, st5, cpt5, Rt5, pcn, 1.0)
+            p5 = pr_state.p
+            T5 = pr_state.T
+            h5 = pr_state.h
+            s5 = pr_state.s
+            cp5 = pr_state.cp
+            R5 = pr_state.R
+            p5_pt5 = pr_partials.p_po
+            p5_st5 = pr_partials.p_so
+            T5_st5 = pr_partials.T_so
+            h5_st5 = pr_partials.h_so
+            s5_st5 = pr_partials.s_so
+            p5_pcn = pr_partials.p_pratio
+            T5_pcn = pr_partials.T_pratio
+            h5_pcn = pr_partials.h_pratio
+            s5_pcn = pr_partials.s_pratio
+            p5_lamp_pl, p5_lamp_ph, p5_lamp_mf, p5_lamp_ml, p5_lamp_mh, p5_lamp_Tb, p5_lamp_Mi =
+                  gas_pressure_ratio_composition_directions(lambdap, nair, T5, st5,
+                        lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             u5 = sqrt(2.0 * max(ht5 - h5, 0.0))
             M5 = u5 / sqrt(T5 * cp5 * R5 / (cp5 - R5))
@@ -2206,58 +2300,102 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             end
 
-            R5_pl = zeros(T, 1)[1]
-            R5_ph = zeros(T, 1)[1]
-            R5_mf = zeros(T, 1)[1]
-            R5_ml = zeros(T, 1)[1]
-            R5_mh = zeros(T, 1)[1]
-            R5_Tb = zeros(T, 1)[1]
-            R5_Pc = zeros(T, 1)[1]
-            R5_Mi = zeros(T, 1)[1]
+            R5_pl = zero(T5)
+            R5_ph = zero(T5)
+            R5_mf = zero(T5)
+            R5_ml = zero(T5)
+            R5_mh = zero(T5)
+            R5_Tb = zero(T5)
+            R5_Pc = zero(T5)
+            R5_Mi = zero(T5)
 
-            for i = 1:nair
+            if M5 < 1.0
+                  p5_pl += p5_lamp_pl.p
+                  T5_pl += p5_lamp_pl.T
+                  h5_pl += p5_lamp_pl.h
+                  s5_pl += p5_lamp_pl.s
+                  R5_pl += p5_lamp_pl.R
 
-                  p5_pl = p5_pl + p_al[i] * lamp_pl[i]
-                  T5_pl = T5_pl + T_al[i] * lamp_pl[i]
-                  h5_pl = h5_pl + h_al[i] * lamp_pl[i]
-                  s5_pl = s5_pl + s_al[i] * lamp_pl[i]
-                  R5_pl = R5_pl + R_al[i] * lamp_pl[i]
+                  p5_ph += p5_lamp_ph.p
+                  T5_ph += p5_lamp_ph.T
+                  h5_ph += p5_lamp_ph.h
+                  s5_ph += p5_lamp_ph.s
+                  R5_ph += p5_lamp_ph.R
 
-                  p5_ph = p5_ph + p_al[i] * lamp_ph[i]
-                  T5_ph = T5_ph + T_al[i] * lamp_ph[i]
-                  h5_ph = h5_ph + h_al[i] * lamp_ph[i]
-                  s5_ph = s5_ph + s_al[i] * lamp_ph[i]
-                  R5_ph = R5_ph + R_al[i] * lamp_ph[i]
+                  p5_mf += p5_lamp_mf.p
+                  T5_mf += p5_lamp_mf.T
+                  h5_mf += p5_lamp_mf.h
+                  s5_mf += p5_lamp_mf.s
+                  R5_mf += p5_lamp_mf.R
 
-                  p5_mf = p5_mf + p_al[i] * lamp_mf[i]
-                  T5_mf = T5_mf + T_al[i] * lamp_mf[i]
-                  h5_mf = h5_mf + h_al[i] * lamp_mf[i]
-                  s5_mf = s5_mf + s_al[i] * lamp_mf[i]
-                  R5_mf = R5_mf + R_al[i] * lamp_mf[i]
+                  p5_ml += p5_lamp_ml.p
+                  T5_ml += p5_lamp_ml.T
+                  h5_ml += p5_lamp_ml.h
+                  s5_ml += p5_lamp_ml.s
+                  R5_ml += p5_lamp_ml.R
 
-                  p5_ml = p5_ml + p_al[i] * lamp_ml[i]
-                  T5_ml = T5_ml + T_al[i] * lamp_ml[i]
-                  h5_ml = h5_ml + h_al[i] * lamp_ml[i]
-                  s5_ml = s5_ml + s_al[i] * lamp_ml[i]
-                  R5_ml = R5_ml + R_al[i] * lamp_ml[i]
+                  p5_mh += p5_lamp_mh.p
+                  T5_mh += p5_lamp_mh.T
+                  h5_mh += p5_lamp_mh.h
+                  s5_mh += p5_lamp_mh.s
+                  R5_mh += p5_lamp_mh.R
 
-                  p5_mh = p5_mh + p_al[i] * lamp_mh[i]
-                  T5_mh = T5_mh + T_al[i] * lamp_mh[i]
-                  h5_mh = h5_mh + h_al[i] * lamp_mh[i]
-                  s5_mh = s5_mh + s_al[i] * lamp_mh[i]
-                  R5_mh = R5_mh + R_al[i] * lamp_mh[i]
+                  p5_Tb += p5_lamp_Tb.p
+                  T5_Tb += p5_lamp_Tb.T
+                  h5_Tb += p5_lamp_Tb.h
+                  s5_Tb += p5_lamp_Tb.s
+                  R5_Tb += p5_lamp_Tb.R
 
-                  p5_Tb = p5_Tb + p_al[i] * lamp_Tb[i]
-                  T5_Tb = T5_Tb + T_al[i] * lamp_Tb[i]
-                  h5_Tb = h5_Tb + h_al[i] * lamp_Tb[i]
-                  s5_Tb = s5_Tb + s_al[i] * lamp_Tb[i]
-                  R5_Tb = R5_Tb + R_al[i] * lamp_Tb[i]
+                  p5_Mi += p5_lamp_Mi.p
+                  T5_Mi += p5_lamp_Mi.T
+                  h5_Mi += p5_lamp_Mi.h
+                  s5_Mi += p5_lamp_Mi.s
+                  R5_Mi += p5_lamp_Mi.R
+            else
+                  for i = 1:nair
 
-                  p5_Mi = p5_Mi + p_al[i] * lamp_Mi[i]
-                  T5_Mi = T5_Mi + T_al[i] * lamp_Mi[i]
-                  h5_Mi = h5_Mi + h_al[i] * lamp_Mi[i]
-                  s5_Mi = s5_Mi + s_al[i] * lamp_Mi[i]
-                  R5_Mi = R5_Mi + R_al[i] * lamp_Mi[i]
+                        p5_pl = p5_pl + p_al[i] * lamp_pl[i]
+                        T5_pl = T5_pl + T_al[i] * lamp_pl[i]
+                        h5_pl = h5_pl + h_al[i] * lamp_pl[i]
+                        s5_pl = s5_pl + s_al[i] * lamp_pl[i]
+                        R5_pl = R5_pl + R_al[i] * lamp_pl[i]
+
+                        p5_ph = p5_ph + p_al[i] * lamp_ph[i]
+                        T5_ph = T5_ph + T_al[i] * lamp_ph[i]
+                        h5_ph = h5_ph + h_al[i] * lamp_ph[i]
+                        s5_ph = s5_ph + s_al[i] * lamp_ph[i]
+                        R5_ph = R5_ph + R_al[i] * lamp_ph[i]
+
+                        p5_mf = p5_mf + p_al[i] * lamp_mf[i]
+                        T5_mf = T5_mf + T_al[i] * lamp_mf[i]
+                        h5_mf = h5_mf + h_al[i] * lamp_mf[i]
+                        s5_mf = s5_mf + s_al[i] * lamp_mf[i]
+                        R5_mf = R5_mf + R_al[i] * lamp_mf[i]
+
+                        p5_ml = p5_ml + p_al[i] * lamp_ml[i]
+                        T5_ml = T5_ml + T_al[i] * lamp_ml[i]
+                        h5_ml = h5_ml + h_al[i] * lamp_ml[i]
+                        s5_ml = s5_ml + s_al[i] * lamp_ml[i]
+                        R5_ml = R5_ml + R_al[i] * lamp_ml[i]
+
+                        p5_mh = p5_mh + p_al[i] * lamp_mh[i]
+                        T5_mh = T5_mh + T_al[i] * lamp_mh[i]
+                        h5_mh = h5_mh + h_al[i] * lamp_mh[i]
+                        s5_mh = s5_mh + s_al[i] * lamp_mh[i]
+                        R5_mh = R5_mh + R_al[i] * lamp_mh[i]
+
+                        p5_Tb = p5_Tb + p_al[i] * lamp_Tb[i]
+                        T5_Tb = T5_Tb + T_al[i] * lamp_Tb[i]
+                        h5_Tb = h5_Tb + h_al[i] * lamp_Tb[i]
+                        s5_Tb = s5_Tb + s_al[i] * lamp_Tb[i]
+                        R5_Tb = R5_Tb + R_al[i] * lamp_Tb[i]
+
+                        p5_Mi = p5_Mi + p_al[i] * lamp_Mi[i]
+                        T5_Mi = T5_Mi + T_al[i] * lamp_Mi[i]
+                        h5_Mi = h5_Mi + h_al[i] * lamp_Mi[i]
+                        s5_Mi = s5_Mi + s_al[i] * lamp_Mi[i]
+                        R5_Mi = R5_Mi + R_al[i] * lamp_Mi[i]
+                  end
             end
 
             if (ht5 > h5)
@@ -2448,14 +2586,23 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pfn = p0 / pt7
                   pfn_pt7 = -pfn / pt7
                   epi = 1.0
-                  p8, T8, h8, s8, cp8, R8,
-                  p8_pt7,
-                  p8_st7, T8_st7, h8_st7, s8_st7,
-                  p8_pfn, T8_pfn, h8_pfn, s8_pfn,
-                  p8_epi, T8_epi, h8_epi, s8_epi,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_pratd(alpha, nair,
+                  pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
                         pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, epi)
+                  p8 = pr_state.p
+                  T8 = pr_state.T
+                  h8 = pr_state.h
+                  s8 = pr_state.s
+                  cp8 = pr_state.cp
+                  R8 = pr_state.R
+                  p8_pt7 = pr_partials.p_po
+                  p8_st7 = pr_partials.p_so
+                  T8_st7 = pr_partials.T_so
+                  h8_st7 = pr_partials.h_so
+                  s8_st7 = pr_partials.s_so
+                  p8_pfn = pr_partials.p_pratio
+                  T8_pfn = pr_partials.T_pratio
+                  h8_pfn = pr_partials.h_pratio
+                  s8_pfn = pr_partials.s_pratio
                   h8_pt7 = h8_pfn * pfn_pt7
 
                   h8_pf = h8_pt7 * pt7_pf + h8_st7 * st7_pf
@@ -2484,14 +2631,26 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pcn = p0 / pt5
                   pcn_pt5 = -pcn / pt5
                   epi = 1.0
-                  p6, T6, h6, s6, cp6, R6,
-                  p6_pt5,
-                  p6_st5, T6_st5, h6_st5, s6_st5,
-                  p6_pcn, T6_pcn, h6_pcn, s6_pcn,
-                  p6_epi, T6_epi, h6_epi, s6_epi,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_pratd(lambdap, nair,
+                  pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
                         pt5, Tt5, ht5, st5, cpt5, Rt5, pcn, epi)
+                  p6 = pr_state.p
+                  T6 = pr_state.T
+                  h6 = pr_state.h
+                  s6 = pr_state.s
+                  cp6 = pr_state.cp
+                  R6 = pr_state.R
+                  p6_pt5 = pr_partials.p_po
+                  p6_st5 = pr_partials.p_so
+                  T6_st5 = pr_partials.T_so
+                  h6_st5 = pr_partials.h_so
+                  s6_st5 = pr_partials.s_so
+                  p6_pcn = pr_partials.p_pratio
+                  T6_pcn = pr_partials.T_pratio
+                  h6_pcn = pr_partials.h_pratio
+                  s6_pcn = pr_partials.s_pratio
+                  p6_lamp_pl, p6_lamp_ph, p6_lamp_mf, p6_lamp_ml, p6_lamp_mh, p6_lamp_Tb, p6_lamp_Mi =
+                        gas_pressure_ratio_composition_directions(lambdap, nair, T6, st5,
+                              lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
                   h6_pt5 = h6_pcn * pcn_pt5
 
                   h6_pf = h6_pt5 * pt5_pf + h6_st5 * st5_pf
@@ -2503,15 +2662,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   h6_Tb = h6_pt5 * pt5_Tb + h6_st5 * st5_Tb
                   h6_Pc = h6_pt5 * pt5_Pc + h6_st5 * st5_Pc
                   h6_Mi = h6_pt5 * pt5_Mi + h6_st5 * st5_Mi
-                  for i = 1:nair
-                        h6_pl = h6_pl + h_al[i] * lamp_pl[i]
-                        h6_ph = h6_ph + h_al[i] * lamp_ph[i]
-                        h6_mf = h6_mf + h_al[i] * lamp_mf[i]
-                        h6_ml = h6_ml + h_al[i] * lamp_ml[i]
-                        h6_mh = h6_mh + h_al[i] * lamp_mh[i]
-                        h6_Tb = h6_Tb + h_al[i] * lamp_Tb[i]
-                        h6_Mi = h6_Mi + h_al[i] * lamp_Mi[i]
-                  end
+                  h6_pl += p6_lamp_pl.h
+                  h6_ph += p6_lamp_ph.h
+                  h6_mf += p6_lamp_mf.h
+                  h6_ml += p6_lamp_ml.h
+                  h6_mh += p6_lamp_mh.h
+                  h6_Tb += p6_lamp_Tb.h
+                  h6_Mi += p6_lamp_Mi.h
 
                   if (ht5 > h6)
                         u6 = sqrt(2.0 * (ht5 - h6))
@@ -2606,15 +2763,28 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- LPT power matched to fan+LPC power
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
-            pt5h, Tt5h, ht5h, st5h, cpt5h, Rt5h,
-            pt5h_st45,
-            pt5h_pt45,
-            pt5h_epi,
-            pt5h_ht45, Tt5h_ht45, ht5h_ht45, st5h_ht45,
-            pt5h_dhlt, Tt5h_dhlt, ht5h_dhlt, st5h_dhlt,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_delhd(lambdap, nair,
+            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
                   pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
+            pt5h = dh_state.p
+            Tt5h = dh_state.T
+            ht5h = dh_state.h
+            st5h = dh_state.s
+            cpt5h = dh_state.cp
+            Rt5h = dh_state.R
+            pt5h_st45 = dh_partials.p_so
+            pt5h_pt45 = dh_partials.p_po
+            pt5h_epi = dh_partials.p_epol
+            pt5h_ht45 = dh_partials.p_ho
+            Tt5h_ht45 = dh_partials.T_ho
+            ht5h_ht45 = dh_partials.h_ho
+            st5h_ht45 = dh_partials.s_ho
+            pt5h_dhlt = dh_partials.p_delh
+            Tt5h_dhlt = dh_partials.T_delh
+            ht5h_dhlt = dh_partials.h_delh
+            st5h_dhlt = dh_partials.s_delh
+            pt5h_lamp_pl, pt5h_lamp_ph, pt5h_lamp_mf, pt5h_lamp_ml, pt5h_lamp_mh, pt5h_lamp_Tb, pt5h_lamp_Mi =
+                  gas_enthalpy_change_composition_directions(lambdap, nair, pt5h, Tt5h, st45, epi,
+                        lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt5h_eplt = pt5h_epi * epi_eplt
 
@@ -2642,15 +2812,13 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                       pt5h_pt45 * pt45_Mi + pt5h_eplt * eplt_Mi +
                       pt5h_ht45 * ht45_Mi + pt5h_dhlt * dhlt_Mi
 
-            for i = 1:nair
-                  pt5h_pl = pt5h_pl + p_al[i] * lamp_pl[i]
-                  pt5h_ph = pt5h_ph + p_al[i] * lamp_ph[i]
-                  pt5h_mf = pt5h_mf + p_al[i] * lamp_mf[i]
-                  pt5h_ml = pt5h_ml + p_al[i] * lamp_ml[i]
-                  pt5h_mh = pt5h_mh + p_al[i] * lamp_mh[i]
-                  pt5h_Tb = pt5h_Tb + p_al[i] * lamp_Tb[i]
-                  pt5h_Mi = pt5h_Mi + p_al[i] * lamp_Mi[i]
-            end
+            pt5h_pl += pt5h_lamp_pl.p
+            pt5h_ph += pt5h_lamp_ph.p
+            pt5h_mf += pt5h_lamp_mf.p
+            pt5h_ml += pt5h_lamp_ml.p
+            pt5h_mh += pt5h_lamp_mh.p
+            pt5h_Tb += pt5h_lamp_Tb.p
+            pt5h_Mi += pt5h_lamp_Mi.p
 
             res[8, 1] = pt49 - pt5h
             a[8, 1] = pt49_pf - pt5h_pf
@@ -3253,5 +3421,3 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       end # with next Newton iteration
 
 end # tfoper
-
-

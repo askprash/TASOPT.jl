@@ -115,7 +115,7 @@ function gaschem(igas)
     elseif (igas == 18)  #   C8H18
         buf[kc] = 8
         buf[kh] = 18
-    elseif (igas == 24)  #   C14H30
+    elseif (igas == 24)  #   C14H30 Jet-A surrogate used by the legacy sizing model
         buf[kc] = 14
         buf[kh] = 30
     elseif (igas == 40)  #   H2
@@ -201,35 +201,6 @@ function gas_H2(t1, t, tl, cp, cpt, h, s)
     get_thermo(r, hform, t1, t, tl, cp, cpt, h, s)
 end # gas_H2
 
-macro define_gas_method(func_name, gas_name)
-    func_symbol = esc(func_name)
-    gas_symbol = esc(gas_name)
-    return quote
-        $func_symbol(t1) = $func_symbol(
-            t1,
-            $gas_symbol.t,
-            $gas_symbol.tl,
-            $gas_symbol.cp,
-            $gas_symbol.cpt,
-            $gas_symbol.h,
-            $gas_symbol.s,
-        )
-    end
-end
-
-@define_gas_method gas_N2 N2
-@define_gas_method gas_O2 O2
-@define_gas_method gas_Ar Ar
-@define_gas_method gas_CO2 CO2
-@define_gas_method gas_H2O H2O
-@define_gas_method gas_CH4 CH4
-@define_gas_method gas_C2H6 C2H6
-@define_gas_method gas_C3H8 C3H8
-@define_gas_method gas_C4H10 C4H10
-@define_gas_method gas_C8H18 C8H18
-@define_gas_method gas_C14H30 C14H30
-@define_gas_method gas_H2 H2
-
 """
     findsegment(x::T, xarr::Vector{T})
 
@@ -304,3 +275,80 @@ function get_thermo(
     #- - - - - - - - - - -
     return s1, h1, cp1, r1
 end  # function get_thermo
+
+const _IGT_N2 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("N2"))
+const _IGT_O2 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("O2"))
+const _IGT_Ar = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("Ar"))
+const _IGT_CO2 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("CO2"))
+const _IGT_H2O = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("H2O"))
+const _IGT_CH4 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("CH4"))
+const _IGT_C2H6 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("C2H6"))
+const _IGT_C3H8 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("C3H8"))
+const _IGT_C4H10 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("C4H10,n-butan"))
+const _IGT_C8H18 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("C8H18,n-octan"))
+const _IGT_JETA = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("Jet-A(g)"))
+const _IGT_H2 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("H2"))
+
+@inline function _fast_thermo(gas, t)
+    props = IdealGasThermo.props(gas, t)
+    return props.s0, props.h, props.cp, IdealGasThermo.R(gas)
+end
+
+@inline function _cp_T(gas, t)
+    a = IdealGasThermo.coeffs(gas, t)
+    tinv = inv(t)
+    tinv2 = tinv * tinv
+    return IdealGasThermo.Runiv * (
+        -2 * a[1] * tinv2 * tinv - a[2] * tinv2 +
+        a[4] + t * (2 * a[5] + t * (3 * a[6] + t * 4 * a[7]))
+    )
+end
+
+@inline function _fast_thermod(gas, t)
+    props = IdealGasThermo.props(gas, t)
+    cp = props.cp
+    return props.s0, cp / t, props.h, cp, cp, _cp_T(gas, t), IdealGasThermo.R(gas)
+end
+
+function gasfund(igas, t)
+    if (igas == 1)
+        return _fast_thermod(_IGT_N2, t)
+    elseif (igas == 2)
+        return _fast_thermod(_IGT_O2, t)
+    elseif (igas == 3)
+        return _fast_thermod(_IGT_CO2, t)
+    elseif (igas == 4)
+        return _fast_thermod(_IGT_H2O, t)
+    elseif (igas == 5)
+        return _fast_thermod(_IGT_Ar, t)
+    elseif (igas == 11)
+        return _fast_thermod(_IGT_CH4, t)
+    elseif (igas == 12)
+        return _fast_thermod(_IGT_C2H6, t)
+    elseif (igas == 13)
+        return _fast_thermod(_IGT_C3H8, t)
+    elseif (igas == 14)
+        return _fast_thermod(_IGT_C4H10, t)
+    elseif (igas == 18)
+        return _fast_thermod(_IGT_C8H18, t)
+    elseif (igas == 24)
+        return _fast_thermod(_IGT_JETA, t)
+    elseif (igas == 40)
+        return _fast_thermod(_IGT_H2, t)
+    else
+        error("GASFUN: undefined gas index: ", igas, " & code=0")
+    end
+end
+
+gas_N2(t1) = _fast_thermo(_IGT_N2, t1)
+gas_O2(t1) = _fast_thermo(_IGT_O2, t1)
+gas_Ar(t1) = _fast_thermo(_IGT_Ar, t1)
+gas_CO2(t1) = _fast_thermo(_IGT_CO2, t1)
+gas_H2O(t1) = _fast_thermo(_IGT_H2O, t1)
+gas_CH4(t1) = _fast_thermo(_IGT_CH4, t1)
+gas_C2H6(t1) = _fast_thermo(_IGT_C2H6, t1)
+gas_C3H8(t1) = _fast_thermo(_IGT_C3H8, t1)
+gas_C4H10(t1) = _fast_thermo(_IGT_C4H10, t1)
+gas_C8H18(t1) = _fast_thermo(_IGT_C8H18, t1)
+gas_C14H30(t1) = _fast_thermo(_IGT_JETA, t1)
+gas_H2(t1) = _fast_thermo(_IGT_H2, t1)
