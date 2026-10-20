@@ -336,6 +336,27 @@ function _h2_cryo_thermod(t)
     return s, cp / t, h, cp, cp, cp_t, IdealGasThermo.R(_IGT_H2)
 end
 
+# Fuel index 24 is C14H30, the Jet-A surrogate used by TASOPT's burner model
+# (gaschem/gasfuel give its C and H counts). IdealGasThermo has no C14H30, so
+# the temperature dependence (mass-specific cp, sensible h, s) is taken from its
+# "Jet-A(g)" fit, while the formation enthalpy and molecular weight stay those
+# of C14H30. This keeps the burner energy balance, and so the fuel heating
+# value, consistent with the stoichiometry from gasfuel(24, n).
+const _MW_C14H30 = 14 * 12.01078 + 30 * 1.00795        # g/mol, as in gasfuel
+const _R_C14H30 = 1000 * IdealGasThermo.Runiv / _MW_C14H30 # J/kg/K
+const _HF_C14H30 = -1.67e6                               # J/kg at 298.15 K (legacy value)
+const _H298_JETA = IdealGasThermo.props(_IGT_JETA, 298.15).h
+
+@inline function _c14h30_thermo(t)
+    p = IdealGasThermo.props(_IGT_JETA, t)
+    return p.s0, p.h - _H298_JETA + _HF_C14H30, p.cp, _R_C14H30
+end
+
+@inline function _c14h30_thermod(t)
+    s, h, cp, r = _c14h30_thermo(t)
+    return s, cp / t, h, cp, cp, _cp_T(_IGT_JETA, t), r
+end
+
 function gasfund(igas, t)
     if (igas == 1)
         return _fast_thermod(_IGT_N2, t)
@@ -358,7 +379,7 @@ function gasfund(igas, t)
     elseif (igas == 18)
         return _fast_thermod(_IGT_C8H18, t)
     elseif (igas == 24)
-        return _fast_thermod(_IGT_JETA, t)
+        return _c14h30_thermod(t)
     elseif (igas == 40)
         return t < _IGT_TMIN ? _h2_cryo_thermod(t) : _fast_thermod(_IGT_H2, t)
     else
@@ -376,5 +397,5 @@ gas_C2H6(t1) = _fast_thermo(_IGT_C2H6, t1)
 gas_C3H8(t1) = _fast_thermo(_IGT_C3H8, t1)
 gas_C4H10(t1) = _fast_thermo(_IGT_C4H10, t1)
 gas_C8H18(t1) = _fast_thermo(_IGT_C8H18, t1)
-gas_C14H30(t1) = _fast_thermo(_IGT_JETA, t1)
+gas_C14H30(t1) = _c14h30_thermo(t1)
 gas_H2(t1) = t1 < _IGT_TMIN ? _h2_cryo_thermo(t1) : _fast_thermo(_IGT_H2, t1)

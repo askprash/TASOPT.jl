@@ -139,9 +139,9 @@ isGradient = false
         s1, h1, cp1, r1 = TASOPT.engine.gas_C14H30(t1)
 
         @test s1 ≈ 10829.841041162073 rtol = 1e-12
-        @test h1 ≈ 6.579722895088454e6 rtol = 1e-12
+        @test h1 ≈ 6.401894178120753e6 rtol = 1e-12
         @test cp1 ≈ 4889.362882032815 rtol = 1e-12
-        @test r1 ≈ 49.694873655064676 rtol = 1e-12
+        @test r1 ≈ 41.90999701496179 rtol = 1e-12
         #    
 
 
@@ -638,8 +638,8 @@ isGradient = false
         @test etaf ≈ 0.85400131729976236 rtol = 1e-12
         @test etalc ≈ 0.82991688904304883 rtol = 1e-12
         @test etahc ≈ 0.83848957587727224 rtol = 1e-12
-        @test etaht ≈ 0.8978631224318473 rtol = 1e-12
-        @test etalt ≈ 0.9191720842856027 rtol = 1e-12
+        @test etaht ≈ 0.8978604902319199 rtol = 1e-12
+        @test etalt ≈ 0.919164531020222 rtol = 1e-12
         @test Tmrow[1] ≈ 1118.9908011526477  rtol = 1e-10
 
         if isGradient
@@ -956,17 +956,17 @@ isGradient = false
             Δp_PreC, Δp_InterC, Δp_Regen)
 
 
-        @test etaf ≈ 0.8740107095556703 atol = 1e-8
-        @test etalc ≈ 0.8367939935371028 atol = 1e-8
-        @test etahc ≈ 0.8393504559418431 atol = 1e-8
-        @test etaht ≈ 0.8974255312113559  atol = 1e-8
-        @test etalt ≈ 0.9176402081771461 atol = 1e-8
+        @test etaf ≈ 0.8739688760070233 atol = 1e-8
+        @test etalc ≈ 0.8368150126097558 atol = 1e-8
+        @test etahc ≈ 0.8393573753279354 atol = 1e-8
+        @test etaht ≈ 0.8974237143202538  atol = 1e-8
+        @test etalt ≈ 0.9176374125378092 atol = 1e-8
 
         Tt4_ref = 1783.8000000000002
-        ht4_ref = 474953.0181727429
-        pt4_ref = 2.741927820205688e6
-        cpt4_ref = 1312.7849452015246
-        Rt4_ref = 288.0046524837111
+        ht4_ref = 469807.17328990344
+        pt4_ref = 2.742915131872659e6
+        cpt4_ref = 1313.107200566562
+        Rt4_ref = 288.0073500977886
         @test Tt4 ≈ Tt4_ref atol = 1e-8 * Tt4_ref
         @test ht4 ≈ ht4_ref atol = 1e-8 * ht4_ref
         @test pt4 ≈ pt4_ref atol = 1e-8 * pt4_ref
@@ -1122,16 +1122,16 @@ isGradient = false
             Δp_PreC, Δp_InterC, Δp_Regen)
 
         @test etaf ≈ 0.8862758656790135 rtol = 1e-6
-        @test etalc ≈ 0.6540190125142584 rtol = 1e-6
-        @test etahc ≈ 0.8389937956278297 rtol = 1e-6
-        @test etaht ≈ 0.8977584767094359 rtol = 1e-6
-        @test etalt ≈ 0.8649300259702869 rtol = 1e-6
+        @test etalc ≈ 0.6540143787864212 rtol = 1e-6
+        @test etahc ≈ 0.8389731623852975 rtol = 1e-6
+        @test etaht ≈ 0.897757320413583 rtol = 1e-6
+        @test etalt ≈ 0.8649368203796652 rtol = 1e-6
 
         @test Tt4 ≈ 1783.8000000000002 rtol = 1e-6
-        @test ht4 ≈ 297777.14203050715  rtol = 1e-6
-        @test pt4 ≈ 1.0431091557245867e6  rtol = 1e-6
-        @test cpt4 ≈ 1323.8804752732765 rtol = 1e-6
-        @test Rt4 ≈ 288.09753366232883  rtol = 1e-6
+        @test ht4 ≈ 291823.8507777309  rtol = 1e-6
+        @test pt4 ≈ 1.0432227603361321e6  rtol = 1e-6
+        @test cpt4 ≈ 1324.253296469702 rtol = 1e-6
+        @test Rt4 ≈ 288.10065456524313  rtol = 1e-6
     end
 
     @testset "tfweight.jl" begin
