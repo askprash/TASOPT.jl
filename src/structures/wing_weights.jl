@@ -245,10 +245,6 @@ function wing_weights!(wing, po, gammat, gammas,
     dxWcap = 2.0*wing.inboard.caps.ρ*gee*( Abcapi*dxVinn + outboard_dims.Abcap*dxVout )
     dxWweb = 2.0*wing.inboard.webs.ρ*gee*( Abwebi*dxVinn + outboard_dims.Abweb*dxVout )
 
-    Vout = wing.layout.root_chord^2*wing.layout.span* (1.0 -etas) *
-    (wing.inboard.λ^2 + wing.inboard.λ*wing.outboard.λ + wing.outboard.λ^2)/6.0 *
-    cosL
-
     wing.inboard.caps.thickness = inboard_dims.tbcap
     wing.inboard.webs.thickness = inboard_dims.tbweb
     wing.outboard.caps.thickness = outboard_dims.tbcap

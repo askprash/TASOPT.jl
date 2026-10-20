@@ -454,7 +454,7 @@ function _size_aircraft!(ac; itermax=35,
         else
             size_htail(ac, view(para, :, ipdescentn), view(para, :, ipcruise1), view(para, :, ipcruise1);
                     Ldebug=Ldebug)
-            wing.layout.box_x, xwing = wing.layout.box_x, wing.layout.x
+            xwing = wing.layout.x
             lhtail = xhtail - xwing
             Sh = htail.layout.S
             htail.volume = Sh * lhtail / (wing.layout.S * wing.mean_aero_chord)
