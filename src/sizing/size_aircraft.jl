@@ -667,21 +667,6 @@ function _size_aircraft!(ac; itermax=35,
 
         ifirst = false
 
-        # Get mission fuel burn (check if fuel capacity is sufficent)
-
-        # Recalculate weight update_weights!()
-        ip = ipcruise1
-        update_weights!(ac, rlx)
-
-        parm[imWTO] = parg[igWMTO]
-        parm[imWfuel] = parg[igWfuel]
-        # printstyled("Wfuel = $(parg[igWfuel]) \n", color=:blue)
-
-        # Set previous iteration weights 
-        WMTO3 = WMTO2
-        WMTO2 = WMTO1
-        WMTO1 = parg[igWMTO]
-
         # BFL calculations/ Noise? / Engine perf 
 
     end
