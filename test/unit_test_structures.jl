@@ -531,6 +531,15 @@ TASOPT.size_landing_gear!(ac)
 @test ac.landing_gear.main_gear.weight.W ≈ 31787.399917196755
 @test ac.landing_gear.nose_gear.weight.W ≈ 4854.384534273811
 
+@testset "size_landing_gear! does not read the previous main-gear position" begin
+    # A fresh aircraft has main_gear.weight.y = 0; the result must not depend on it.
+    ac.landing_gear.main_gear.weight = TASOPT.Weight()
+    TASOPT.size_landing_gear!(ac)
+    @test ac.landing_gear.main_gear.weight.W ≈ 31787.399917196755
+    @test ac.landing_gear.main_gear.weight.y ==
+        ac.landing_gear.main_gear.y_offset_halfspan_fraction * ac.wing.layout.span / 2
+end
+
 @testset "size_wing_section! property tests" begin
     # Re-use wing.outboard from the setup above which already has max_shear_load
     # and moment set. size_wing_section! only side-effects EI and GJ, so calling it

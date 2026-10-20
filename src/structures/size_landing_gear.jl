@@ -13,6 +13,7 @@ function size_landing_gear!(ac)
     main_gear = landing_gear.main_gear
 
     WMTO = parg[igWMTO]
+    y_main_gear = wing.span / 2 * main_gear.y_offset_halfspan_fraction #Main gear spanwise position
 
     #Two models of landing gear mass currently supported
     if lowercase(landing_gear.model) == "mass_fractions"
@@ -44,7 +45,7 @@ function size_landing_gear!(ac)
         lgmain_nshock_struts = main_gear.number_struts
         lgmain_nwheels = main_gear.number_struts * main_gear.wheels_per_strut
 
-        lgmain_length = lgnose_length + main_gear.weight.y * tan(dihedral_angle) #Main gear length
+        lgmain_length = lgnose_length + y_main_gear * tan(dihedral_angle) #Main gear length
         lgnose_nwheels = nose_gear.number_struts * nose_gear.wheels_per_strut
 
         Wlgmain = 0.0106 * (WMTO * lb_N)^0.888 * (load_factor)^0.25 * (lgmain_length / in_to_m)^0.4 * (lgmain_nwheels)^0.321 * 
@@ -64,5 +65,5 @@ function size_landing_gear!(ac)
     #Store mass and location of landing gear
     nose_gear.weight = Weight(W = Wlgnose, x = nose_gear.weight.r[1])
     main_gear.weight = Weight(W = Wlgmain, x = parg[igxCGaft] + main_gear.distance_CG_to_landing_gear, 
-        y = wing.span / 2 * main_gear.y_offset_halfspan_fraction)
+        y = y_main_gear)
 end 
