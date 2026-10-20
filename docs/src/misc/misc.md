@@ -12,5 +12,5 @@ The following tools can be used to generate outputs that can be further post-pro
 
 ```@autodocs
 Modules = [Main]
-Pages = ["AircraftDeck.jl", "odperformance.jl"]
+Pages = ["AircraftDeck.jl"]
 ```

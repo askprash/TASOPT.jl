@@ -82,9 +82,7 @@ export aircraft, fuselage_tank
 include(joinpath(__TASOPTroot__,"cryo_tank/CryoTank.jl"))
 using .CryoTank
 
-# Off-design performance via BADA file like output
-#  and LTO output for EDB points for use in AEIC
-include(joinpath(__TASOPTroot__,"mission/odperformance.jl"))
+# Aircraft cruise-characteristics deck output
 export fly_mission!
 include(joinpath(__TASOPTroot__,"mission/AircraftDeck.jl"))
 
@@ -102,8 +100,6 @@ include(joinpath(__TASOPTroot__,"IO/quicksave_load.jl"))
 include(joinpath(__TASOPTroot__,"IO/par_array_opers.jl"))
 include(joinpath(__TASOPTroot__,"IO/output_csv.jl"))
 
-include(joinpath(__TASOPTroot__,"cost/cost_est.jl"))
-include(joinpath(__TASOPTroot__,"cost/cost_val.jl"))
 include(joinpath(__TASOPTroot__,"utils/printBADA.jl"))
 include(joinpath(__TASOPTroot__,"utils/sensitivity.jl"))
 
