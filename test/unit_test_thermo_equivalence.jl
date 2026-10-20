@@ -83,6 +83,32 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         end
     end
 
+    @testset "Fuels" begin
+        # The legacy fuel tables are coarse (cp off by up to 35%), so fuels
+        # are not compared point-wise. What the cycle uses is the heat
+        # released by burning them, so that is what must be preserved.
+        fuels = [(11, "CH4"), (12, "C2H6"), (13, "C3H8"), (14, "C4H10"),
+                 (18, "C8H18"), (24, "C14H30"), (40, "H2")]
+        wchon = [12.01078, 1.00795, 15.99943, 14.00672] # as in gasfuel
+        for (igas, name) in fuels
+            @testset "$name" begin
+                @test E.fuelLHV(igas) ≈ L.fuelLHV(igas) rtol = 1e-3
+                # thermo data and stoichiometry describe the same molecule
+                MW = sum(wchon .* E.gaschem(igas))
+                @test E.gasfun(igas, 300.0)[6] ≈ 8314.462618 / MW rtol = 1e-4
+            end
+        end
+        @testset "Jet-A (C14H30) burner fuel/air ratio" begin
+            air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127, 0.0]
+            beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+            for (Tair, Tfuel, Tb) in ((800.0, 300.0, 1200.0), (850.0, 300.0, 1600.0), (900.0, 400.0, 1900.0))
+                f_new, _ = E.gas_burn(air, beta, E.gasfuel(24, 6), 6, 24, Tair, Tfuel, Tb, 0.0)
+                f_old, _ = L.gas_burn(air, beta, L.gasfuel(24, 6), 6, 24, Tair, Tfuel, Tb, 0.0)
+                @test f_new ≈ f_old rtol = 1e-3
+            end
+        end
+    end
+
     @testset "H2 below 200 K (LH2 coolant range)" begin
         # NASA-9 fits start at 200 K. Below that, H2 must follow the legacy
         # tabulated data (20.369-200 K), which the heat-exchanger models rely
