@@ -1,0 +1,1 @@
+../../src/tasopt 737_opt_3000 > fortran_rerun.log 2>&1  47.76s user 0.43s system 99% cpu 48.440 total

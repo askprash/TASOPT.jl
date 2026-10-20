@@ -1,0 +1,7 @@
+[deps]
+NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+TASOPT = "22dd2482-b234-48ce-b849-20a4e029c823"
+
+[sources]
+TASOPT = {path = "../.."}

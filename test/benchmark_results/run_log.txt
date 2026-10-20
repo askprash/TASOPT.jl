@@ -1,0 +1,66 @@
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+┌ Error: SOMETHING IS WRONG fsum ≥ 1
+└ @ TASOPT ~/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/sizing/size_aircraft.jl:820
+┌ Error: SOMETHING IS WRONG fsum ≥ 1
+└ @ TASOPT ~/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/sizing/size_aircraft.jl:820
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+┌ Error: SOMETHING IS WRONG fsum ≥ 1
+└ @ TASOPT ~/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/sizing/size_aircraft.jl:820
+┌ Error: SOMETHING IS WRONG fsum ≥ 1
+└ @ TASOPT ~/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/sizing/size_aircraft.jl:820
+┌ Error: SOMETHING IS WRONG fsum ≥ 1
+└ @ TASOPT ~/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/sizing/size_aircraft.jl:820
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+[ Info: No template input file provided. Proceeding with template file as determined by design mission range.
+[ Info: Template input file selected: /Users/prashanth/codes/TAESOPT.jl/.claude/worktrees/inspiring-bhabha-4aa317/src/../example/defaults/default_input.toml
+NLopt_NelderMead           start 0  wall    61.1s  evals  1661  f* 216209.02 N  Wfuel 215711.68  maxviol 1.52e-02  FTOL_REACHED
+NLopt_NelderMead           start 1  wall    70.9s  evals  1971  f* 215699.17 N  Wfuel 215219.31  maxviol 1.46e-02  FTOL_REACHED
+NLopt_NelderMead           start 2  wall    70.4s  evals  1912  f* 217858.06 N  Wfuel 217327.90  maxviol 2.23e-02  FTOL_REACHED
+NLopt_NelderMead           start 3  wall    74.3s  evals  2208  f* 219268.29 N  Wfuel 218879.25  maxviol 1.69e-02  FTOL_REACHED
+Optim_NM_simpop_restart    start 0  wall   113.2s  evals  3058  f* 210096.21 N  Wfuel 209556.83  maxviol 2.10e-02  no_improvement_after_restart (restarts=3)
+Optim_NM_simpop_restart    start 1  wall   118.0s  evals  3398  f* 210096.20 N  Wfuel 209557.59  maxviol 2.10e-02  no_improvement_after_restart (restarts=2)
+Optim_NM_simpop_restart    start 2  wall   109.0s  evals  3374  f* 210096.22 N  Wfuel 209556.31  maxviol 2.10e-02  no_improvement_after_restart (restarts=3)
+Optim_NM_simpop_restart    start 3  wall   106.9s  evals  3028  f* 210096.24 N  Wfuel 209555.31  maxviol 2.10e-02  no_improvement_after_restart (restarts=2)
+NLopt_SBPLX                start 0  wall    53.4s  evals  1531  f* 210427.75 N  Wfuel 209876.56  maxviol 2.18e-02  FTOL_REACHED
+NLopt_SBPLX                start 1  wall   192.3s  evals  6000  f* 210155.53 N  Wfuel 209596.85  maxviol 2.14e-02  MAXEVAL_REACHED
+NLopt_SBPLX                start 2  wall   193.0s  evals  6000  f* 210163.39 N  Wfuel 209629.08  maxviol 2.08e-02  MAXEVAL_REACHED
+NLopt_SBPLX                start 3  wall    96.9s  evals  2921  f* 210490.55 N  Wfuel 209858.68  maxviol 2.36e-02  FTOL_REACHED
+NLopt_BOBYQA               start 0  wall    24.5s  evals   752  f* 210098.19 N  Wfuel 209569.35  maxviol 2.04e-02  SUCCESS
+NLopt_BOBYQA               start 1  wall    25.1s  evals   781  f* 210101.69 N  Wfuel 209550.97  maxviol 2.14e-02  FTOL_REACHED
+NLopt_BOBYQA               start 2  wall    32.4s  evals   908  f* 210101.47 N  Wfuel 209567.37  maxviol 2.08e-02  FTOL_REACHED
+NLopt_BOBYQA               start 3  wall    25.5s  evals   787  f* 210098.83 N  Wfuel 209564.21  maxviol 2.07e-02  FTOL_REACHED
