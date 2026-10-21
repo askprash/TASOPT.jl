@@ -1,3 +1,9 @@
+# Generator for the random relaxation factor of the tfoper! Newton iteration. Each
+# call starts from a copy of it. Xoshiro(1234) produces the same sequence of
+# rand() values as the global generator after Random.seed!(1234), which tfoper!
+# used before.
+const _TFOPER_RELAX_RNG = Random.Xoshiro(1234)
+
 """
     function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       Phiinl, Kinl, eng_has_BLI_cores,
@@ -199,7 +205,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       res_dlls = zeros(T, 9)
       a_dlls = zeros(T, 9, 9)
 
-      Random.seed!(1234) #Seed for RNG in relaxation
+      rng = copy(_TFOPER_RELAX_RNG) # same random sequence on every call, global RNG untouched
 
       #---- number of gas constituents
       n = 6
@@ -3153,7 +3159,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             #If iter>10, a limit cycle may have been reached
             #Apply a relaxation factor that does not oscillate
-            rlx_it = 1.0 - 0.6*rand() * (iter > 10) #Relaxation based on RNG
+            rlx_it = 1.0 - 0.6*rand(rng) * (iter > 10) #Relaxation based on RNG
             rlx = rlx * rlx_it
 
             #---- exit if convergence test is met or if max iterations reached
