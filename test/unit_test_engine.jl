@@ -234,9 +234,9 @@ isGradient = false
         @test t_al ≈ [85.79812053634437, 75.43620415103699, 8943.853296553658, 13481.338008863426, 42.95825410769557] rtol = 1e-12
 
         # =========================
-        # gas_prat, gas_pratd
+        # gas_prat
         # =========================
-        # TODO []: gas_prat, gas_pratd not verified
+        # TODO []: gas_prat not verified
         # TODO:
         # Fix fortran compiling issue
 
@@ -247,7 +247,7 @@ isGradient = false
         t = 215.0
 
         # =========================
-        # gas_delh, gas_delhd
+        # gas_delh
         # =========================
         s, s_t, h, h_t, cp, r = TASOPT.engine.gassum(alpha, n, t)
 

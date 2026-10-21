@@ -101,8 +101,6 @@ engine.GasMixture
 
 engine.gas_prat(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
 
-engine.gas_pratd(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
-
 engine.gas_pressure_ratio_partials
 
 engine.gas_pressure_ratio_composition_direction
@@ -110,8 +108,6 @@ engine.gas_pressure_ratio_composition_direction
 engine.gas_pressure_ratio_composition_directions
 
 engine.gas_delh(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
-
-engine.gas_delhd(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
 
 engine.gas_enthalpy_change_partials
 

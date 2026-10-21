@@ -10,6 +10,8 @@
 
 isdefined(@__MODULE__, :LegacyThermo) ||
     include(joinpath(@__DIR__, "legacy_thermo", "LegacyThermo.jl"))
+isdefined(@__MODULE__, :ReferenceGasPartials) ||
+    include(joinpath(@__DIR__, "reference_gas_partials.jl"))
 
 @testset "Thermo equivalence with legacy tables" verbose = true begin
     E = TASOPT.engine
@@ -225,6 +227,8 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         # tfoper uses the NamedTuple partials functions and per-direction
         # composition sensitivities; they must reproduce the array-based
         # gas_pratd / gas_delhd exactly (same property data on both sides).
+        # Those two are no longer in src; the reference copies are in
+        # reference_gas_partials.jl.
         n = 5
         lam = [0.74, 0.15, 0.06, 0.03, 0.02]
         dirs = ([0.01, -0.03, 0.02, 0.005, -0.005], [0.0, 0.001, -0.002, 0.003, -0.002],
@@ -237,7 +241,7 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         # (e.g. dh/dalpha at fixed delh)
         close(a, b) = abs(a - b) <= 1e-10 * max(abs(a), abs(b), 1.0)
 
-        o = E.gas_pratd(args..., 0.3, 1 / 0.9)
+        o = ReferenceGasPartials.gas_pratd(args..., 0.3, 1 / 0.9)
         st, d = E.gas_pressure_ratio_partials(args..., 0.3, 1 / 0.9)
         @test all(close.((st.p, st.T, st.h, st.s, st.cp, st.R), o[1:6]))
         @test all(close.((d.p_po, d.p_so, d.T_so, d.h_so, d.s_so, d.p_pratio, d.T_pratio, d.h_pratio,
@@ -251,7 +255,7 @@ isdefined(@__MODULE__, :LegacyThermo) ||
             @test close(dk.R, sum(R_al .* dirs[k]))
         end
 
-        o = E.gas_delhd(args..., -3e5, 1 / 0.9)
+        o = ReferenceGasPartials.gas_delhd(args..., -3e5, 1 / 0.9)
         st, d = E.gas_enthalpy_change_partials(args..., -3e5, 1 / 0.9)
         @test all(close.((st.p, st.T, st.h, st.s, st.cp, st.R), o[1:6]))
         @test all(close.((d.p_so, d.p_po, d.p_epol, d.p_ho, d.T_ho, d.h_ho, d.s_ho,
