@@ -199,8 +199,10 @@ const _IGT_H2 = IdealGasThermo.FrozenGas(IdealGasThermo.species_in_spdict("H2"))
     return props.s0, props.h, props.cp, IdealGasThermo.R(gas)
 end
 
-@inline function _cp_T(gas, t)
-    a = IdealGasThermo.coeffs(gas, t)
+@inline _cp_T(gas, t) = _cp_T_coeffs(IdealGasThermo.coeffs(gas, t), t)
+
+# dcp/dT of the NASA-9 polynomial with mass-scaled coefficients `a`
+@inline function _cp_T_coeffs(a, t)
     tinv = inv(t)
     tinv2 = tinv * tinv
     return IdealGasThermo.Runiv * (
@@ -311,6 +313,76 @@ function gasfund(igas, t)
     else
         error("GASFUN: undefined gas index: ", igas, " & code=0")
     end
+end
+
+# Constituents i = 1..5 of the mass-fraction vectors used by the cycle
+# calculations (the gas index of gasfund), in index order.
+const _MIXTURE_SPECIES = (_IGT_N2, _IGT_O2, _IGT_CO2, _IGT_H2O, _IGT_Ar)
+
+"""
+    GasMixture(alpha, n)
+
+Gas mixture of the first `n` constituents (1 N2, 2 O2, 3 CO2, 4 H2O, 5 Ar)
+with mass fractions `alpha[1:n]`, for use in place of `alpha` in
+[`gassum`](@ref), [`gassumd`](@ref) and the process functions built on them
+(`gas_tset`, `gas_prat`, `gas_mach`, ...), with the same `n`.
+
+The NASA-9 coefficients of the constituents (mass-specific, as in
+[`gasfund`](@ref)) are summed once with `alpha` as weights. The properties
+are linear in the coefficients, so a property call then costs one polynomial
+evaluation instead of `n`, and gives the species sum of [`gassum`](@ref) to
+round-off. `alpha` may be any coefficient vector, e.g. a composition
+derivative with negative entries.
+
+The entropy is the mass-weighted sum of the constituent entropies, as in
+`gassum`: there is no entropy of mixing. (An `IdealGasThermo.FrozenGas` built
+from mole fractions includes `-R sum(X ln X)` in `s0`, a constant that depends
+on the composition and would shift entropy differences between gases of
+different composition.)
+
+Construction does not allocate and costs about as much as one `gassum` call,
+so it pays off once a composition is used for two or more property calls.
+"""
+struct GasMixture{T<:Real}
+    alow::SVector{9,T}  # summed mass-specific coefficients, T < 1000 K
+    ahigh::SVector{9,T} # summed mass-specific coefficients, T >= 1000 K
+    R::T                # gas constant
+    n::Int              # number of constituents summed
+end
+
+function GasMixture(alpha, n::Integer)
+    if !(1 <= n <= length(_MIXTURE_SPECIES))
+        throw(ArgumentError("GasMixture: n must be 1 to $(length(_MIXTURE_SPECIES)) (N2, O2, CO2, H2O, Ar)"))
+    end
+    T = promote_type(eltype(alpha), Float64)
+    alow = zero(SVector{9,T})
+    ahigh = zero(SVector{9,T})
+    r = zero(T)
+    @inbounds for i = 1:n
+        gas = _MIXTURE_SPECIES[i]
+        ai = alpha[i]
+        alow = alow + ai * gas.alow
+        ahigh = ahigh + ai * gas.ahigh
+        r = r + ai * IdealGasThermo.R(gas)
+    end
+    return GasMixture{T}(alow, ahigh, r, n)
+end
+
+# Same evaluation as _fast_thermod for one species (IdealGasThermo.props and
+# coeffs), on the summed coefficients.
+@inline function _mixture_thermod(mix::GasMixture, t)
+    a = t < 1000.0 ? mix.alow : mix.ahigh # IdealGasThermo.coeffs: Tmid = 1000 K for all species
+    lnT = log(t)
+    Ru = IdealGasThermo.Runiv
+    cp = Ru * IdealGasThermo.poly_cp_R(a, t)
+    h = Ru * IdealGasThermo.poly_h_R(a, t, lnT)
+    s = Ru * IdealGasThermo.poly_s0_R(a, t, lnT)
+    return s, cp / t, h, cp, cp, _cp_T_coeffs(a, t), mix.R
+end
+
+@inline function _check_mixture_n(mix::GasMixture, n)
+    n == mix.n || throw(ArgumentError("GasMixture of $(mix.n) constituents used with n = $n"))
+    return nothing
 end
 
 gas_N2(t1) = _fast_thermo(_IGT_N2, t1)

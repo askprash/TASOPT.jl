@@ -8,6 +8,7 @@ using NLopt
 using Roots
 using NLsolve
 using LinearAlgebra
+using StaticArrays
 using Random
 import IdealGasThermo
 

@@ -102,6 +102,9 @@ end # gas_tsetd
     
 Calculates all gas-mixture properties at specified temperature T, and mixing fractions alpha(.)
 
+`alpha` may also be a [`GasMixture`](@ref) built from the same mass fractions and `n`,
+which evaluates the mixture in one polynomial evaluation instead of a loop over constituents.
+
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
     - `alpha(.)`: mass fractions for gas constituents i = 1..n
@@ -135,6 +138,12 @@ function gassum(alpha, n, t)
       end
       return s, s_t, h, h_t, cp, r
 end # gassum
+
+function gassum(mix::GasMixture, n, t)
+      _check_mixture_n(mix, n)
+      s, s_t, h, h_t, cp, _, r = _mixture_thermod(mix, t)
+      return s, s_t, h, h_t, cp, r
+end
 
 """
     gassumd(alpha, n, t)
@@ -180,6 +189,11 @@ function gassumd(alpha, n, t)
 
       return s, s_t, h, h_t, cp, cp_t, r
 end # gassumd
+
+function gassumd(mix::GasMixture, n, t)
+      _check_mixture_n(mix, n)
+      return _mixture_thermod(mix, t)
+end
 
 @inline _gas_state(p, t, h, s, cp, r) = (p = p, T = t, h = h, s = s, cp = cp, R = r)
 
