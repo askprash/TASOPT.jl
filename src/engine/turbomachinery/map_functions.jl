@@ -1,4 +1,4 @@
-using Interpolations, NLsolve
+using Interpolations, NLsolve, StaticArrays
 
 """
     MapDefaults
@@ -78,7 +78,12 @@ end
     find_NR_inverse_with_derivatives(itp_Wc, itp_PR, Wc_target, PR_target; Ng=0.5, Rg=2.0)
 
 Finds the normalized speed `N` and R-line `R` corresponding to a target corrected mass flow `Wc_target` and pressure ratio `PR_target`,
-using a nonlinear solver with Jacobian information from interpolation gradients.
+using Newton's method on the 2x2 system with Jacobian information from interpolation gradients.
+
+The Newton iteration ([`_find_NR_inverse_newton`](@ref)) takes the full step when it reduces the residual
+and halves it otherwise, with `N` and `R` clamped to the extrapolated map after every step. It does not
+allocate. If it ends with a residual above 1e-8 (the stopping tolerance of NLsolve), the NLsolve solver
+([`_find_NR_inverse_nlsolve`](@ref)) is used instead, from the same guess.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
@@ -99,7 +104,75 @@ using a nonlinear solver with Jacobian information from interpolation gradients.
 """
 function find_NR_inverse_with_derivatives(itp_Wc::Interpolations.GriddedInterpolation, itp_PR::Interpolations.GriddedInterpolation, 
                                     Wc_target::Float64, PR_target::Float64; Ng::Float64 = 0.5, Rg::Float64 = 2.0)
-    return _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
+    N, R, converged = _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
+    if !converged
+        return _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
+    end
+
+    # The derivatives of N, R with respect to Wc and PR are the components of the inverse Jacobian
+    J = _map_jacobian(itp_Wc, itp_PR, N, R)
+    jac_inv = inv(J)
+    return N, R, jac_inv[1, 1], jac_inv[1, 2], jac_inv[2, 1], jac_inv[2, 2]
+end
+
+@inline _clamp_NR(N, R) = (clamp(N, 1e-4, 1.9999), clamp(R, 1e-4, 3.9999)) #Extrapolated maps go from 0 to 2.0 (N) and 0 to 4.0 (R)
+
+@inline _map_residual(itp_Wc, itp_PR, N, R, Wc_target, PR_target) =
+    SVector(itp_Wc(N, R) - Wc_target, itp_PR(N, R) - PR_target)
+
+@inline function _map_jacobian(itp_Wc, itp_PR, N, R)
+    dw_dN, dw_dR = Interpolations.gradient(itp_Wc, N, R)
+    dpr_dN, dpr_dR = Interpolations.gradient(itp_PR, N, R)
+    return @SMatrix [dw_dN dw_dR; dpr_dN dpr_dR]
+end
+
+"""
+    _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg; itmax=30)
+
+Newton solve of `itp_Wc(N, R) = Wc_target`, `itp_PR(N, R) = PR_target` from `(Ng, Rg)`.
+Each step takes the Newton direction with the largest step length `1, 1/2, 1/4, ...` (at most 20
+halvings) that reduces the sum of squared relative residuals, `(ΔWc/Wc_target)^2 + (ΔPR/PR_target)^2`.
+The residuals are scaled because Wc is of order 10-1000 and PR of order 1-10; unscaled, the PR
+equation would not count in the step-length test. `N` and `R` are clamped to the extrapolated map,
+as in [`_find_NR_inverse_nlsolve`](@ref). The iteration stops when a step changes `N` and `R` by
+less than 1e-13 or the residual is zero, and after `itmax` steps otherwise.
+
+The maps are piecewise bilinear, so the Jacobian is exact within a map cell and the iteration
+converges in a few steps once it is in the cell of the root.
+
+Returns `(N, R, converged)`, where `converged` is true when the final residual is at most 1e-8 in
+both equations (the stopping tolerance NLsolve uses). Does not allocate.
+"""
+function _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target::Float64, PR_target::Float64,
+                                 Ng::Float64, Rg::Float64; itmax::Int = 30)
+    scale = SVector(1 / abs(Wc_target), 1 / abs(PR_target))
+    N, R = _clamp_NR(Ng, Rg)
+    F = _map_residual(itp_Wc, itp_PR, N, R, Wc_target, PR_target)
+    F2 = sum(abs2, F .* scale)
+    for _ in 1:itmax
+        iszero(F2) && break
+        J = _map_jacobian(itp_Wc, itp_PR, N, R)
+        dx = J \ F
+        all(isfinite, dx) || break # singular Jacobian
+
+        # Largest step 1, 1/2, 1/4, ... that reduces the residual
+        t = 1.0
+        Nn, Rn = _clamp_NR(N - dx[1], R - dx[2])
+        Fn = _map_residual(itp_Wc, itp_PR, Nn, Rn, Wc_target, PR_target)
+        F2n = sum(abs2, Fn .* scale)
+        for _ in 1:20
+            F2n < F2 && break
+            t *= 0.5
+            Nn, Rn = _clamp_NR(N - t * dx[1], R - t * dx[2])
+            Fn = _map_residual(itp_Wc, itp_PR, Nn, Rn, Wc_target, PR_target)
+            F2n = sum(abs2, Fn .* scale)
+        end
+
+        step = max(abs(Nn - N), abs(Rn - R))
+        N, R, F, F2 = Nn, Rn, Fn, F2n
+        step <= 1e-13 && break
+    end
+    return N, R, maximum(abs, F) <= 1e-8
 end
 
 """

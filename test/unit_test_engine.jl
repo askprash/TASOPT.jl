@@ -1167,7 +1167,13 @@ isGradient = false
         PR_target = 1.31
         outps_NR = TASOPT.engine.find_NR_inverse_with_derivatives(map.itp_Wc, map.itp_PR, 
             Wc_target, PR_target)
-        outp_NR_check = (0.7000000000000002, 1.799999999999995, 0.0002760733345430258, 0.6100706271038377, 0.00430742991535455, -2.9037427622059644)
+        # The target is the map value at the grid node (N, R) = (0.7, 1.8). The map is
+        # piecewise bilinear, so the gradient there is one-sided and the derivatives
+        # depend on which cell the solver ends in, to the last bit of N and R. The values
+        # are those of the Newton solver; the NLsolve solver ended at (0.7 + 2 ulp,
+        # 1.8 - 22 ulp), in the neighboring cell, with derivatives
+        # (0.000276, 0.610, 0.00431, -2.904).
+        outp_NR_check = (0.7, 1.8000000000000003, 0.0005592026754045437, 0.5951136544868871, 0.0038473144067832548, -3.1783453298574873)
         
         for (i,outp_NR) in enumerate(outps_NR)
             @test outp_NR ≈ outp_NR_check[i]
