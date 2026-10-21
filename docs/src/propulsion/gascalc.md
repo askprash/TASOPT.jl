@@ -49,6 +49,23 @@ Notes:
   `test/unit_test_thermo_equivalence.jl` check these bounds against a frozen
   copy of the old code in `test/legacy_thermo/`.
 
+### Precomputed mixtures
+
+[`engine.gassum`](@ref) loops over the constituents of a mixture and evaluates
+each one. Because the properties are linear in the NASA-9 coefficients, the
+mass-fraction-weighted sum of the coefficients describes the mixture exactly.
+[`engine.GasMixture`](@ref) holds that sum, and `gassum`, `gassumd` and every
+process function built on them accept it in place of the mass-fraction vector
+(with the same `n`). Building one costs about as much as one `gassum` call, and
+each later property call is one polynomial evaluation. `tfoper!` and `tfsize!`
+build one for air once per call, and one each for the combustion products and
+the products mixed with cooling air whenever those compositions change.
+
+A `GasMixture` has no entropy of mixing: ``s`` is the mass-weighted sum of the
+constituent values, as in `gassum`. An `IdealGasThermo.FrozenGas` built from
+mole fractions would add ``-R\sum X_i \ln X_i`` (about 169 J/kg/K for air),
+which differs between air and combustion products.
+
 ### Adding a species
 
 1. Find the species name in IdealGasThermo's database
@@ -79,6 +96,8 @@ engine.gaschem(igas)
 engine.gassum(alpha, n, t)
 
 engine.gassumd(alpha, n, t)
+
+engine.GasMixture
 
 engine.gas_prat(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
 
