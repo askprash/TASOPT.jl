@@ -961,7 +961,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         Tmrow_copy = Tmcalc(ncrowx, ncrow,
                               Tt_tc, Tb, dTstrk, Trrat,
                               efilm, tfilm, StA, epsrow)
-                        Tmrow[:] = Tmrow_copy[:]
+                        Tmrow .= Tmrow_copy
 
                         #------ total cooling flow fraction
                         fc = 0.0
@@ -983,7 +983,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         ncrow, epsrow_copy, epsrow_Tttc, epsrow_Tb, epsrow_Trr = mcool(ncrowx,
                               Tmrow, Tt_tc, Tb, dTstrk, Trrat,
                               efilm, tfilm, StA)
-                        epsrow[:] = epsrow_copy[:]
+                        epsrow .= epsrow_copy
 
                         #------ total cooling flow fraction
                         fc = 0.0
