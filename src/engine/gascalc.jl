@@ -39,8 +39,7 @@ function gas_tset(alpha, n, hspec, tguess)
 
             t = t + dt
       end
-      println("gas_tset: convergence failed.  dT =", dt)
-
+      error("gas_tset: convergence failed.  dT = ", dt)
 end # gas_tset
 
 """
@@ -93,8 +92,7 @@ function gas_tsetd(alpha, n, hspec, tguess)
 
             t = t + dt
       end
-      println("gas_tsetd: convergence failed.  dT =", dt)
-
+      error("gas_tsetd: convergence failed.  dT = ", dt)
 end # gas_tsetd
 
 """
@@ -214,8 +212,7 @@ leaves out the per-constituent composition partials (use
       h_pratio, s_pratio, p_epol, T_epol, h_epol, s_epol)`, where `x_y` is
       ``\\partial x/\\partial y``
 
-Prints a message and returns `nothing` if the Newton iteration for T does not
-converge.
+Throws an error if the Newton iteration for T does not converge.
 """
 function gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
       itmax = 10
@@ -262,8 +259,7 @@ function gas_pressure_ratio_partials(alpha, n, po, to, ho, so, cpo, ro, pratio, 
             end
       end
 
-      println("gas_pressure_ratio_partials: convergence failed.  dT =", dt)
-      println("To pratio =", to, pratio)
+      error("gas_pressure_ratio_partials: convergence failed.  dT = ", dt, ", To = ", to, ", pratio = ", pratio)
 end
 
 """
@@ -281,8 +277,7 @@ partials (use [`gas_enthalpy_change_composition_direction`](@ref) for those).
     - `partials`: `(p_so, p_po, p_epol, p_ho, T_ho, h_ho, s_ho, p_delh,
       T_delh, h_delh, s_delh)`, where `x_y` is ``\\partial x/\\partial y``
 
-Prints a message and returns `nothing` if the Newton iteration for T does not
-converge.
+Throws an error if the Newton iteration for T does not converge.
 """
 function gas_enthalpy_change_partials(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
       itmax = 15
@@ -333,7 +328,7 @@ function gas_enthalpy_change_partials(alpha, n, po, to, ho, so, cpo, ro, delh, e
             end
       end
 
-      println("gas_enthalpy_change_partials: convergence failed.  dT =", dt)
+      error("gas_enthalpy_change_partials: convergence failed.  dT = ", dt)
 end
 
 function _gas_temperature_composition_direction(n, t, dalpha)
@@ -565,9 +560,7 @@ function gas_prat(alpha, n, po, to, ho, so, cpo, ro, pratio, epol)
             t = t + dt
       end
 
-      println("gas_prat: convergence failed.  dT =", dt)
-      println("To pratio ='", To, pratio)
-
+      error("gas_prat: convergence failed.  dT = ", dt, ", To = ", to, ", pratio = ", pratio)
 end # gas_prat
 
 
@@ -752,8 +745,7 @@ function gas_delh(alpha, n, po, to, ho, so, cpo, ro, delh, epol)
 
             t = t + dt
       end
-      println("gas_delh: convergence failed.  dT =", dt)
-
+      error("gas_delh: convergence failed.  dT = ", dt)
 end # gas_delh
 
 """
@@ -1079,9 +1071,7 @@ function gas_mach(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
 
             t = t + dt
       end
-      println("gas_mach: convergence failed.  dT =", dt)
-
-
+      error("gas_mach: convergence failed.  dT = ", dt)
 end # gas_mach
 
 """
@@ -1220,8 +1210,7 @@ function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
             t = t + dt
       end
 
-      println("gas_mach: convergence failed.  dT =", dt)
-
+      error("gas_machd: convergence failed.  dT = ", dt)
 end # gas_machd
 
 """
@@ -1286,8 +1275,7 @@ function gas_mass(alpha, n, po, to, ho, so, cpo, ro, mflux, Mguess)
 
             t = t + rlx * dt
       end
-      println("gas_mass: convergence failed.  dT =", dt)
-
+      error("gas_mass: convergence failed.  dT = ", dt)
 end # gas_mass
 
 """
@@ -1555,6 +1543,5 @@ function gas_tset_single(igas, hspec, tguess)
 
             t = t + dt
       end
-      println("gas_tset_single: convergence failed.  dT =", dt)
-
-end # gas_tset
+      error("gas_tset_single: convergence failed.  dT = ", dt)
+end # gas_tset_single
