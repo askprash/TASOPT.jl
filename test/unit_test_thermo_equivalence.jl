@@ -265,6 +265,103 @@ isdefined(@__MODULE__, :LegacyThermo) ||
         end
     end
 
+    @testset "Precomputed mixtures match the species sums" begin
+        # gassum/gassumd accept a GasMixture in place of the mass-fraction
+        # vector: the NASA-9 coefficients of the constituents summed once, with
+        # the mass fractions as weights. Properties are linear in the
+        # coefficients, so the result must equal the species loop to round-off,
+        # for any coefficient vector (including the composition directions
+        # tfoper! passes, which have negative entries and do not sum to 1).
+        air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        n = length(air)
+        products(far) = (air .+ far .* E.gasfuel(24, n + 1)[1:n]) ./ (1 + far)
+        compositions = [("air", air), ("products FAR=0.01", products(0.01)),
+                        ("products FAR=0.03", products(0.03)),
+                        ("direction", [0.012, -0.031, 0.02, 0.004, -0.005]),
+                        ("air, 3 constituents", air[1:3])]
+        Ts = [200.0, 288.15, 450.0, 999.0, 1000.0, 1001.0, 1500.0, 2500.0]
+        close(a, b) = abs(a - b) <= 1e-13 * max(abs(a), abs(b), 1.0)
+
+        for (name, alpha) in compositions
+            m = length(alpha)
+            mix = E.GasMixture(alpha, m)
+            @testset "$name" begin
+                for T in Ts
+                    @test all(close.(E.gassum(mix, m, T), E.gassum(alpha, m, T)))
+                    @test all(close.(E.gassumd(mix, m, T), E.gassumd(alpha, m, T)))
+                end
+            end
+        end
+
+        @testset "absolute entropy is comparable across compositions" begin
+            # A mixture built as an IdealGasThermo FrozenGas from mole fractions
+            # includes the ideal entropy of mixing, -R sum(X ln X), in s0: about
+            # 169 J/kg/K for air and a different amount for products. tfoper!
+            # builds composition derivatives of s from the constituent values
+            # (ds/dalpha_i = s_i), which hold only for the plain mass-weighted
+            # sum, so that constant must not appear.
+            pmix = E.GasMixture(products(0.03), n)
+            amix = E.GasMixture(air, n)
+            for T in Ts
+                ds_mix = E.gassum(pmix, n, T)[1] - E.gassum(amix, n, T)[1]
+                ds_sum = E.gassum(products(0.03), n, T)[1] - E.gassum(air, n, T)[1]
+                @test abs(ds_mix - ds_sum) < 1e-9
+                @test abs(E.gassum(amix, n, T)[1] - E.gassum(air, n, T)[1]) < 1e-9
+            end
+        end
+
+        @testset "process functions give the same result" begin
+            lam = products(0.025)
+            for (a, T1) in ((air, 288.15), (lam, 1500.0))
+                mix = E.GasMixture(a, n)
+                s1, _, h1, _, cp1, r1 = E.gassum(a, n, T1)
+                st = (1.0e5, T1, h1, s1, cp1, r1)
+                # 1e-12: the iterations amplify the 1e-16 differences of the
+                # property sums (gas_mass: h is a difference of terms of order
+                # cp*T, 1.7e6 J/kg for the products, and comes out 2e-13 apart)
+                same(x, y) = all(abs.(x .- y) .<= 1e-12 .* max.(abs.(x), abs.(y), 1.0))
+                @test E.gas_tset(mix, n, h1 + 2e5, T1) ≈ E.gas_tset(a, n, h1 + 2e5, T1) rtol = 1e-13
+                @test same(E.gas_tsetd(mix, n, h1 + 2e5, T1)[1:2], E.gas_tsetd(a, n, h1 + 2e5, T1)[1:2])
+                @test same(E.gas_tsetd(mix, n, h1 + 2e5, T1)[3], E.gas_tsetd(a, n, h1 + 2e5, T1)[3])
+                @test same(E.gas_prat(mix, n, st..., 1.7, 0.9), E.gas_prat(a, n, st..., 1.7, 0.9))
+                @test same(E.gas_delh(mix, n, st..., -2e5, 1 / 0.9), E.gas_delh(a, n, st..., -2e5, 1 / 0.9))
+                @test same(E.gas_mach(mix, n, st..., 0.0, 0.8, 1.0), E.gas_mach(a, n, st..., 0.0, 0.8, 1.0))
+                @test same(E.gas_mass(mix, n, st..., 100.0, 0.3), E.gas_mass(a, n, st..., 100.0, 0.3))
+                pm, dm = E.gas_pressure_ratio_partials(mix, n, st..., 1.7, 0.9)
+                pa, da = E.gas_pressure_ratio_partials(a, n, st..., 1.7, 0.9)
+                @test same(values(pm), values(pa)) && same(values(dm), values(da))
+                pm, dm = E.gas_enthalpy_change_partials(mix, n, st..., -2e5, 1 / 0.9)
+                pa, da = E.gas_enthalpy_change_partials(a, n, st..., -2e5, 1 / 0.9)
+                @test same(values(pm), values(pa)) && same(values(dm), values(da))
+                om = E.gas_machd(mix, n, st..., 0.0, 0.8, 1.0)
+                oa = E.gas_machd(a, n, st..., 0.0, 0.8, 1.0)
+                @test same(om[1:21], oa[1:21])
+                @test all(same(om[k], oa[k]) for k in 22:27)
+                d = [0.012, -0.031, 0.02, 0.004, -0.005]
+                @test same(values(E.gas_pressure_ratio_composition_direction(mix, n, 1100.0, s1, d)),
+                           values(E.gas_pressure_ratio_composition_direction(a, n, 1100.0, s1, d)))
+                @test same(values(E.gas_enthalpy_change_composition_direction(mix, n, 2e5, 1100.0, s1, 0.9, d)),
+                           values(E.gas_enthalpy_change_composition_direction(a, n, 2e5, 1100.0, s1, 0.9, d)))
+            end
+        end
+
+        @testset "no allocation, n checked, Dual numbers" begin
+            mix = E.GasMixture(air, n)
+            alloc_sum(mix, n) = @allocated TASOPT.engine.gassumd(mix, n, 900.0)
+            alloc_new(a, n) = @allocated TASOPT.engine.GasMixture(a, n)
+            alloc_sum(mix, n); alloc_new(air, n)
+            @test alloc_sum(mix, n) == 0
+            @test alloc_new(air, n) == 0
+            @test_throws ArgumentError E.gassum(mix, n - 1, 900.0)
+            @test_throws ArgumentError E.GasMixture(ones(6), 6)
+            # derivatives with respect to temperature and composition
+            @test TASOPT.ForwardDiff.derivative(x -> E.gassum(mix, n, x)[3], 900.0) ≈ E.gassum(air, n, 900.0)[5] rtol = 1e-13
+            dlam(f) = E.gassum(E.GasMixture(products(f), n), n, 1400.0)[3]
+            @test TASOPT.ForwardDiff.derivative(dlam, 0.02) ≈
+                  TASOPT.ForwardDiff.derivative(f -> E.gassum(products(f), n, 1400.0)[3], 0.02) rtol = 1e-12
+        end
+    end
+
     @testset "Temperature derivatives are consistent" begin
         alpha = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
         n = length(alpha)
