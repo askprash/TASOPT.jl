@@ -99,6 +99,17 @@ using a nonlinear solver with Jacobian information from interpolation gradients.
 """
 function find_NR_inverse_with_derivatives(itp_Wc::Interpolations.GriddedInterpolation, itp_PR::Interpolations.GriddedInterpolation, 
                                     Wc_target::Float64, PR_target::Float64; Ng::Float64 = 0.5, Rg::Float64 = 2.0)
+    return _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
+end
+
+"""
+    _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
+
+[`find_NR_inverse_with_derivatives`](@ref) solved with NLsolve (trust region from
+`(Ng, Rg)`, then Newton from `(1.0, 2.0)` if that fails). Same outputs.
+"""
+function _find_NR_inverse_nlsolve(itp_Wc::Interpolations.GriddedInterpolation, itp_PR::Interpolations.GriddedInterpolation,
+                                  Wc_target::Float64, PR_target::Float64, Ng::Float64, Rg::Float64)
     # Define the system of equations: 
     function residuals!(F::Vector{Float64}, x::Vector{Float64})
         x[1] = clamp(x[1], 1e-4, 1.9999) #Extrapolated speed map goes from 0 to 2.0
