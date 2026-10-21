@@ -1170,7 +1170,7 @@ isGradient = false
         outp_NR_check = (0.7000000000000002, 1.799999999999995, 0.0002760733345430258, 0.6100706271038377, 0.00430742991535455, -2.9037427622059644)
         
         for (i,outp_NR) in enumerate(outps_NR)
-            @test outp_NR ≈ outps_NR[i]
+            @test outp_NR ≈ outp_NR_check[i]
         end
 
         #Check function to compute speed and efficiency
