@@ -262,6 +262,12 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- number of air constitutents (all but fuel)
       nair = n - 1
 
+      #---- precomputed mixtures for the gas property calls (see GasMixture);
+      #     lambda_mix and lambdap_mix are rebuilt whenever lambda, lambdap change
+      alpha_mix = GasMixture(alpha, nair)
+      lambda_mix = GasMixture(lambda, nair)
+      lambdap_mix = GasMixture(lambdap, nair)
+
       # ===============================================================
       #---- set combustion-change mass fractions gamma[i] for specified fuel
       gamma = gasfuel(ifuel, n)
@@ -286,7 +292,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #
       # ===============================================================
       #---- freestream static quantities
-      s0, dsdt, h0, dhdt, cp0, R0 = gassum(alpha, nair, T0)
+      s0, dsdt, h0, dhdt, cp0, R0 = gassum(alpha_mix, nair, T0)
       gam0 = cp0 / (cp0 - R0)
       #      a0 = sqrt(gam0*R0*T0)
       u0 = M0 * a0
@@ -295,8 +301,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- freestream total quantities
       hspec = h0 + 0.5 * u0^2
       Tguess = T0 * (1.0 + 0.5 * (gam0 - 1.0) * M0^2)
-      Tt0 = gas_tset(alpha, nair, hspec, Tguess)
-      st0, dsdt, ht0, dhdt, cpt0, Rt0 = gassum(alpha, nair, Tt0)
+      Tt0 = gas_tset(alpha_mix, nair, hspec, Tguess)
+      st0, dsdt, ht0, dhdt, cpt0, Rt0 = gassum(alpha_mix, nair, Tt0)
       pt0 = p0 * exp((st0 - s0) / Rt0)
       at0 = sqrt(Tt0 * Rt0 * cpt0 / (cpt0 - Rt0))
 
@@ -501,7 +507,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             p2_ht2, T2_ht2, h2_ht2, s2_ht2,
             p2_Mi, T2_Mi, h2_Mi, s2_Mi,
             p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha, nair,
+            cp_al, R_al = gas_machd(alpha_mix, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, 0.0, Mi, 1.0)
             u2 = sqrt(2.0 * (ht2 - h2))
             u2_Mi = (-1.0 / u2) * h2_Mi
@@ -524,7 +530,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             p19_ht19, T19_ht19, h19_ht19, s19_ht19,
             p19_Mi, T19_Mi, h19_Mi, s19_Mi,
             p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha, nair,
+            cp_al, R_al = gas_machd(alpha_mix, nair,
                   pt19, Tt19, ht19, st19, cpt19, Rt19, 0.0, Mi, 1.0)
             u19 = sqrt(2.0 * (ht19 - h19))
             u19_Mi = (-1.0 / u19) * h19_Mi
@@ -554,7 +560,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   epf = 1.0 / epf
             end
 
-            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha_mix, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, pf, epf)
             pt21 = pr_state.p
             Tt21 = pr_state.T
@@ -616,8 +622,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Compressor precooler 19-19c
             pt19c = pt19 - Δp_PreC
             ht19c = ht19 + Δh_PreC
-            Tt19c, Tt19c_ht19c, _ = gas_tsetd(alpha, nair, ht19c, Tt19)
-            st19c, st19c_Tt19c, ht19c, ht29c_Tt29c, cpt19c, cpt19c_Tt19c, Rt19c = gassumd(alpha, nair, Tt19c)
+            Tt19c, Tt19c_ht19c, _ = gas_tsetd(alpha_mix, nair, ht19c, Tt19)
+            st19c, st19c_Tt19c, ht19c, ht29c_Tt29c, cpt19c, cpt19c_Tt19c, Rt19c = gassumd(alpha_mix, nair, Tt19c)
 
              #Derivatives with respect to pressure are unchanged because pt19c_pt19 = 1
             pt19c_pt19 = 1.0
@@ -636,7 +642,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             p19c_ht19c, T19c_ht19c, h19c_ht19c, s19c_ht19c,
             p19c_Mi, T19c_Mi, h19c_Mi, s19c_Mi,
             p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha, nair,
+            cp_al, R_al = gas_machd(alpha_mix, nair,
                   pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, 0.0, Mi, 1.0)
             u19c = sqrt(2.0 * (ht19c - h19c))
             u19c_Mi = (-1.0 / u19c) * h19c_Mi
@@ -676,7 +682,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   eplc_ml = 0.0
             end
 
-            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha_mix, nair,
                   pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pl, eplc)
             pt25 = pr_state.p
             Tt25 = pr_state.T
@@ -718,8 +724,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Compressor intercooler 25-25c
             pt25c = pt25 - Δp_InterC
             ht25c = ht25 + Δh_InterC
-            Tt25c, Tt25c_ht25c, _ = gas_tsetd(alpha, nair, ht25c, Tt25)
-            st25c, st25c_Tt25c, ht25c, ht25c_Tt25c, cpt25c, cpt25c_Tt25c, Rt25c = gassumd(alpha, nair, Tt25c)
+            Tt25c, Tt25c_ht25c, _ = gas_tsetd(alpha_mix, nair, ht25c, Tt25)
+            st25c, st25c_Tt25c, ht25c, ht25c_Tt25c, cpt25c, cpt25c_Tt25c, Rt25c = gassumd(alpha_mix, nair, Tt25c)
 
             #Derivatives with respect to pressure are unchanged
             pt25c_pt25 = 1.0
@@ -753,7 +759,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   ephc_mh = 0.0
             end
 
-            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha_mix, nair,
                   pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, ph, ephc)
             pt3 = pr_state.p
             Tt3 = pr_state.T
@@ -808,6 +814,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ffb, lambda,
             ffb_Tt3, ffb_Ttf, ffb_Tb,
             lam_Tt3, lam_Ttf, lam_Tb = gas_burnd(alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tb, hvap)
+            lambda_mix = GasMixture(lambda, nair)
             ffb_pl = ffb_Tt3 * Tt3_pl
             ffb_ph = ffb_Tt3 * Tt3_ph
             ffb_ml = ffb_Tt3 * Tt3_ml
@@ -824,14 +831,14 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             Tt4_Tb = 1.0
             st4, st4_Tt4,
             ht4, ht4_Tt4,
-            cpt4, cpt4_Tt4, Rt4 = gassumd(lambda, nair, Tt4)
+            cpt4, cpt4_Tt4, Rt4 = gassumd(lambda_mix, nair, Tt4)
 
             #c     gassum(lambda,nair,Tt4,st4   ,dum,ht4   ,dum,cpt4   ,Rt4   )
-            st4_pl, dum, ht4_pl, dum, cpt4_pl, Rt4_pl = gassum(lam_pl, nair, Tt4)
-            st4_ph, dum, ht4_ph, dum, cpt4_ph, Rt4_ph = gassum(lam_ph, nair, Tt4)
-            st4_ml, dum, ht4_ml, dum, cpt4_ml, Rt4_ml = gassum(lam_ml, nair, Tt4)
-            st4_mh, dum, ht4_mh, dum, cpt4_mh, Rt4_mh = gassum(lam_mh, nair, Tt4)
-            st4_Tb, dum, ht4_Tb, dum, cpt4_Tb, Rt4_Tb = gassum(lam_Tb, nair, Tt4)
+            st4_pl, dum, ht4_pl, dum, cpt4_pl, Rt4_pl = gassum(GasMixture(lam_pl, nair), nair, Tt4)
+            st4_ph, dum, ht4_ph, dum, cpt4_ph, Rt4_ph = gassum(GasMixture(lam_ph, nair), nair, Tt4)
+            st4_ml, dum, ht4_ml, dum, cpt4_ml, Rt4_ml = gassum(GasMixture(lam_ml, nair), nair, Tt4)
+            st4_mh, dum, ht4_mh, dum, cpt4_mh, Rt4_mh = gassum(GasMixture(lam_mh, nair), nair, Tt4)
+            st4_Tb, dum, ht4_Tb, dum, cpt4_Tb, Rt4_Tb = gassum(GasMixture(lam_Tb, nair), nair, Tt4)
 
             pt4 = pib * pt3
             pt4_pl = pib * pt3_pl
@@ -865,6 +872,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         lamp_Tb[i] = lam_Tb[i]
                         lamp_Mi[i] = 0.0
                   end
+                  lambdap_mix = lambda_mix
 
                   pt41_pl = pt4_pl
                   pt41_ph = pt4_ph
@@ -944,7 +952,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   # Heat exchanger to cool turbine cooling air
                   ht_tc = ht3 + Δh_TurbC #Specific enthalpy of turbine cooling air
-                  Tt_tc, Tttc_httc, _ = gas_tsetd(alpha, nair, ht_tc, Tt3) #Temperature of turbine cooling air
+                  Tt_tc, Tttc_httc, _ = gas_tsetd(alpha_mix, nair, ht_tc, Tt3) #Temperature of turbine cooling air
 
                   httc_ht3 = 1.0
                   Tttc_Tt3 = Tttc_httc * httc_ht3 / Tt3_ht3
@@ -1051,7 +1059,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   p4a_ht4a, T4a_ht4a, h4a_ht4a, s4a_ht4a,
                   p4a_M4a, T4a_M4a, h4a_M4a, s4a_M4a,
                   p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(lambda, nair,
+                  cp_al, R_al = gas_machd(lambda_mix, nair,
                         pt4a, Tt4a, ht4a, st4a, cpt4a, rt4a, 0.0, M4a, 1.0)
 
                   p4a_pl = p4a_st4a * st4a_pl +
@@ -1185,6 +1193,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                                      frac4 * lam_Tb[i]
                         lamp_Mi[i] = frac4_Mi * lambda[i] + fracm_Mi * alpha[i]
                   end
+                  lambdap_mix = GasMixture(lambdap, nair)
 
                   #derivatives for turbine cooling air when there is a HX
                   httc_pl = ht3_pl * httc_ht3
@@ -1204,7 +1213,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   #----- total temperature from total enthalpy
                   Tguess = frac4 * Tt4 + fracm * Tt_tc
-                  Tt41, Tt41_ht41, T_al = gas_tsetd(lambdap, nair, ht41, Tguess)
+                  Tt41, Tt41_ht41, T_al = gas_tsetd(lambdap_mix, nair, ht41, Tguess)
                   Tt41_pl = Tt41_ht41 * ht41_pl
                   Tt41_ph = Tt41_ht41 * ht41_ph
                   Tt41_mf = Tt41_ht41 * ht41_mf
@@ -1225,7 +1234,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   #----- will also need st41,cpt41,Rt41 derivatives
                   st41, st41_Tt41,
                   ht41, ht41_Tt41,
-                  cpt41, cpt41_Tt41, Rt41 = gassumd(lambdap, nair, Tt41)
+                  cpt41, cpt41_Tt41, Rt41 = gassumd(lambdap_mix, nair, Tt41)
                   st41_pl = st41_Tt41 * Tt41_pl
                   st41_ph = st41_Tt41 * Tt41_ph
                   st41_mf = st41_Tt41 * Tt41_mf
@@ -1305,7 +1314,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   h41_Mi = ht41_Mi - u41 * u41_Mi
 
                   Tguess = t4a + (h41 - h4a) / cp4a
-                  T41, T41_h41, T_al = gas_tsetd(lambdap, nair, h41, Tguess)
+                  T41, T41_h41, T_al = gas_tsetd(lambdap_mix, nair, h41, Tguess)
                   T41_pl = T41_h41 * h41_pl
                   T41_ph = T41_h41 * h41_ph
                   T41_mf = T41_h41 * h41_mf
@@ -1322,7 +1331,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         T41_Tb = T41_Tb + T_al[i] * lamp_Tb[i]
                         T41_Mi = T41_Mi + T_al[i] * lamp_Mi[i]
                   end
-                  s41, s41_T41, h41, dum, cp41, R41 = gassum(lambdap, nair, T41)
+                  s41, s41_T41, h41, dum, cp41, R41 = gassum(lambdap_mix, nair, T41)
                   s41_pl = s41_T41 * T41_pl
                   s41_ph = s41_T41 * T41_ph
                   s41_mf = s41_T41 * T41_mf
@@ -1351,7 +1360,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   dhb_Tb = ht41_Tb - h41_Tb
                   dhb_Mi = ht41_Mi - h41_Mi
                   epi = 1.0
-                  dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
+                  dh_state, dh_partials = gas_enthalpy_change_partials(lambdap_mix, nair,
                         p41, T41, h41, s41, cp41, R41, dhb, epi)
                   pt41 = dh_state.p
                   Tt41 = dh_state.T
@@ -1370,7 +1379,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   ht41_dhb = dh_partials.h_delh
                   st41_dhb = dh_partials.s_delh
                   pt41_lamp_pl, pt41_lamp_ph, pt41_lamp_mf, pt41_lamp_ml, pt41_lamp_mh, pt41_lamp_Tb, pt41_lamp_Mi =
-                        gas_enthalpy_change_composition_directions(lambdap, nair, pt41, Tt41, s41, epi,
+                        gas_enthalpy_change_composition_directions(lambdap_mix, nair, pt41, Tt41, s41, epi,
                               lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
                   pt41_pl = pt41_s41 * s41_pl +
@@ -1563,7 +1572,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
            
             #---- HPT work to determine station 45
             epi = 1.0 / epht
-            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
+            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap_mix, nair,
                   pt41, Tt41, ht41, st41, cpt41, Rt41, dhht, epi)
             pt45 = dh_state.p
             Tt45 = dh_state.T
@@ -1583,7 +1592,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ht45_dhht = dh_partials.h_delh
             st45_dhht = dh_partials.s_delh
             pt45_lamp_pl, pt45_lamp_ph, pt45_lamp_mf, pt45_lamp_ml, pt45_lamp_mh, pt45_lamp_Tb, pt45_lamp_Mi =
-                  gas_enthalpy_change_composition_directions(lambdap, nair, pt45, Tt45, st41, epi,
+                  gas_enthalpy_change_composition_directions(lambdap_mix, nair, pt45, Tt45, st41, epi,
                         lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt45_epht = pt45_epi * (-epi / epht)
@@ -1683,7 +1692,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- will also need cpt45,Rt45 derivatives
             st45, st45_Tt45,
             ht45, ht45_Tt45,
-            cpt45, cpt45_Tt45, Rt45 = gassumd(lambdap, nair, Tt45)
+            cpt45, cpt45_Tt45, Rt45 = gassumd(lambdap_mix, nair, Tt45)
             cpt45_pl = cpt45_Tt45 * Tt45_pl
             cpt45_ph = cpt45_Tt45 * Tt45_ph
             cpt45_mf = cpt45_Tt45 * Tt45_mf
@@ -1797,7 +1806,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             if (Pc == 0.0)
                   #----- initial guess for pt5
                   epi = 1.0 / eplt
-                  pt49, Tt49, ht49, st49, cpt49, Rt49 = gas_delh(lambdap, nair,
+                  pt49, Tt49, ht49, st49, cpt49, Rt49 = gas_delh(lambdap_mix, nair,
                         pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
                   Pc = pt49 * pitn
                   Pc = max(Pc, p0 * (1.0 + 0.2 * M0^2)^3.5)
@@ -1811,7 +1820,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
-            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap_mix, nair,
                   pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, epi)
             pt49 = pr_state.p
             Tt49 = pr_state.T
@@ -1833,7 +1842,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ht49_epi = pr_partials.h_epol
             st49_epi = pr_partials.s_epol
             pt49_lamp_pl, pt49_lamp_ph, pt49_lamp_mf, pt49_lamp_ml, pt49_lamp_mh, pt49_lamp_Tb, pt49_lamp_Mi =
-                  gas_pressure_ratio_composition_directions(lambdap, nair, Tt49, st45,
+                  gas_pressure_ratio_composition_directions(lambdap_mix, nair, Tt49, st45,
                         lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt49_Pc = pt49_pilt * pilt_Pc
@@ -1934,8 +1943,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Regenerative cooling heat exchanger 49-49c
             pt49c = pt49 - Δp_Regen
             ht49c = ht49 + Δh_Regen
-            Tt49c, Tt49c_ht49c, _ = gas_tsetd(lambdap, nair, ht49c, Tt49)
-            st49c, st49c_Tt49c, ht49c, ht49c_Tt49, cpt49c, cpt49c_Tt49c, Rt49c = gassumd(lambdap, nair, Tt49c)
+            Tt49c, Tt49c_ht49c, _ = gas_tsetd(lambdap_mix, nair, ht49c, Tt49)
+            st49c, st49c_Tt49c, ht49c, ht49c_Tt49, cpt49c, cpt49c_Tt49c, Rt49c = gassumd(lambdap_mix, nair, Tt49c)
 
             #Derivatives with respect to pressure are unchanged
             pt49c_pt49 = 1.0
@@ -2047,7 +2056,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- fan nozzle flow 7-8, use alpha mass fraction (air)
             pfn = p0 / pt7
             pfn_pt7 = -pfn / pt7
-            pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(alpha_mix, nair,
                   pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, 1.0)
             p7 = pr_state.p
             T7 = pr_state.T
@@ -2100,7 +2109,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   p7_ht7, T7_ht7, h7_ht7, s7_ht7,
                   p7_M7, T7_M7, h7_M7, s7_M7,
                   p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(alpha, nair,
+                  cp_al, R_al = gas_machd(alpha_mix, nair,
                         pt7, Tt7, ht7, st7, cpt7, Rt7, 0.0, M7, 1.0)
                   p7_pf = p7_st7 * st7_pf +
                           p7_pt7 * pt7_pf +
@@ -2144,7 +2153,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             pcn = p0 / pt5
             pcn_pt5 = -pcn / pt5
 
-            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
+            pr_state, pr_partials = gas_pressure_ratio_partials(lambdap_mix, nair,
                   pt5, Tt5, ht5, st5, cpt5, Rt5, pcn, 1.0)
             p5 = pr_state.p
             T5 = pr_state.T
@@ -2162,7 +2171,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             h5_pcn = pr_partials.h_pratio
             s5_pcn = pr_partials.s_pratio
             p5_lamp_pl, p5_lamp_ph, p5_lamp_mf, p5_lamp_ml, p5_lamp_mh, p5_lamp_Tb, p5_lamp_Mi =
-                  gas_pressure_ratio_composition_directions(lambdap, nair, T5, st5,
+                  gas_pressure_ratio_composition_directions(lambdap_mix, nair, T5, st5,
                         lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             u5 = sqrt(2.0 * max(ht5 - h5, 0.0))
@@ -2232,7 +2241,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   p5_ht5, T5_ht5, h5_ht5, s5_ht5,
                   p5_M5, T5_M5, h5_M5, s5_M5,
                   p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(lambdap, nair,
+                  cp_al, R_al = gas_machd(lambdap_mix, nair,
                         pt5, Tt5, ht5, st5, cpt5, Rt5, 0.0, M5, 1.0)
 
                   p5_pf = p5_st5 * st5_pf +
@@ -2586,7 +2595,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pfn = p0 / pt7
                   pfn_pt7 = -pfn / pt7
                   epi = 1.0
-                  pr_state, pr_partials = gas_pressure_ratio_partials(alpha, nair,
+                  pr_state, pr_partials = gas_pressure_ratio_partials(alpha_mix, nair,
                         pt7, Tt7, ht7, st7, cpt7, Rt7, pfn, epi)
                   p8 = pr_state.p
                   T8 = pr_state.T
@@ -2631,7 +2640,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   pcn = p0 / pt5
                   pcn_pt5 = -pcn / pt5
                   epi = 1.0
-                  pr_state, pr_partials = gas_pressure_ratio_partials(lambdap, nair,
+                  pr_state, pr_partials = gas_pressure_ratio_partials(lambdap_mix, nair,
                         pt5, Tt5, ht5, st5, cpt5, Rt5, pcn, epi)
                   p6 = pr_state.p
                   T6 = pr_state.T
@@ -2649,7 +2658,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   h6_pcn = pr_partials.h_pratio
                   s6_pcn = pr_partials.s_pratio
                   p6_lamp_pl, p6_lamp_ph, p6_lamp_mf, p6_lamp_ml, p6_lamp_mh, p6_lamp_Tb, p6_lamp_Mi =
-                        gas_pressure_ratio_composition_directions(lambdap, nair, T6, st5,
+                        gas_pressure_ratio_composition_directions(lambdap_mix, nair, T6, st5,
                               lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
                   h6_pt5 = h6_pcn * pcn_pt5
 
@@ -2763,7 +2772,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- LPT power matched to fan+LPC power
             epi = 1.0 / eplt
             epi_eplt = -epi / eplt
-            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap, nair,
+            dh_state, dh_partials = gas_enthalpy_change_partials(lambdap_mix, nair,
                   pt45, Tt45, ht45, st45, cpt45, Rt45, dhlt, epi)
             pt5h = dh_state.p
             Tt5h = dh_state.T
@@ -2783,7 +2792,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             ht5h_dhlt = dh_partials.h_delh
             st5h_dhlt = dh_partials.s_delh
             pt5h_lamp_pl, pt5h_lamp_ph, pt5h_lamp_mf, pt5h_lamp_ml, pt5h_lamp_mh, pt5h_lamp_Tb, pt5h_lamp_Mi =
-                  gas_enthalpy_change_composition_directions(lambdap, nair, pt5h, Tt5h, st45, epi,
+                  gas_enthalpy_change_composition_directions(lambdap_mix, nair, pt5h, Tt5h, st45, epi,
                         lamp_pl, lamp_ph, lamp_mf, lamp_ml, lamp_mh, lamp_Tb, lamp_Mi)
 
             pt5h_eplt = pt5h_epi * epi_eplt
@@ -3175,7 +3184,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   Rt8 = Rt7
 
                   pfn = p0 / pt8
-                  p8, T8, h8, s8, cp8, R8 = gas_prat(alpha, nair,
+                  p8, T8, h8, s8, cp8, R8 = gas_prat(alpha_mix, nair,
                         pt8, Tt8, ht8, st8, cpt8, Rt8, pfn, 1.0)
                   if (ht8 > h8)
                         u8 = sqrt(2.0 * (ht8 - h8))
@@ -3194,7 +3203,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   Rt6 = Rt5
 
                   pcn = p0 / pt6
-                  p6, T6, h6, s6, cp6, R6 = gas_prat(lambdap, nair,
+                  p6, T6, h6, s6, cp6, R6 = gas_prat(lambdap_mix, nair,
                         pt6, Tt6, ht6, st6, cpt6, Rt6, pcn, 1.0)
                   if (ht6 > h6)
                         u6 = sqrt(2.0 * (ht6 - h6))
@@ -3282,44 +3291,44 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   etalt = 0.0
 
                   #---- fan
-                  pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha, nair,
+                  pt21i, Tt21i, ht21i, st21i, cpt21i, Rt21i = gas_prat(alpha_mix, nair,
                         pt2, Tt2, ht2, st2, cpt2, Rt2, pif, 1.0)
                   etaf = (ht21i - ht2) / (ht21 - ht2)
 
                   #---- LP compressor
-                  pt25i, Tt25i, ht25i, st25i, cpt25i, Rt25i = gas_prat(alpha, nair,
+                  pt25i, Tt25i, ht25i, st25i, cpt25i, Rt25i = gas_prat(alpha_mix, nair,
                         pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, pilc, 1.0)
                   etalc = (ht25i - ht19c) / (ht25 - ht19c)
 
                   #---- HP compressor
 
-                  pt3i, Tt3i, ht3i, st3i, cpt3i, Rt3i = gas_prat(alpha, nair,
+                  pt3i, Tt3i, ht3i, st3i, cpt3i, Rt3i = gas_prat(alpha_mix, nair,
                         pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, pihc, 1.0)
                   etahc = (ht3i - ht25c) / (ht3 - ht25c)
 
                   #---- HP turbine
                   piht = pt45 / pt41
-                  pt45i, Tt45i, ht45i, st45i, cpt45i, Rt45i = gas_prat(lambdap, nair,
+                  pt45i, Tt45i, ht45i, st45i, cpt45i, Rt45i = gas_prat(lambdap_mix, nair,
                         pt41, Tt41, ht41, st41, cpt41, Rt41, piht, 1.0)
                   etaht = (ht45 - ht41) / (ht45i - ht41)
 
                   #---- LP turbine
                   pilt = pt49 / pt45
-                  pt49i, Tt49i, ht49i, st49i, cpt49i, Rt49i = gas_prat(lambdap, nair,
+                  pt49i, Tt49i, ht49i, st49i, cpt49i, Rt49i = gas_prat(lambdap_mix, nair,
                         pt45, Tt45, ht45, st45, cpt45, Rt45, pilt, 1.0)
                   etalt = (ht5 - ht45) / (ht49i - ht45)
 
                   #--------------------------------------------------------------
                   #---- calculate fan-face static quantities from Mach number variable Mi
                   M2 = Mi
-                  p2, T2, h2, s2, cp2, R2 = gas_mach(alpha, nair,
+                  p2, T2, h2, s2, cp2, R2 = gas_mach(alpha_mix, nair,
                         pt2, Tt2, ht2, st2, cpt2, Rt2, 0.0, M2, 1.0)
                   u2 = sqrt(2.0 * (ht2 - h2))
 
                   #---- calculate HPC-face static quantities from core mass flow
                   #-    (first check for choking)
                   M25s = 0.99
-                  p25s, T25s, h25s, s25s, cp25s, R25s = gas_mach(alpha, nair,
+                  p25s, T25s, h25s, s25s, cp25s, R25s = gas_mach(alpha_mix, nair,
                         pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, 0.0, M25s, 1.0)
                   u25s = sqrt(2.0 * (ht25c - h25s))
                   mdot25s = p25s / (R25s * T25s) * u25s * A25
@@ -3336,7 +3345,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                         #----- normal case... set static quantities from prescribed mass flux
                         Mguess = min(M25, 0.90)
                         mp25 = (1.0 - fo) * mcore / A25
-                        p25c, T25c, h25c, s25c, cp25c, R25c = gas_mass(alpha, nair,
+                        p25c, T25c, h25c, s25c, cp25c, R25c = gas_mass(alpha_mix, nair,
                               pt25c, Tt25c, ht25c, st25c, cpt25c, Rt25c, mp25, Mguess)
                         u25c = sqrt(2.0 * (ht25c - h25c))
                         M25c = u25c / sqrt(T25c * R25c * cp25c / (cp25c - R25c))
