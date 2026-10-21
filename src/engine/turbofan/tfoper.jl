@@ -3429,4 +3429,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
       end # with next Newton iteration
 
+      # Not reached: the loop returns at iter == itmax at the latest. Without this,
+      # falling out of the loop would return `nothing` and widen the return type.
+      error("tfoper!: Newton loop ended without returning")
 end # tfoper
