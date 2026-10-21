@@ -347,6 +347,66 @@ isGradient = false
         gamma = TASOPT.engine.gasfuel(ifuel, n)
         @test gamma[2] == -3.6283226981894474
 
+        # =========================
+        # in-place variants: same results as the allocating functions, no allocation
+        # =========================
+        E = TASOPT.engine
+        air = [0.7532, 0.2315, 0.0006, 0.0020, 0.0127]
+        s1, _, h1, _, cp1, r1 = E.gassum(air, 5, 300.0)
+        st1 = (1.0e5, 300.0, h1, s1, cp1, r1)
+
+        t_al = zeros(5)
+        @test E.gas_tsetd!(t_al, air, 5, h1 + 2e5, 300.0) == E.gas_tsetd(air, 5, h1 + 2e5, 300.0)[1:2]
+        @test t_al == E.gas_tsetd(air, 5, h1 + 2e5, 300.0)[3]
+
+        bufs = ntuple(_ -> zeros(5), 6)
+        ref = E.gas_machd(air, 5, st1..., 0.0, 0.7, 1.0)
+        @test E.gas_machd!(bufs..., air, 5, st1..., 0.0, 0.7, 1.0) == ref[1:21]
+        @test all(bufs[k] == ref[21+k] for k in 1:6)
+
+        air6 = [air; 0.0]
+        beta = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+        gam = E.gasfuel(24, 6)
+        lam, l_to, l_tf, l_t = zeros(6), zeros(6), zeros(6), zeros(6)
+        ref = E.gas_burnd(air6, beta, gam, 6, 24, 700.0, 280.0, 1600.0, 0.0)
+        @test E.gas_burnd!(lam, l_to, l_tf, l_t, air6, beta, gam, 6, 24, 700.0, 280.0, 1600.0, 0.0) ==
+              (ref[1], ref[3], ref[4], ref[5])
+        @test (lam, l_to, l_tf, l_t) == (ref[2], ref[6], ref[7], ref[8])
+
+        mix = E.GasMixture(air, 5)
+        alloc_tsetd(t_al, mix) = @allocated TASOPT.engine.gas_tsetd!(t_al, mix, 5, 4e5, 300.0)
+        alloc_machd(b, mix, st) = @allocated TASOPT.engine.gas_machd!(b..., mix, 5, st..., 0.0, 0.7, 1.0)
+        alloc_burnd(lam, l_to, l_tf, l_t, a, b, g) =
+            @allocated TASOPT.engine.gas_burnd!(lam, l_to, l_tf, l_t, a, b, g, 6, 24, 700.0, 280.0, 1600.0, 0.0)
+        alloc_tsetd(t_al, mix); alloc_machd(bufs, mix, st1); alloc_burnd(lam, l_to, l_tf, l_t, air6, beta, gam)
+        @test alloc_tsetd(t_al, mix) == 0
+        @test alloc_machd(bufs, mix, st1) == 0
+        @test alloc_burnd(lam, l_to, l_tf, l_t, air6, beta, gam) == 0
+
+        # =========================
+        # no convergence: an error, not `nothing`
+        # =========================
+        # (callers such as the heat exchanger's off-design residual catch the
+        # error and fall back; returning `nothing` made them fail later, inside
+        # their try block, with a MethodError)
+        quietly(f) = redirect_stdout(f, devnull)
+        @test_throws ErrorException quietly(() -> E.gas_tset(air, 5, NaN, 300.0))
+        @test_throws ErrorException quietly(() -> E.gas_tsetd(air, 5, NaN, 300.0))
+        @test_throws ErrorException quietly(() -> E.gas_prat(air, 5, st1..., NaN, 0.9))
+        @test_throws ErrorException quietly(() -> E.gas_delh(air, 5, st1..., NaN, 0.9))
+        @test_throws ErrorException quietly(() -> E.gas_mach(air, 5, st1..., 0.0, NaN, 1.0))
+        @test_throws ErrorException quietly(() -> E.gas_machd(air, 5, st1..., 0.0, NaN, 1.0))
+        @test_throws ErrorException quietly(() -> E.gas_mass(air, 5, st1..., NaN, 0.3))
+        @test_throws ErrorException quietly(() -> E.gas_pressure_ratio_partials(air, 5, st1..., NaN, 0.9))
+        @test_throws ErrorException quietly(() -> E.gas_enthalpy_change_partials(air, 5, st1..., NaN, 0.9))
+        for f in (E.gas_tset, E.gas_tsetd, E.gas_prat, E.gas_delh, E.gas_mach, E.gas_machd, E.gas_mass,
+                  E.gas_pressure_ratio_partials, E.gas_enthalpy_change_partials)
+            sig = f === E.gas_tset || f === E.gas_tsetd ? (Vector{Float64}, Int, Float64, Float64) :
+                  f === E.gas_mach || f === E.gas_machd ? (Vector{Float64}, Int, ntuple(_ -> Float64, 9)...) :
+                  (Vector{Float64}, Int, ntuple(_ -> Float64, 8)...)
+            @test isconcretetype(only(Base.return_types(f, sig)))
+        end
+
     end
 
     @testset "tfmap.jl" begin
@@ -899,6 +959,31 @@ isGradient = false
         Δp_InterC = 0.0
         Δp_Regen = 0.0
 
+        tfoper_args = (gee, M0, T0, p0, a0, Tref, pref,
+            Phiinl, Kinl, eng_has_BLI_cores,
+            pid, pib, pifn, pitn,
+            Gearf,
+            pifD, pilcD, pihcD, pihtD, piltD,
+            mbfD, mblcD, mbhcD, mbhtD, mbltD,
+            NbfD, NblcD, NbhcD, NbhtD, NbltD,
+            A2, A25, A5, A7,
+            opt_calc_call,
+            Ttf, ifuel, hvap, etab,
+            epf0, eplc0, ephc0, epht0, eplt0,
+            mofft, Pofft,
+            Tt9, pt9,
+            epsl, epsh,
+            opt_cooling,
+            Mtexit, dTstrk, StA, efilm, tfilm,
+            fc0, epht_fc,
+            M4a, ruc,
+            ncrowx, ncrow,
+            epsrow3, Tmrow3,
+            Feng,
+            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25, 
+            Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
+            Δp_PreC, Δp_InterC, Δp_Regen)
+
         # Fix mass flow find temperature
         TSFC, Fsp, hfuel, ff,
         Feng, mcore,
@@ -930,30 +1015,7 @@ isGradient = false
         u9, A9,
         epf, eplc, ephc, epht, eplt,
         etaf, etalc, etahc, etaht, etalt,
-        Lconv = TASOPT.engine.tfoper!(gee, M0, T0, p0, a0, Tref, pref,
-            Phiinl, Kinl, eng_has_BLI_cores,
-            pid, pib, pifn, pitn,
-            Gearf,
-            pifD, pilcD, pihcD, pihtD, piltD,
-            mbfD, mblcD, mbhcD, mbhtD, mbltD,
-            NbfD, NblcD, NbhcD, NbhtD, NbltD,
-            A2, A25, A5, A7,
-            opt_calc_call,
-            Ttf, ifuel, hvap, etab,
-            epf0, eplc0, ephc0, epht0, eplt0,
-            mofft, Pofft,
-            Tt9, pt9,
-            epsl, epsh,
-            opt_cooling,
-            Mtexit, dTstrk, StA, efilm, tfilm,
-            fc0, epht_fc,
-            M4a, ruc,
-            ncrowx, ncrow,
-            epsrow3, Tmrow3,
-            Feng,
-            M2, pif, pilc, pihc, mbf, mblc, mbhc, Tt4, pt5, mcore, M25, 
-            Δh_PreC, Δh_InterC, Δh_Regen, Δh_TurbC,
-            Δp_PreC, Δp_InterC, Δp_Regen)
+        Lconv = TASOPT.engine.tfoper!(tfoper_args...)
 
 
         @test etaf ≈ 0.8739688760070233 atol = 1e-8
@@ -973,6 +1035,28 @@ isGradient = false
         @test cpt4 ≈ cpt4_ref atol = 1e-8 * cpt4_ref
         @test Rt4 ≈ Rt4_ref atol = 1e-8 * Rt4_ref
 
+        @testset "result type, RNG, allocations" begin
+            # One concrete return type: no `nothing` from a non-converged
+            # sub-iteration or from falling out of the Newton loop.
+            rt = Base.return_types(TASOPT.engine.tfoper!, typeof.(tfoper_args))
+            @test length(rt) == 1 && isconcretetype(only(rt))
+
+            # The relaxation draws its random numbers from its own generator:
+            # the global RNG is left alone and the result does not depend on it.
+            TASOPT.engine.Random.seed!(7)
+            r_ref = rand()
+            TASOPT.engine.Random.seed!(7)
+            out1 = TASOPT.engine.tfoper!(tfoper_args...)
+            @test rand() == r_ref
+            TASOPT.engine.Random.seed!(99)
+            @test TASOPT.engine.tfoper!(tfoper_args...) === out1
+
+            alloc_tfoper(args) = @allocated TASOPT.engine.tfoper!(args...)
+            alloc_tfoper(tfoper_args)
+            # about 7 kB of work arrays plus the 1.1 kB result tuple returned here;
+            # 35 kB before the in-place gas functions
+            @test alloc_tfoper(tfoper_args) < 12_000 # bytes
+        end
     end
 
     @testset "tfoper.jl mode 2" begin
