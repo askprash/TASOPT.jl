@@ -204,35 +204,34 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       #---- number of gas constituents
       n = 6
 
-      #---- mass fractions
-      alpha = zeros(T, n)    # air
-      beta = zeros(T, n)     # fuel
-      gamma = zeros(T, n)    # combustion-caused change in air
-      lambda = zeros(T, n)   # combustion product gas
-      lambdap = zeros(T, n)  # combustion product gas with cooling flow added
+      #---- per-constituent vectors, as columns of one array (one allocation)
+      #     alpha, beta and gamma are set below
+      wk = zeros(T, n, 23)
+      lambda = view(wk, :, 1)   # combustion product gas
+      lambdap = view(wk, :, 2)  # combustion product gas with cooling flow added
 
-      lam_Tt3 = zeros(T, n)
-      lam_Ttf = zeros(T, n)
-      lam_pl = zeros(T, n)
-      lam_ph = zeros(T, n)
-      lam_ml = zeros(T, n)
-      lam_mh = zeros(T, n)
-      lam_Tb = zeros(T, n)
-      lamp_pl = zeros(T, n)
-      lamp_ph = zeros(T, n)
-      lamp_mf = zeros(T, n)
-      lamp_ml = zeros(T, n)
-      lamp_mh = zeros(T, n)
-      lamp_Tb = zeros(T, n)
-      lamp_Mi = zeros(T, n)
+      lam_Tt3 = view(wk, :, 3)
+      lam_Ttf = view(wk, :, 4)
+      lam_pl = view(wk, :, 5)
+      lam_ph = view(wk, :, 6)
+      lam_ml = view(wk, :, 7)
+      lam_mh = view(wk, :, 8)
+      lam_Tb = view(wk, :, 9)
+      lamp_pl = view(wk, :, 10)
+      lamp_ph = view(wk, :, 11)
+      lamp_mf = view(wk, :, 12)
+      lamp_ml = view(wk, :, 13)
+      lamp_mh = view(wk, :, 14)
+      lamp_Tb = view(wk, :, 15)
+      lamp_Mi = view(wk, :, 16)
 
-      T_al = zeros(T, n)
-      p_al = zeros(T, n)
-      h_al = zeros(T, n)
-      s_al = zeros(T, n)
-      R_al = zeros(T, n)
-      cp_al = zeros(T, n)
-      T_al_unused = zeros(T, n) # for gas_tsetd! calls whose composition derivatives are not used
+      T_al = view(wk, :, 17)
+      p_al = view(wk, :, 18)
+      h_al = view(wk, :, 19)
+      s_al = view(wk, :, 20)
+      R_al = view(wk, :, 21)
+      cp_al = view(wk, :, 22)
+      T_al_unused = view(wk, :, 23) # for gas_tsetd! calls whose composition derivatives are not used
 
       #---- minimum allowable fan efficiency
       epfmin = 0.60
