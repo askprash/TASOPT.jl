@@ -56,20 +56,28 @@ Same as gas_tset, but also returns derivative
 
     **Outputs:**
     - `t`: temperature
-    - `t_hspec`: ?
-    - `t_al`: ?
+    - `t_hspec`: dt/dhspec
+    - `t_al`: dt/dalpha[i], i = 1..n
+
+See [`gas_tsetd!`](@ref) for a version that writes `t_al` into a given array.
 """
 function gas_tsetd(alpha, n, hspec, tguess)
-      #-------------------------------------------------------------------
-      #     Same as gas_tset, but also returns derivative
-      #-------------------------------------------------------------------
+      t_al = zeros(n)
+      t, t_hspec = gas_tsetd!(t_al, alpha, n, hspec, tguess)
+      return t, t_hspec, t_al
+end # gas_tsetd
 
+"""
+    gas_tsetd!(t_al, alpha, n, hspec, tguess)
+
+Same as [`gas_tsetd`](@ref), but writes ``\\partial t/\\partial \\alpha_i`` into
+`t_al[1:n]` and returns only `(t, t_hspec)`. Does not allocate.
+"""
+function gas_tsetd!(t_al, alpha, n, hspec, tguess)
       itmax = 10
       ttol = 0.000001
 
       t = tguess
-
-      t_al = zeros(n)
 
       dt = 0.0
       for iter = 1:itmax
@@ -87,13 +95,13 @@ function gas_tsetd(alpha, n, hspec, tguess)
                         t_al[i] = -hi / h_t
                   end
 
-                  return t, t_hspec, t_al
+                  return t, t_hspec
             end
 
             t = t + dt
       end
       error("gas_tsetd: convergence failed.  dT = ", dt)
-end # gas_tsetd
+end # gas_tsetd!
 
 """
     gassum(alpha, n, t)
@@ -953,6 +961,21 @@ Same as gas_burn, but also returns derivatives.
 
 """
 function gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+      lambda = zeros(n)
+      l_to = zeros(n)
+      l_tf = zeros(n)
+      l_t = zeros(n)
+      f, f_to, f_tf, f_t = gas_burnd!(lambda, l_to, l_tf, l_t, alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+      return f, lambda, f_to, f_tf, f_t, l_to, l_tf, l_t
+end # gas_burnd
+
+"""
+    gas_burnd!(lambda, l_to, l_tf, l_t, alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
+
+Same as [`gas_burnd`](@ref), but writes `lambda`, `l_to`, `l_tf` and `l_t` into the
+given arrays (length `n`) and returns only `(f, f_to, f_tf, f_t)`. Does not allocate.
+"""
+function gas_burnd!(lambda, l_to, l_tf, l_t, alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
 
       nm = n - 1
       so, s_t, ho, ho_to, cpo, ro = gassum(alpha, nm, to)
@@ -980,10 +1003,6 @@ function gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
       f_t = f_ha * ha_t +
             f_hc * hc_t
 
-      lambda = zeros(n)
-      l_to = zeros(n)
-      l_tf = zeros(n)
-      l_t = zeros(n)
       for i = 1:n
             lambda[i] = (alpha[i] + f * gamma[i]) / (1.0 + f)
             l_f = (gamma[i] - lambda[i]) / (1.0 + f)
@@ -992,8 +1011,8 @@ function gas_burnd(alpha, beta, gamma, n, ifuel, to, tf, t, hvap)
             l_t[i] = l_f * f_t
       end
 
-      return f, lambda, f_to, f_tf, f_t, l_to, l_tf, l_t
-end # gas_burnd
+      return f, f_to, f_tf, f_t
+end # gas_burnd!
 
 """
     gas_mach(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
@@ -1079,8 +1098,28 @@ end # gas_mach
 
 Same as gas_mach, but also returns derivatives
 
+See [`gas_machd!`](@ref) for a version that writes the per-constituent derivatives
+into given arrays.
 """
 function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
+      p_al = zeros(n)
+      t_al = zeros(n)
+      h_al = zeros(n)
+      s_al = zeros(n)
+      cp_al = zeros(n)
+      r_al = zeros(n)
+      return gas_machd!(p_al, t_al, h_al, s_al, cp_al, r_al, alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)...,
+             p_al, t_al, h_al, s_al, cp_al, r_al
+end # gas_machd
+
+"""
+    gas_machd!(p_al, t_al, h_al, s_al, cp_al, r_al, alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
+
+Same as [`gas_machd`](@ref), but writes the derivatives with respect to the
+constituent fractions into the given arrays (length `n`) and returns only the
+first 21 outputs of `gas_machd`. Does not allocate.
+"""
+function gas_machd!(p_al, t_al, h_al, s_al, cp_al, r_al, alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
 
       itmax = 10
       ttol = 0.000001
@@ -1094,13 +1133,6 @@ function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
       #---- initial guess for temperature, using constant-gamma relation
       t = to * (1.0 + 0.5 * ro / (cpo - ro) * mo^2) /
           (1.0 + 0.5 * ro / (cpo - ro) * m^2)
-
-      t_al = zeros(n)
-      p_al = zeros(n)
-      h_al = zeros(n)
-      s_al = zeros(n)
-      cp_al = zeros(n)
-      r_al = zeros(n)
 
       dt = 0.0
       #---- Newton iteration for actual temperature
@@ -1201,8 +1233,7 @@ function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
                   p_so, p_po, p_ep,
                   p_to, t_to, h_to, s_to,
                   p_ho, t_ho, h_ho, s_ho,
-                  p_m, t_m, h_m, s_m,
-                  p_al, t_al, h_al, s_al, cp_al, r_al
+                  p_m, t_m, h_m, s_m
 
 
             end
@@ -1211,7 +1242,7 @@ function gas_machd(alpha, n, po, to, ho, so, cpo, ro, mo, m, epol)
       end
 
       error("gas_machd: convergence failed.  dT = ", dt)
-end # gas_machd
+end # gas_machd!
 
 """
     gas_mass(alpha, n, po, to, ho, so, cpo, ro, mflux, Mguess)

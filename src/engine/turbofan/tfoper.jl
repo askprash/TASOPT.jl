@@ -232,6 +232,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
       s_al = zeros(T, n)
       R_al = zeros(T, n)
       cp_al = zeros(T, n)
+      T_al_unused = zeros(T, n) # for gas_tsetd! calls whose composition derivatives are not used
 
       #---- minimum allowable fan efficiency
       epfmin = 0.60
@@ -505,9 +506,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dum,
             p2_Tt2, T2_Tt2, h2_Tt2, s2_Tt2,
             p2_ht2, T2_ht2, h2_ht2, s2_ht2,
-            p2_Mi, T2_Mi, h2_Mi, s2_Mi,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha_mix, nair,
+            p2_Mi, T2_Mi, h2_Mi, s2_Mi = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, alpha_mix, nair,
                   pt2, Tt2, ht2, st2, cpt2, Rt2, 0.0, Mi, 1.0)
             u2 = sqrt(2.0 * (ht2 - h2))
             u2_Mi = (-1.0 / u2) * h2_Mi
@@ -528,9 +527,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dum,
             p19_Tt19, T19_Tt19, h19_Tt19, s19_Tt19,
             p19_ht19, T19_ht19, h19_ht19, s19_ht19,
-            p19_Mi, T19_Mi, h19_Mi, s19_Mi,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha_mix, nair,
+            p19_Mi, T19_Mi, h19_Mi, s19_Mi = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, alpha_mix, nair,
                   pt19, Tt19, ht19, st19, cpt19, Rt19, 0.0, Mi, 1.0)
             u19 = sqrt(2.0 * (ht19 - h19))
             u19_Mi = (-1.0 / u19) * h19_Mi
@@ -622,7 +619,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Compressor precooler 19-19c
             pt19c = pt19 - Δp_PreC
             ht19c = ht19 + Δh_PreC
-            Tt19c, Tt19c_ht19c, _ = gas_tsetd(alpha_mix, nair, ht19c, Tt19)
+            Tt19c, Tt19c_ht19c = gas_tsetd!(T_al_unused, alpha_mix, nair, ht19c, Tt19)
             st19c, st19c_Tt19c, ht19c, ht29c_Tt29c, cpt19c, cpt19c_Tt19c, Rt19c = gassumd(alpha_mix, nair, Tt19c)
 
              #Derivatives with respect to pressure are unchanged because pt19c_pt19 = 1
@@ -640,9 +637,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             dum,
             p19c_Tt19c, T19c_Tt19c, h19c_Tt19c, s19c_Tt19c,
             p19c_ht19c, T19c_ht19c, h19c_ht19c, s19c_ht19c,
-            p19c_Mi, T19c_Mi, h19c_Mi, s19c_Mi,
-            p_al, T_al, h_al, s_al,
-            cp_al, R_al = gas_machd(alpha_mix, nair,
+            p19c_Mi, T19c_Mi, h19c_Mi, s19c_Mi = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, alpha_mix, nair,
                   pt19c, Tt19c, ht19c, st19c, cpt19c, Rt19c, 0.0, Mi, 1.0)
             u19c = sqrt(2.0 * (ht19c - h19c))
             u19c_Mi = (-1.0 / u19c) * h19c_Mi
@@ -724,7 +719,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Compressor intercooler 25-25c
             pt25c = pt25 - Δp_InterC
             ht25c = ht25 + Δh_InterC
-            Tt25c, Tt25c_ht25c, _ = gas_tsetd(alpha_mix, nair, ht25c, Tt25)
+            Tt25c, Tt25c_ht25c = gas_tsetd!(T_al_unused, alpha_mix, nair, ht25c, Tt25)
             st25c, st25c_Tt25c, ht25c, ht25c_Tt25c, cpt25c, cpt25c_Tt25c, Rt25c = gassumd(alpha_mix, nair, Tt25c)
 
             #Derivatives with respect to pressure are unchanged
@@ -811,9 +806,8 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
             # ===============================================================
             #---- burner fuel flow from Tt3-Tb difference   (ffb = m_fuel/m_burner)
-            ffb, lambda,
-            ffb_Tt3, ffb_Ttf, ffb_Tb,
-            lam_Tt3, lam_Ttf, lam_Tb = gas_burnd(alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tb, hvap)
+            ffb, ffb_Tt3, ffb_Ttf, ffb_Tb =
+                  gas_burnd!(lambda, lam_Tt3, lam_Ttf, lam_Tb, alpha, beta, gamma, n, ifuel, Tt3, Ttf, Tb, hvap)
             lambda_mix = GasMixture(lambda, nair)
             ffb_pl = ffb_Tt3 * Tt3_pl
             ffb_ph = ffb_Tt3 * Tt3_ph
@@ -952,7 +946,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   # Heat exchanger to cool turbine cooling air
                   ht_tc = ht3 + Δh_TurbC #Specific enthalpy of turbine cooling air
-                  Tt_tc, Tttc_httc, _ = gas_tsetd(alpha_mix, nair, ht_tc, Tt3) #Temperature of turbine cooling air
+                  Tt_tc, Tttc_httc = gas_tsetd!(T_al_unused, alpha_mix, nair, ht_tc, Tt3) #Temperature of turbine cooling air
 
                   httc_ht3 = 1.0
                   Tttc_Tt3 = Tttc_httc * httc_ht3 / Tt3_ht3
@@ -1057,9 +1051,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   dum,
                   p4a_Tt4a, T4a_Tt4a, h4a_Tt4a, s4a_Tt4a,
                   p4a_ht4a, T4a_ht4a, h4a_ht4a, s4a_ht4a,
-                  p4a_M4a, T4a_M4a, h4a_M4a, s4a_M4a,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(lambda_mix, nair,
+                  p4a_M4a, T4a_M4a, h4a_M4a, s4a_M4a = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, lambda_mix, nair,
                         pt4a, Tt4a, ht4a, st4a, cpt4a, rt4a, 0.0, M4a, 1.0)
 
                   p4a_pl = p4a_st4a * st4a_pl +
@@ -1213,7 +1205,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
 
                   #----- total temperature from total enthalpy
                   Tguess = frac4 * Tt4 + fracm * Tt_tc
-                  Tt41, Tt41_ht41, T_al = gas_tsetd(lambdap_mix, nair, ht41, Tguess)
+                  Tt41, Tt41_ht41 = gas_tsetd!(T_al, lambdap_mix, nair, ht41, Tguess)
                   Tt41_pl = Tt41_ht41 * ht41_pl
                   Tt41_ph = Tt41_ht41 * ht41_ph
                   Tt41_mf = Tt41_ht41 * ht41_mf
@@ -1314,7 +1306,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   h41_Mi = ht41_Mi - u41 * u41_Mi
 
                   Tguess = t4a + (h41 - h4a) / cp4a
-                  T41, T41_h41, T_al = gas_tsetd(lambdap_mix, nair, h41, Tguess)
+                  T41, T41_h41 = gas_tsetd!(T_al, lambdap_mix, nair, h41, Tguess)
                   T41_pl = T41_h41 * h41_pl
                   T41_ph = T41_h41 * h41_ph
                   T41_mf = T41_h41 * h41_mf
@@ -1943,7 +1935,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
             #---- Regenerative cooling heat exchanger 49-49c
             pt49c = pt49 - Δp_Regen
             ht49c = ht49 + Δh_Regen
-            Tt49c, Tt49c_ht49c, _ = gas_tsetd(lambdap_mix, nair, ht49c, Tt49)
+            Tt49c, Tt49c_ht49c = gas_tsetd!(T_al_unused, lambdap_mix, nair, ht49c, Tt49)
             st49c, st49c_Tt49c, ht49c, ht49c_Tt49, cpt49c, cpt49c_Tt49c, Rt49c = gassumd(lambdap_mix, nair, Tt49c)
 
             #Derivatives with respect to pressure are unchanged
@@ -2107,9 +2099,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   dum,
                   p7_Tt7, T7_Tt7, h7_Tt7, s7_Tt7,
                   p7_ht7, T7_ht7, h7_ht7, s7_ht7,
-                  p7_M7, T7_M7, h7_M7, s7_M7,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(alpha_mix, nair,
+                  p7_M7, T7_M7, h7_M7, s7_M7 = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, alpha_mix, nair,
                         pt7, Tt7, ht7, st7, cpt7, Rt7, 0.0, M7, 1.0)
                   p7_pf = p7_st7 * st7_pf +
                           p7_pt7 * pt7_pf +
@@ -2239,9 +2229,7 @@ function tfoper!(gee, M0, T0, p0, a0, Tref, pref,
                   dum,
                   p5_Tt5, T5_Tt5, h5_Tt5, s5_Tt5,
                   p5_ht5, T5_ht5, h5_ht5, s5_ht5,
-                  p5_M5, T5_M5, h5_M5, s5_M5,
-                  p_al, T_al, h_al, s_al,
-                  cp_al, R_al = gas_machd(lambdap_mix, nair,
+                  p5_M5, T5_M5, h5_M5, s5_M5 = gas_machd!(p_al, T_al, h_al, s_al, cp_al, R_al, lambdap_mix, nair,
                         pt5, Tt5, ht5, st5, cpt5, Rt5, 0.0, M5, 1.0)
 
                   p5_pf = p5_st5 * st5_pf +
