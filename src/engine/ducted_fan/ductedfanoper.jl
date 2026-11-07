@@ -312,10 +312,10 @@ function ductedfanoper!(M0, T0, p0, a0, Tref, pref,
     end
 
     residual(x) = DuctedFanOffDesign(x, iPspec = iPspec)
-    sol = nlsolve(residual, guess, ftol = tol) #Use NLsolve.jl to solve for ducted fan state
+    x, _ = newton_solve(residual, guess, ftol = tol) #Solve for ducted fan state
 
     #Evaluate residual once more, storing parameters
-    outputs = DuctedFanOffDesign(sol.zero, iPspec = iPspec, store_data = true)
+    outputs = DuctedFanOffDesign(x, iPspec = iPspec, store_data = true)
     res = outputs[1]
     if maximum(abs.(res)) > tol #If infinity norm is above tolerance
         @warn "DUCTEDFANOPER: convergence failed, iPspec = $iPspec"
