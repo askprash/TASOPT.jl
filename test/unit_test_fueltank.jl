@@ -173,3 +173,103 @@ fuse.layout.cross_section.bubble_lower_downward_shift = 0.3
         @test Rvac ≈ Rvac_check
     end
 end
+
+@testset "Tank thermal solves vs NLsolve reference" begin
+    # Fresh copy of the LH2 tank set up at the top of this file: tanksize! stores the tank
+    # position in parg, which feeds the next insulation sizing, so each case starts anew.
+    function lh2_tank_aircraft(t_insul, materials)
+        ac = load_default_model()
+        ac.options.ifuel = 40
+        ac.para[iaalt, ipcruise1, 1] = 11e3
+        ac.para[iaMach, ipcruise1, 1] = 0.8
+        ac.parg[igxftank] = 15.0
+        ac.parg[igWfuel] = 1e5
+        ft = ac.fuse_tank
+        ft.tank_count = 1
+        ft.fueltype = "LH2"
+        ft.placement = "front"
+        ft.clearance_fuse = 0.1
+        ft.TSLtank = [288.2]
+        ft.pvent = 2e5
+        ft.ARtank = 2.0
+        ft.inner_material = StructuralAlloy("Al-2219-T87")
+        ft.ullage_frac = 0.1
+        ft.qfac = 1.3
+        ft.theta_inner = 1.0
+        ft.ftankadd = 0.1
+        ft.ew = 0.9
+        ft.outer_material = StructuralAlloy("Al-2219-T87")
+        ft.theta_outer = [1.0, 2.0]
+        ft.Ninterm = 1.0
+        mix = TASOPT.SaturatedMixture(ft.fueltype, ft.pvent, 1 - ft.ullage_frac)
+        ft.rhofuel = mix.liquid.ρ
+        ft.rhofuelgas = mix.gas.ρ
+        ft.Tfuel = mix.liquid.Tsat
+        ft.hvap = mix.hvap
+        ac.fuselage.layout.cross_section.radius = 2.5
+        ac.fuselage.layout.cross_section.bubble_lower_downward_shift = 0.3
+        ft.t_insul = copy(t_insul)
+        ft.material_insul = ThermalInsulator.(materials)
+        return ac
+    end
+
+    # The references are NLsolve (trust region) solutions at ftol = 1e-10, xtol = 0.
+    # NLsolve at the production tolerances differs from them by at most 3e-10 relative
+    # in Q and 1e-12 relative in the insulation thickness.
+    @testset "tankWthermal" begin
+        insulations = Dict("foam3" => ([0.1, 0.1, 0.1], ["rohacell41s", "rohacell41s", "polyurethane27"]),
+                           "foam1" => ([0.12], ["polyurethane32"]),
+                           "vacuum" => ([0.065], ["vacuum"]))
+        # (insulation, z, Mair, TSL, Q); Mair = 0 uses the natural-convection model
+        cases = [
+            ("foam3", 0.0, 0.00, 288.2, 3533.3349591636729),
+            ("foam3", 0.0, 0.25, 288.2, 3683.6452638964229),
+            ("foam3", 0.0, 0.25, 308.2, 4076.2266233436658),
+            ("foam3", 5000.0, 0.60, 288.2, 3326.3362909575562),
+            ("foam3", 11000.0, 0.80, 288.2, 2787.7450389284791),
+            ("foam3", 12500.0, 0.85, 288.2, 2818.6325215139095),
+            ("foam1", 0.0, 0.00, 288.2, 9226.8934410410875),
+            ("foam1", 0.0, 0.25, 288.2, 10191.752554412769),
+            ("foam1", 0.0, 0.25, 308.2, 11586.297984103241),
+            ("foam1", 5000.0, 0.60, 288.2, 8915.1966333320379),
+            ("foam1", 11000.0, 0.80, 288.2, 7108.4523931699032),
+            ("foam1", 12500.0, 0.85, 288.2, 7204.0402924024602),
+            ("vacuum", 0.0, 0.00, 288.2, 2262.4835264279382),
+            ("vacuum", 0.0, 0.25, 288.2, 2448.2305681526764),
+            ("vacuum", 0.0, 0.25, 308.2, 3034.9597269352598),
+            ("vacuum", 5000.0, 0.60, 288.2, 1987.9939529489443),
+            ("vacuum", 11000.0, 0.80, 288.2, 1444.6108193309101),
+            ("vacuum", 12500.0, 0.85, 288.2, 1471.489265787596),
+        ]
+        for (name, (t_insul, materials)) in insulations
+            ac = lh2_tank_aircraft(t_insul, materials)
+            ac.fuse_tank.sizes_insulation = false
+            TASOPT.tanksize!(ac, 1) # tank geometry for this insulation
+            for (case, z, Mair, TSL, Q) in cases
+                case == name || continue
+                @test TASOPT.CryoTank.tankWthermal(ac.fuselage, ac.fuse_tank, z, TSL, Mair, 15.0, 40) ≈ Q rtol = 1e-9
+            end
+        end
+    end
+
+    @testset "tanksize! insulation sizing" begin
+        # (initial thicknesses, materials, layers sized, boil-off rate in %/h, sized thicknesses)
+        cases = [
+            ([0.05, 0.05, 0.05], ["polyurethane32", "polyurethane32", "polyurethane32"], [1, 2, 3], 0.4, [0.05831367625836618, 0.05831367625836618, 0.05831367625836618]),
+            ([0.15, 0.15, 0.15], ["rohacell41s", "rohacell41s", "polyurethane27"], [1, 2, 3], 0.15, [0.17520491932727467, 0.17520491932727467, 0.17520491932727467]),
+            ([0.15, 0.15, 0.15], ["rohacell41s", "rohacell41s", "polyurethane27"], [2], 0.2, [0.15, 0.06034262289978137, 0.15]),
+            ([0.15, 0.15, 0.15], ["rohacell41s", "rohacell41s", "polyurethane27"], [3], 0.15, [0.15, 0.15, 0.2421410067143236]),
+            ([0.05], ["polyurethane32"], [1], 0.8, [0.08542341281734236]),
+        ]
+        for (t_insul, materials, iinsuldes, boiloff, t_sized) in cases
+            ac = lh2_tank_aircraft(t_insul, materials)
+            ac.fuse_tank.sizes_insulation = true
+            ac.fuse_tank.iinsuldes = iinsuldes
+            ac.fuse_tank.boiloff_rate = boiloff
+            TASOPT.tanksize!(ac, 1)
+            for (t, tref) in zip(ac.fuse_tank.t_insul, t_sized)
+                @test t ≈ tref rtol = 1e-9
+            end
+        end
+    end
+end
