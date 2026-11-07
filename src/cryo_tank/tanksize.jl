@@ -73,9 +73,9 @@ function tanksize!(ac, imission::Int64 = 1)
                         guess[i + 2] = Tfuel + ΔT * sum(t_cond[1:i])/ sum(t_cond)
                 end
                 guess[end] = guess[end] - 1.0 #fuselage wall temperature
-                #Solve non-linear problem with NLsolve.jl
-                sol = nlsolve(residual, guess, ftol = 1e-7) 
-                Δt = sol.zero[1] 
+                #Solve non-linear problem
+                x, _ = newton_solve(residual, guess, ftol = 1e-7) 
+                Δt = x[1] 
 
                 for ind in iinsuldes #For every segment whose thickness can be changed
                         t_cond[ind] = t_cond[ind] + Δt #This will modify fuse_tank.t_insul
