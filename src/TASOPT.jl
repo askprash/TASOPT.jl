@@ -41,6 +41,7 @@ export StructuralAlloy, Conductor, Insulator, ThermalInsulator
 
 #miscellaneous auxiliary fxns
 include("./utils/helper_functions.jl")
+include("./utils/newton_solve.jl")
 
 # Enums used throughout modules (must come before any submodule that uses them)
 include(joinpath(__TASOPTroot__,"data_structs/options_enums.jl"))

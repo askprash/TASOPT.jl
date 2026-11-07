@@ -104,9 +104,9 @@ function tankWthermal(fuse::Fuselage, fuse_tank::fuselage_tank, z::Float64, TSL:
             guess[i + 2] = Tfuel + ΔT * sum(t_cond[1:i])/ thickness
       end
       guess[end] = guess[end] - 1.0 #fuselage wall temperature
-      sol = nlsolve(residual, guess, xtol = 1e-7, ftol = 1e-6) #Solve non-linear problem with NLsolve.jl
+      x, _ = newton_solve(residual, guess, xtol = 1e-7, ftol = 1e-6) #Solve non-linear problem
       
-      Q = qfac * sol.zero[1]    # Heat rate from ambient to cryo fuel, including extra heat leak from valves etc as in eq 3.20 by Verstraete
+      Q = qfac * x[1]    # Heat rate from ambient to cryo fuel, including extra heat leak from valves etc as in eq 3.20 by Verstraete
       
       return  Q
 end
