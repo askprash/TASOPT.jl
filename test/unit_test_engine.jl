@@ -1294,13 +1294,14 @@ isGradient = false
         @test depol_dmb ≈ outps_Ne[6] rtol = 1e-4
     end
 
-    @testset "map inverse sweep vs NLsolve" begin
+    @testset "map inverse sweep" begin
         # Invert targets taken from the map itself, (Wc, PR) = map(Nt, Rt), at
-        # points inside the cells of the map data. The maps are piecewise bilinear:
-        # on a grid line the gradient is one-sided, so which side a solver ends on
-        # (to the last bit) decides the derivatives, and at the edges of the data
-        # the inverse is not unique. Guesses: design point, and (1.0, 2.0) as used
-        # by tfsize!.
+        # points inside the cells of the map data, so the exact answer is (Nt, Rt)
+        # and its derivatives are the inverse of the map Jacobian there. The maps are
+        # piecewise bilinear: on a grid line the gradient is one-sided, so which side
+        # a solver ends on (to the last bit) decides the derivatives, and at the edges
+        # of the data the inverse is not unique. Guesses: design point, and (1.0, 2.0)
+        # as used by tfsize!.
         E = TASOPT.engine
         jac(map, N, R) = (gW = E.Interpolations.gradient(map.itp_Wc, N, R);
                           gP = E.Interpolations.gradient(map.itp_PR, N, R);
@@ -1310,55 +1311,43 @@ isGradient = false
 
         for (name, map) in (("Fan", E.FanMap), ("LPC", E.LPCMap), ("HPC", E.HPCMap))
             d = map.defaults
-            err_true = 0.0      # largest |x - (Nt, Rt)| of the new solver, where it converged
-            excess = 0.0        # largest |x - x_NLsolve| beyond what NLsolve's residual explains
-            err_deriv = 0.0     # largest relative difference of the inverse Jacobian
-            ncases = 0
-            nl_unconverged = 0  # NLsolve residual > 1e-8
-            new_unconverged = 0 # residual > 1e-8 although NLsolve converged
+            err_x = 0.0      # largest |x - (Nt, Rt)|, where converged
+            err_deriv = 0.0  # largest relative error of the inverse Jacobian, where converged
+            unconverged = 0  # residual > 1e-8
             cell_points(g) = [g[i] + f * (g[i+1] - g[i]) for i in 1:length(g)-1 for f in (0.2, 0.5, 0.8)]
             Ns = cell_points(map.NcMap)
             Rs = cell_points(map.RlineMap)
             for Nt in Ns, Rt in Rs, (Ng, Rg) in ((d.Nc, d.Rline), (1.0, 2.0))
                 W = map.itp_Wc(Nt, Rt)
                 P = map.itp_PR(Nt, Rt)
-                new = E.find_NR_inverse_with_derivatives(map.itp_Wc, map.itp_PR, W, P; Ng = Ng, Rg = Rg)
-                ref = E._find_NR_inverse_nlsolve(map.itp_Wc, map.itp_PR, W, P, Ng, Rg)
-                ncases += 1
-                fnew = resid(map, new[1], new[2], W, P)
-                fref = resid(map, ref[1], ref[2], W, P)
-                if fnew <= 1e-8
-                    err_true = max(err_true, abs(new[1] - Nt), abs(new[2] - Rt))
-                end
-                if fref > 1e-8 # NLsolve did not converge from this guess
-                    nl_unconverged += 1
+                out = E.find_NR_inverse_with_derivatives(map.itp_Wc, map.itp_PR, W, P; Ng = Ng, Rg = Rg)
+                if resid(map, out[1], out[2], W, P) > 1e-8
+                    unconverged += 1
                     continue
                 end
-                fnew > 1e-8 && (new_unconverged += 1)
-                # NLsolve stops at |F| <= 1e-8, so its root is off by up to |J^-1| |F|
-                # (to first order; 1e-11 covers the second-order term).
-                bound = 2 * maximum(sum(abs.(inv(jac(map, ref[1], ref[2]))), dims = 2)) * fref + 1e-11
-                excess = max(excess, max(abs(new[1] - ref[1]), abs(new[2] - ref[2])) - bound)
-                err_deriv = max(err_deriv, maximum(abs.(new[3:6] .- ref[3:6]) ./ max.(abs.(ref[3:6]), 1e-3)))
+                err_x = max(err_x, abs(out[1] - Nt), abs(out[2] - Rt))
+                Jinv = inv(jac(map, Nt, Rt))
+                ref = (Jinv[1, 1], Jinv[1, 2], Jinv[2, 1], Jinv[2, 2])
+                err_deriv = max(err_deriv, maximum(abs.(out[3:6] .- ref) ./ max.(abs.(ref), 1e-3)))
             end
             @testset "$name" begin
-                @test err_true <= 1e-12
-                @test excess <= 0.0
-                @test err_deriv <= 1e-6
-                @test new_unconverged == 0
-                @test nl_unconverged <= 0.05 * ncases
+                @test unconverged == 0
+                @test err_x <= 1e-12
+                @test err_deriv <= 1e-9
                 nl_alloc(map, d.Wc, d.PR)
                 @test nl_alloc(map, 0.9 * d.Wc, 0.95 * d.PR) == 0
             end
         end
 
-        # A target outside the map has no root: the result must be the NLsolve
-        # fallback, unchanged.
+        # A target outside the map has no root: the result is a point of the
+        # extrapolated map, with finite derivatives.
         map = E.FanMap
         W = 3 * maximum(map.WcMap)
         P = 3 * maximum(map.PRMap)
-        @test E.find_NR_inverse_with_derivatives(map.itp_Wc, map.itp_PR, W, P; Ng = 1.0, Rg = 2.0) ===
-              E._find_NR_inverse_nlsolve(map.itp_Wc, map.itp_PR, W, P, 1.0, 2.0)
+        out = E.find_NR_inverse_with_derivatives(map.itp_Wc, map.itp_PR, W, P; Ng = 1.0, Rg = 2.0)
+        @test all(isfinite, out)
+        @test 1e-4 <= out[1] <= 1.9999
+        @test 1e-4 <= out[2] <= 3.9999
     end
 
     @testset "Simple engine" begin
