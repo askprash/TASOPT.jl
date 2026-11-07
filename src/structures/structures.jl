@@ -9,7 +9,6 @@ using NLopt
 using ..atmosphere
 using ..materials
 
-using NLsolve
 using Roots
 using NLopt
 import ..TASOPT: __TASOPTindices__, __TASOPTroot__, unpack_ac, unpack_ac_components, TailSizing
