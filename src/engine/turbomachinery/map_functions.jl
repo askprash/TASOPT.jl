@@ -1,4 +1,4 @@
-using Interpolations, NLsolve, StaticArrays
+using Interpolations, StaticArrays
 
 """
     MapDefaults
@@ -82,8 +82,8 @@ using Newton's method on the 2x2 system with Jacobian information from interpola
 
 The Newton iteration ([`_find_NR_inverse_newton`](@ref)) takes the full step when it reduces the residual
 and halves it otherwise, with `N` and `R` clamped to the extrapolated map after every step. It does not
-allocate. If it ends with a residual above 1e-8 (the stopping tolerance of NLsolve), the NLsolve solver
-([`_find_NR_inverse_nlsolve`](@ref)) is used instead, from the same guess.
+allocate. A target outside the map has no solution; the result is then the point where the iteration
+stopped, on the edge of the extrapolated map, with the derivatives there.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
@@ -104,10 +104,7 @@ allocate. If it ends with a residual above 1e-8 (the stopping tolerance of NLsol
 """
 function find_NR_inverse_with_derivatives(itp_Wc::Interpolations.GriddedInterpolation, itp_PR::Interpolations.GriddedInterpolation, 
                                     Wc_target::Float64, PR_target::Float64; Ng::Float64 = 0.5, Rg::Float64 = 2.0)
-    N, R, converged = _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
-    if !converged
-        return _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
-    end
+    N, R, _ = _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
 
     # The derivatives of N, R with respect to Wc and PR are the components of the inverse Jacobian
     J = _map_jacobian(itp_Wc, itp_PR, N, R)
@@ -134,14 +131,14 @@ Each step takes the Newton direction with the largest step length `1, 1/2, 1/4, 
 halvings) that reduces the sum of squared relative residuals, `(ΔWc/Wc_target)^2 + (ΔPR/PR_target)^2`.
 The residuals are scaled because Wc is of order 10-1000 and PR of order 1-10; unscaled, the PR
 equation would not count in the step-length test. `N` and `R` are clamped to the extrapolated map,
-as in [`_find_NR_inverse_nlsolve`](@ref). The iteration stops when a step changes `N` and `R` by
+`1e-4 <= N <= 1.9999` and `1e-4 <= R <= 3.9999`. The iteration stops when a step changes `N` and `R` by
 less than 1e-13 or the residual is zero, and after `itmax` steps otherwise.
 
 The maps are piecewise bilinear, so the Jacobian is exact within a map cell and the iteration
 converges in a few steps once it is in the cell of the root.
 
 Returns `(N, R, converged)`, where `converged` is true when the final residual is at most 1e-8 in
-both equations (the stopping tolerance NLsolve uses). Does not allocate.
+both equations. Does not allocate.
 """
 function _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target::Float64, PR_target::Float64,
                                  Ng::Float64, Rg::Float64; itmax::Int = 30)
@@ -173,62 +170,6 @@ function _find_NR_inverse_newton(itp_Wc, itp_PR, Wc_target::Float64, PR_target::
         step <= 1e-13 && break
     end
     return N, R, maximum(abs, F) <= 1e-8
-end
-
-"""
-    _find_NR_inverse_nlsolve(itp_Wc, itp_PR, Wc_target, PR_target, Ng, Rg)
-
-[`find_NR_inverse_with_derivatives`](@ref) solved with NLsolve (trust region from
-`(Ng, Rg)`, then Newton from `(1.0, 2.0)` if that fails). Same outputs.
-"""
-function _find_NR_inverse_nlsolve(itp_Wc::Interpolations.GriddedInterpolation, itp_PR::Interpolations.GriddedInterpolation,
-                                  Wc_target::Float64, PR_target::Float64, Ng::Float64, Rg::Float64)
-    # Define the system of equations: 
-    function residuals!(F::Vector{Float64}, x::Vector{Float64})
-        x[1] = clamp(x[1], 1e-4, 1.9999) #Extrapolated speed map goes from 0 to 2.0
-        x[2] = clamp(x[2], 1e-4, 3.9999) #Extrapolated Rline map goes from 0 to 4.0
-        # Return the residuals for both equations
-        F[1] = itp_Wc(x...) - Wc_target 
-        F[2] = itp_PR(x...) - PR_target
-    end
-
-    # Define the Jacobian of the system (partial derivatives)
-    function jacobian!(J::Matrix{Float64}, x::Vector{Float64})
-        x[1] = clamp(x[1], 1e-4, 1.9999) #Extrapolated speed map goes from 0 to 2.0
-        x[2] = clamp(x[2], 1e-4, 3.9999) #Extrapolated Rline map goes from 0 to 4.0
-        # Compute the partial derivatives of W and PR with respect to N and R
-        dw_dN, dw_dR = Interpolations.gradient(itp_Wc, x[1], x[2])
-        dpr_dN, dpr_dR = Interpolations.gradient(itp_PR, x[1], x[2])
-        
-        # Return the Jacobian matrix
-        J[1,1] = dw_dN
-        J[1,2] = dw_dR
-        J[2,1] = dpr_dN
-        J[2,2] = dpr_dR
-    end
-
-    # Solve the system of equations using root finding (non-linear solver)
-    sol = nlsolve(residuals!, jacobian!, [Ng, Rg], factor = 1.0, iterations = 100)
-
-    if ~converged(sol) #Try again from a different initial guess if the first one fails
-        sol = nlsolve(residuals!, jacobian!, [1.0, 2.0], method = :newton, iterations = 150)
-    end
-
-    # Extract the solution: the x and y corresponding to the given Wc_target and PR_target
-    N_found, R_found = sol.zero
-
-    # Compute the Jacobian at the found solution
-    jac = zeros(2, 2)
-    jacobian!(jac, [N_found, R_found])
-
-    # Calculate the derivatives (inverse of the Jacobian matrix)
-    jac_inv = inv(jac)
-
-    # The derivatives of N, R with respect to Wc and PR are the components of the inverse Jacobian
-    dN_dw, dN_dpr = jac_inv[1, :]
-    dR_dw, dR_dpr = jac_inv[2, :]
-
-    return N_found, R_found, dN_dw, dN_dpr, dR_dw, dR_dpr
 end
 
 """
