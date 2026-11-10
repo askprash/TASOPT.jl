@@ -84,9 +84,10 @@ function ode_solve(f, y0::S, tspan::Tuple{Float64, Float64}; tstops = Float64[],
     rejected = false
     istop = 1
     for _ in 1:maxiters
-        # Step onto the next stop if it is within reach
+        # Step onto the next stop if it is within reach, stretching the step by up to 1% rather than leaving a
+        # sliver before the stop (as in Hairer's DOPRI5)
         tstop = stops[istop]
-        lands = t + h >= tstop
+        lands = t + 1.01 * h >= tstop
         if lands
             h = tstop - t
         end

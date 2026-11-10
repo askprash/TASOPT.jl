@@ -53,6 +53,12 @@ using StaticArrays
         @test ys[findfirst(==(1.0), ts)] ≈ 1.0 atol = 1e-12
         @test ys[findfirst(==(2.5), ts)] ≈ -2.0 atol = 1e-12
         @test ys[end] ≈ -1.75 atol = 1e-12
+        # A stop one ulp after a step: the step is stretched onto it instead of leaving a one-ulp step
+        ts0, _, _ = ode_solve((y, t) -> 0.0, 1.0, (0.0, 1.0))
+        stop = nextfloat(ts0[4])
+        ts, ys, ok = @test_logs ode_solve((y, t) -> 0.0, 1.0, (0.0, 1.0); tstops = [stop])
+        @test ok
+        @test stop in ts
     end
 
     @testset "Edge cases" begin
