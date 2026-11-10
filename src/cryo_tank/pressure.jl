@@ -136,12 +136,21 @@ This function returns the time derivatives for pressure and liquid volume fill f
     
     **Outputs:**
     - `dydt::Vector{Float64}`: vector with the state derivatives in time
+
+It throws an error once the tank is empty (`β <= 0`): the saturated-mixture model does not apply without liquid.
 """
 function TankDerivatives(t::Float64, y::SVector{6, Float64}, u::tank_inputs, params::tank_params)
     #Extract states 
     p = y[1]
     β = y[2]
     
+    #The model is a saturated liquid-vapour mixture, so it is not valid once the liquid is gone. With reserve fuel,
+    #a consistent design never gets here
+    if β <= 0
+        error("The cryogenic tank ran out of liquid fuel around t = $(round(t)) s (the fill fraction reached 0). " *
+              "The tank model is not valid past this point; the mission needs more fuel than the tank holds.")
+    end
+
     #Extract inputs
     Q = u.Q_calc(t)
     W = u.W_calc(t)
@@ -157,11 +166,6 @@ function TankDerivatives(t::Float64, y::SVector{6, Float64}, u::tank_inputs, par
 
     #Update mixture with current state
     mix_current = SaturatedMixture(mixture_init.species, p, β)
-
-    #Make sure tank has liquid mass inside before taking mass out
-    if β <= 0
-        mdot = 0.0
-    end
 
     #Calculate derivatives
     if p < pmax

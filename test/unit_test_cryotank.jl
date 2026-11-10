@@ -263,14 +263,26 @@ using Random
         @test dydt[4] ≈ mdot
         @test dydt[5] ≈ 0.0
         @test dydt[6] ≈ mdotboil_regression
+
+        #The model is not valid once the tank has no liquid left: it throws, even at the vent pressure
+        params_vent = TASOPT.CryoTank.tank_params(mix, V, p, xout, xvent, α) #pmax = p: the tank vents
+        for β_empty in (0.0, -1e-3)
+            y_empty = @SVector [p, β_empty, 10.0, 1e3, 50.0, 20.0]
+            @test_throws ErrorException TASOPT.CryoTank.TankDerivatives(t, y_empty, u, params_vent)
+        end
+        #Just before it empties, the tank still drains and vents
+        dydt_full = TASOPT.CryoTank.TankDerivatives(t, (@SVector [p, 1e-3, 10.0, 1e3, 50.0, 20.0]), u, params_vent)
+        @test dydt_full[4] ≈ mdot
+        @test dydt_full[5] > 0.0
     end
 end
 
-# Tank state over a mission, against reference solutions (OrdinaryDiffEq Vern9 at reltol = abstol = 1e-13).
-# The inputs are synthetic but built like analyze_TASOPT_tank builds them: mission points with leading zeros, a
-# negative time outside the span, duplicated segment boundaries (jumps in the fuel flow) and a hold at origin.
-# The first two cases vent (p reaches pmax), the methane case does not. The first case also empties the tank (β falls
-# through 0, after which no fuel is drawn), which covers that switch in TankDerivatives.
+# Tank state over a mission, against reference solutions (OrdinaryDiffEq Vern9 at reltol = abstol = 1e-13). The inputs
+# are synthetic but built like analyze_TASOPT_tank builds them: mission points with leading zeros, a negative time
+# outside the span, duplicated segment boundaries (jumps in the fuel flow) and a hold at origin. The two H2 missions
+# draw more fuel than the tank holds: the first runs dry in cruise without venting, the second vents during a two-hour
+# hold and then runs dry. Integrating them to the end must throw; up to the last mission point before dry-out they
+# are checked against the references. The methane case neither vents nor runs dry.
 @testset "Tank state integration" begin
     CT = TASOPT.CryoTank
     function tank_case(species, hold, Qscale)
@@ -311,11 +323,6 @@ end
             (360.0, [118987.98906603278, 0.83755876779302818, 1770.3871209449767, 127.57279681908314, 0.0, 2.8344117110433884]),
             (630.0, [118544.67625327989, 0.80211784923788587, 1697.7881150378391, 200.17180272622085, 0.0, 4.4323141153086691]),
             (1200.0, [117993.03077622077, 0.74119861449369673, 1572.7343342292061, 325.22558353485414, 0.0, 7.1721166542361514]),
-            (22800.0, [200000.00000000178, -0.020887243185604955, 33.894517873837636, 1849.0238478262202, 15.041552064003055, 86.685205041815991]),
-            (23000.0, [200000.00000000178, -0.021263499548139216, 33.159157142857424, 1849.0238478262202, 15.776912794983263, 87.448678459218385]),
-            (23250.0, [200000.00000000178, -0.021762324271196003, 32.184247082845786, 1849.0238478262202, 16.751822854994902, 88.460859126229138]),
-            (23500.0, [200000.00000000178, -0.02228965326414175, 31.153627876547766, 1849.0238478262202, 17.782442061292922, 89.530878688497651]),
-            (24000.0, [200000.00000000178, -0.023401319789811158, 28.980971171378975, 1849.0238478262202, 19.955098766461713, 91.786595603550182]),
         ],
         ("H2", 7200.0, 20000.0) => [
             (7170.0, [200000.00000000114, 0.81420296753256194, 1666.0065801175861, 0.0, 231.95333764647225, 241.20168900058792]),
@@ -324,11 +331,6 @@ end
             (7560.0, [200000.00000000114, 0.7428494383265275, 1526.5522382918336, 127.5727968190825, 243.83488265314256, 258.41454422929655]),
             (7830.0, [200000.00000000114, 0.70168375676825878, 1446.0974508216805, 200.17180272622016, 251.69066421615807, 269.34609543301269]),
             (8400.0, [200000.00000000114, 0.62933121801520819, 1304.6906306755566, 325.22558353485357, 268.04370355364853, 291.10508782898108]),
-            (30000.0, [200000.00000000114, -0.25969654602187064, -432.83774497941988, 1329.6144163092765, 1001.1832464342011, 1090.66997587222]),
-            (30200.0, [200000.00000000114, -0.26345910964721325, -440.19135228922198, 1329.6144163092765, 1008.5368537440032, 1098.3047100462441]),
-            (30450.0, [200000.00000000114, -0.26844735687778115, -449.94045288933836, 1329.6144163092765, 1018.2859543441197, 1108.4265167163517]),
-            (30700.0, [200000.00000000114, -0.27372064680723862, -460.24664495231855, 1329.6144163092765, 1028.5921464070998, 1119.1267123390369]),
-            (31200.0, [200000.00000000114, -0.28483731206393276, -481.97321200400654, 1329.6144163092765, 1050.3187134587877, 1141.6838814895623]),
         ],
         ("CH4", 1800.0, 5000.0) => [
             (1770.0, [121973.20161001217, 0.9007011916333435, 11325.545503843301, 0.0, 0.0, 0.050598739028490353]),
@@ -345,8 +347,14 @@ end
         ],
     )
 
+    runs_dry = Dict(("H2", 0.0, 2000.0) => true, ("H2", 7200.0, 20000.0) => true, ("CH4", 1800.0, 5000.0) => false)
+
     for ((species, hold, Qscale), yref) in refs
         u, params, y0, tspan, tstops = tank_case(species, hold, Qscale)
+        if runs_dry[(species, hold, Qscale)]
+            @test_throws ErrorException CT.integrate_tank_state(u, params, y0, tspan, tstops)
+            tspan = (tspan[1], yref[end][1]) #up to the last mission point before the tank runs dry
+        end
         ts, ys = CT.integrate_tank_state(u, params, y0, tspan, tstops)
         @test ts[1] == tspan[1]
         @test ts[end] == tspan[2]
