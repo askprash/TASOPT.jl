@@ -334,8 +334,10 @@ function _BL_station_vars(is_selfsimilar,is_laminar,is_wake, Reyn,Mach, fexcr,
       trat = 1.0 + 0.5*gmi*Mach^2 * (1.0-ue^2)
       trat_ue =       -gmi*Mach^2 *      ue    #deriv of trat wrt to ue d(trat)/d(ue)
 
-      msq = (ue*Mach)^2 / trat
-      msq_ue = 2.0*ue*Mach^2 - (msq/trat)*trat_ue
+#     Departs from the Fortran blvar (blsys.f:275), which leaves out the /trat
+#     on the first term of msq_ue; that is exact only at M = 0.
+      msq    = (ue*Mach)^2  / trat
+      msq_ue = 2.0*ue*Mach^2/ trat - (msq/trat)*trat_ue
 
       h    =  δs/θ #H = delta star/ theta (2D shape parameter)
       ∂h_∂θ =  -h/θ
