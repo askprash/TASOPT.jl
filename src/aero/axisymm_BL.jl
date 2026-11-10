@@ -1,5 +1,5 @@
 """
-    _axisymm_BL(ndim, n,ite, xi, bi, rni, uinv, Reyn, Mach, fexcr)
+    _axisymm_BL(ndim, n,ite, xi, bi, rni, uinv, Reyn, Mach, fexcr; dense_solve=false)
      
 Axisymmetric boundary layer + wake calculation routine.
 Uses specified inviscid velocity, corrects for viscous
@@ -17,6 +17,9 @@ displacement to allow calculation of separated flow. Formerly, `blax!()`.
       - `Reyn::Float64`: Reynolds number,  ``\\rho_{ref} u_{ref} l_{ref} / \\mu_{ref}``.
       - `Mach::Float64`: Mach number,  ``M = u_{ref} / a_{ref}``.
       - `fexcr::Float64`: excrescence multiplier applied to wall ``c_f``, 1 for smooth wall.
+      - `dense_solve::Bool`: solve the global Newton system with dense LU instead of
+        block elimination ([`_BL_block_solve!`](@ref)). For testing; the results agree
+        to rounding.
 
       Assumed units for all quantities:
       - `l_ref`: same unit as used for input `xi`,`bi`.
@@ -61,7 +64,7 @@ displacement to allow calculation of separated flow. Formerly, `blax!()`.
 See Section 4 of [Simplified Viscous/Inviscid Analysis for Nearly-Axisymmetric Bodies](../assets/drela_TASOPT_2p16/axibl.pdf).
 See also [`_BL_station_system`](@ref) and [`_BL_station_vars`](@ref).
 """
-function _axisymm_BL(ndim, n, ite, xᵢ, bi, rni, uinv, Reyn, Mach, fexcr )
+function _axisymm_BL(ndim, n, ite, xᵢ, bi, rni, uinv, Reyn, Mach, fexcr; dense_solve::Bool = false)
 
       uₑᵢ  = zeros(ndim)
       ρᵢ  = zeros(ndim)
@@ -103,6 +106,7 @@ function _axisymm_BL(ndim, n, ite, xᵢ, bi, rni, uinv, Reyn, Mach, fexcr )
       kdim=3*n #idim
       asys = zeros(kdim,kdim)
       rsys = zeros(kdim)
+      blockwork = _BLBlockWork(n)
 
       is_selfsimilar, is_laminar, is_wake, solves_direct = true, true, true, true
 
@@ -563,9 +567,13 @@ end # BL march loop
 #---- solve Newton system
 #      call gaussn(kdim,nsys,asys,rsys,1)
 
-#     factorise asys in place (it is rebuilt on every pass) and solve into rsys;
-#     the same LAPACK getrf/getrs calls as asys\rsys, without copying asys
-      ldiv!(lu!(asys), rsys)
+#     solve in place into rsys (asys is rebuilt on every pass): block elimination,
+#     which falls back to dense LU of asys if a 2x2 station block is near-singular
+      if dense_solve
+       ldiv!(lu!(asys), rsys)
+      else
+       _BL_block_solve!(rsys, asys, n, blockwork)
+      end
 
 #---- set Newton changes, set max change dmax, and set limiter rlx
         dmax = 0.
@@ -647,3 +655,144 @@ end # BL march loop
 
       return uₑᵢ, δᵢ, θᵢ, θsᵢ, δssᵢ, cfi, cdi, cti, hki, ϕ
       end # _axisymm_BL
+
+
+"""
+    _BLBlockWork(n)
+
+Work arrays for [`_BL_block_solve!`](@ref), sized for `n` stations. Matrices are
+indexed by station - 1 (station 1 is frozen).
+"""
+struct _BLBlockWork
+      Yθ::Matrix{Float64}   # Yθ[l-1,i-1] = ∂δθᵢ/∂δueₗ, l = 2…i (upper triangular)
+      Ym::Matrix{Float64}   # Ym[l-1,i-1] = ∂δmᵢ/∂δueₗ, l = 2…i (upper triangular)
+      y0θ::Vector{Float64}  # δθᵢ at δue₂ = … = δueₙ = 0
+      y0m::Vector{Float64}  # δmᵢ at δue₂ = … = δueₙ = 0
+      M::Matrix{Float64}    # reduced (n-1)×(n-1) system for δue₂…δueₙ
+      q::Vector{Float64}    # its right-hand side, then δue₂…δueₙ
+end
+_BLBlockWork(n) = _BLBlockWork(zeros(n-1, n-1), zeros(n-1, n-1), zeros(n), zeros(n),
+                               zeros(n-1, n-1), zeros(n-1))
+
+"""
+    _BL_block_solve!(rsys, asys, n, ws; pivtol = 1e-8)
+
+Solve the global Newton system `asys * z = rsys` of [`_axisymm_BL`](@ref) in place
+(`z` overwrites `rsys`) by block elimination, using its structure. The unknowns of
+station `i` are `z[3i-2:3i] = (δθᵢ, δmᵢ, δueᵢ)`, and
+
+- rows `3i-2`, `3i-1` (BL equations) involve stations `i-1` and `i` only;
+- row `3i` (``u_e - u_{vis}``) involves `δθᵢ`, `δueᵢ` and the `δm` of every station;
+- rows 1–3 are the identity (station 1 is frozen).
+
+With `yᵢ = (δθᵢ, δmᵢ)`, a downstream march over the 2×2 blocks ``∂(R_1, R_2)/∂y_i``
+(the direct BL march, with `ue` prescribed) gives `y = y₀ + Y δue` with `Y` lower
+triangular. Substituting into the rows `3i` leaves a dense ``(n-1)×(n-1)`` system
+for `δue₂…δueₙ`, solved by LU; `y` follows by back-substitution. Cost about
+``\frac{5}{3}n^3`` flops instead of ``\frac{2}{3}(3n)^3 = 18 n^3``.
+
+(Marching `(δθ, δue)` at fixed `δm`, the inverse BL march, is unstable near the nose
+in attached flow: the 2×2 blocks are nearly singular there and `Y` grows by ~10¹⁰.)
+
+If a 2×2 block is near-singular (``|\\det| ≤`` `pivtol` × the product of its row
+1-norms, e.g. near separation), or the reduced system is singular or gives
+non-finite values, solves with dense LU of `asys` instead (as Fortran TASOPT does),
+which overwrites `asys`. Otherwise `asys` is not modified.
+
+Returns `true` if block elimination was used and `false` if dense LU was.
+"""
+function _BL_block_solve!(rsys, asys, n, ws::_BLBlockWork; pivtol = 1e-8)
+      Yθ, Ym, y0θ, y0m, M, q = ws.Yθ, ws.Ym, ws.y0θ, ws.y0m, ws.M, ws.q
+
+#---- station 1 (identity rows)
+      y0θ[1] = rsys[1]
+      y0m[1] = rsys[2]
+      ue1    = rsys[3]
+
+#---- march: rows 1-2 of station i give yᵢ = y0ᵢ + Σₗ Y[l,i] δueₗ, l = 2…i
+      @inbounds for i = 2: n
+        k = 3*(i-1)
+        a11, a12, au1 = asys[k+1,k+1], asys[k+1,k+2], asys[k+1,k+3]
+        a21, a22, au2 = asys[k+2,k+1], asys[k+2,k+2], asys[k+2,k+3]
+        b11, b12, bu1 = asys[k+1,k-2], asys[k+1,k-1], asys[k+1,k]
+        b21, b22, bu2 = asys[k+2,k-2], asys[k+2,k-1], asys[k+2,k]
+
+        det = a11*a22 - a12*a21
+        if !(abs(det) > pivtol * (abs(a11) + abs(a12)) * (abs(a21) + abs(a22)))
+          ldiv!(lu!(asys), rsys)
+          return false
+        end
+        i11, i12 =  a22/det, -a12/det
+        i21, i22 = -a21/det,  a11/det
+
+        r1 = rsys[k+1] - b11*y0θ[i-1] - b12*y0m[i-1]
+        r2 = rsys[k+2] - b21*y0θ[i-1] - b22*y0m[i-1]
+        if i == 2   # δue₁ is known
+          r1 -= bu1*ue1
+          r2 -= bu2*ue1
+        end
+        y0θ[i] = i11*r1 + i12*r2
+        y0m[i] = i21*r1 + i22*r2
+
+        for l = 2: i-1
+          s1 = b11*Yθ[l-1,i-2] + b12*Ym[l-1,i-2]
+          s2 = b21*Yθ[l-1,i-2] + b22*Ym[l-1,i-2]
+          if l == i-1
+            s1 += bu1
+            s2 += bu2
+          end
+          Yθ[l-1,i-1] = -(i11*s1 + i12*s2)
+          Ym[l-1,i-1] = -(i21*s1 + i22*s2)
+        end
+        Yθ[i-1,i-1] = -(i11*au1 + i12*au2)
+        Ym[i-1,i-1] = -(i21*au1 + i22*au2)
+      end
+
+#---- reduced system from rows 3 of stations 2…n:  M δue = q, with
+#     M = Cₘ Ymᵀ + diag(g_ue) + g_θ Yθᵀ,  Cₘ[i,j] = ∂(row 3 of i)/∂δmⱼ
+      @inbounds for j = 2: n, i = 2: n
+        M[i-1,j-1] = asys[3*i,3*(j-1)+2]
+      end
+      @inbounds for i = 2: n
+        k  = 3*(i-1)
+        s = rsys[k+3] - asys[k+3,2]*y0m[1]
+        for j = 2: n
+          s -= M[i-1,j-1]*y0m[j]
+        end
+        q[i-1] = s - asys[k+3,k+1]*y0θ[i]
+      end
+      BLAS.trmm!('R', 'U', 'T', 'N', 1.0, Ym, M)
+      @inbounds for i = 2: n
+        k  = 3*(i-1)
+        gθ = asys[k+3,k+1]
+        for l = 2: i
+          M[i-1,l-1] += gθ*Yθ[l-1,i-1]
+        end
+        M[i-1,i-1] += asys[k+3,k+3]
+      end
+
+      F = lu!(M; check = false)
+      if issuccess(F)
+        ldiv!(F, q)
+      end
+      if !issuccess(F) || !all(isfinite, q)
+        ldiv!(lu!(asys), rsys)
+        return false
+      end
+
+#---- back-substitute for yᵢ, and put z into rsys (station 1 is unchanged)
+      @inbounds for i = 2: n
+        k = 3*(i-1)
+        th = y0θ[i]
+        md = y0m[i]
+        for l = 2: i
+          th += Yθ[l-1,i-1]*q[l-1]
+          md += Ym[l-1,i-1]*q[l-1]
+        end
+        rsys[k+1] = th
+        rsys[k+2] = md
+        rsys[k+3] = q[i-1]
+      end
+
+      return true
+end

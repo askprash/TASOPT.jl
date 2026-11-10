@@ -480,7 +480,7 @@ end
   # deterministic pseudo-random numbers in [-1, 1]
   prand(k) = sin(12.9898 * k + 78.233 * sin(0.37 * k))
   # A matrix with the _axisymm_BL Newton-system structure. `singular_at = s` makes the
-  # 2×2 (θ, ue) block of station s exactly singular.
+  # 2×2 (θ, m) block of station s exactly singular.
   function structured_system(n; singular_at = 0)
     N = 3n
     A, r = zeros(N, N), zeros(N)
@@ -493,13 +493,14 @@ end
         A[k+row, k+col]   = prand(c += 1) + (row == col ? 3.0 : 0.0) + (row == 2 && col == 3 ? 3.0 : 0.0)
         A[k+row, k+col-3] = 0.5 * prand(c += 1)
       end
-      if i == singular_at                # (θ, ue) columns of rows 1–2 linearly dependent
+      if i == singular_at                # (θ, m) columns of rows 1–2 linearly dependent
         A[k+2, k+1] = 2A[k+1, k+1]
-        A[k+2, k+3] = 2A[k+1, k+3]
+        A[k+2, k+2] = 2A[k+1, k+2]
       end
       for j in 1:n
         A[k+3, 3(j-1)+2] = -0.3 * prand(c += 1) / (1 + abs(i - j))
       end
+      A[k+3, k+1] = 0.2 * prand(c += 1)   # zero in _axisymm_BL, allowed by the solver
       A[k+3, k+3] = 1.0
       r[k+1:k+3] .= (prand(c += 1), prand(c += 1), prand(c += 1))
     end
