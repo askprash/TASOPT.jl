@@ -1159,6 +1159,25 @@ isGradient = false
 
     end
 
+    @testset "tfcalc! type stability" begin
+        # ncrowx (index.inc) sizes the blade-row cooling arrays in tfcalc!.
+        # If it is not a const global, these arrays and everything computed
+        # from them (including the tfoper!/tfsize! calls) are inferred as Any.
+        @test isconst(TASOPT.engine, :ncrowx)
+
+        ac = TASOPT.load_default_model()
+        parg, _, para, pare, options, _, _, wing, _, _, eng = TASOPT.unpack_ac(ac, 1)
+        ip = ipcruise1
+        argtypes = typeof.((wing, eng, parg, view(para, :, ip), view(pare, :, ip), ip,
+            options.ifuel, TASOPT.engine.CalcMode.FixedFeOffDes,
+            TASOPT.engine.CoolingOpt.FixedCoolingFlowRatio, true))
+        ci, _ = only(code_typed(TASOPT.engine.tfcalc!, argtypes; optimize = false))
+        slottype(name) = ci.slottypes[findfirst(==(name), ci.slotnames)]
+        @test slottype(:epsrow) == Vector{Float64}
+        @test slottype(:Tmrow) == Vector{Float64}
+        @test slottype(:ncrow) == Int64
+    end
+
     @testset "map_functions.jl" begin
         #Check reverse interpolation function
         map = TASOPT.engine.FanMap

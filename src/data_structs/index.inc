@@ -490,7 +490,7 @@
 
 #---- max number of blade rows allowed by ieepsc* and ieTmet* indices above
 # integer ncrowx
-ncrowx = ieTmet1 - ieepsc1
+const ncrowx = ieTmet1 - ieepsc1
 
 #---- indices for indexing mission points
       const ipstatic = 1
