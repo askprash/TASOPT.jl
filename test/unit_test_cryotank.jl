@@ -269,7 +269,8 @@ end
 # Tank state over a mission, against reference solutions (OrdinaryDiffEq Vern9 at reltol = abstol = 1e-13).
 # The inputs are synthetic but built like analyze_TASOPT_tank builds them: mission points with leading zeros, a
 # negative time outside the span, duplicated segment boundaries (jumps in the fuel flow) and a hold at origin.
-# The first two cases vent (p reaches pmax), the methane case does not.
+# The first two cases vent (p reaches pmax), the methane case does not. The first case also empties the tank (β falls
+# through 0, after which no fuel is drawn), which covers that switch in TankDerivatives.
 @testset "Tank state integration" begin
     CT = TASOPT.CryoTank
     function tank_case(species, hold, Qscale)
