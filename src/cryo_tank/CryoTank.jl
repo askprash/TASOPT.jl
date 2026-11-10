@@ -10,7 +10,6 @@ using ..TASOPT: fuselage_tank, aircraft
 using ..materials
 using Roots
 using NLopt
-using OrdinaryDiffEq
 using StaticArrays
 
 import ..TASOPT: __TASOPTindices__, __TASOPTroot__, compare_strings, FuelType, newton_solve, ode_solve
