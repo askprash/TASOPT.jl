@@ -698,7 +698,9 @@ end
 """
     Nafion_diffusion(T, λ)
 
-This function estimates the diffusion coefficient of water in Nafion.
+This function estimates the diffusion coefficient of water in Nafion, using the fit of
+Springer et al. (1991). Above λ = 16.8, the largest water content of the uptake model
+(λ = 14 + 1.4(a - 1) at a = 3), the fit is extended linearly from its value and slope at λ = 16.8.
 
 !!! details "🔃 Inputs and Outputs"
     **Inputs:**
@@ -714,7 +716,7 @@ function Nafion_diffusion(T, λ)
         D_λ = exp(2416 * (1/303 - 1/T)) * (2.563 - 0.33 * λ + 0.0264 * λ^2 - 0.000671 * λ^3) * 1e-10 
     else #Extrapolate with constant slope
         D0 = exp(2416 * (1/303 - 1/T)) * 1.2885009279999995e-10
-        slope = exp(2416 * (1/303 - 1/T)) * (-1.1109120000000084e-12) * 1e-10 
+        slope = exp(2416 * (1/303 - 1/T)) * (-1.1109120000000084e-12)
         D_λ = D0 + slope * (λ - 16.8)
     end
     
