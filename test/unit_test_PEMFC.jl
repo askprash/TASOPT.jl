@@ -18,8 +18,8 @@
 
     V_LT, α_LT = TASOPT.engine.LT_PEMFC_voltage(u_LT)
 
-    @test V_LT ≈ 0.7103339015901087
-    @test α_LT ≈ 0.13026807266756726
+    @test V_LT ≈ 0.7103338143791447
+    @test α_LT ≈ 0.1302680801309429
 
     u_HT = TASOPT.engine.PEMFC_inputs()
 
@@ -90,7 +90,7 @@ end
     ]
     for (case, V_ref, α_ref) in refs
         V, α_star = TASOPT.engine.LT_PEMFC_voltage(lt_inputs(case...))
-        @test V ≈ V_ref rtol = 1e-5
-        @test α_star ≈ α_ref rtol = 1e-5
+        @test V ≈ V_ref rtol = 1e-8
+        @test α_star ≈ α_ref rtol = 1e-8
     end
 end

@@ -1,4 +1,3 @@
-using OrdinaryDiffEq
 
 """
     LT_PEMFC_voltage_simple(j, T, p_H2, p_air)
@@ -412,20 +411,15 @@ function LT_PEMFC_voltage(u, α_guess::Float64 = 0.25)
     λ2 = λ_calc(aw2) #water content at 2, for boundary condition for ODE
 
     #Integrate ODE for λ
-    dy_dx(y, p, x) = [dλ_dz_membrane(y[1], p[1], p[2]), 1/conductivity_Nafion(T, y[1])] #Vector with dλ/dz and dASR/dz
+    dy_dx(y, x) = SVector(dλ_dz_membrane(y[1], u, p), 1/conductivity_Nafion(T, y[1])) #dλ/dz and dASR/dz
     
-    y0 = [λ2, 0.0]
+    y0 = SVector(λ2, 0.0)
     xspan = (0.0, t_M)
-    ODEparams = (u, p)
     
-    prob = ODEProblem(dy_dx, y0, xspan, ODEparams, reltol = 1e-6)
-    sol = solve(prob, Tsit5()) #Solve ODE problem using recommended solver
+    #abstol is well below the ASR, ~1e-5 Ohm m^2
+    _, ys, _ = ode_solve(dy_dx, y0, xspan, reltol = 1e-10, abstol = 1e-14)
 
-    #Extract solution vector
-    y = sol.u
-    y = hcat(y...) #Concatenate into array
-
-    ASR = y[2,end] #Extract final resistance
+    ASR = ys[end][2] #Extract final resistance
     η_ohm = j * ASR # Ohmic overvoltage
 
     #---------------------------------
@@ -964,20 +958,13 @@ function water_balance(α_star, u, p)
     aw2 = x_H2O_2 * p_A / p_SAT
     λ2 = λ_calc(aw2)
    
-    dy_dx(y, p, x) = [dλ_dz_membrane(y[1], p[1], p[2])]
+    dλ_dx(λ, x) = dλ_dz_membrane(λ, u, p)
     
-    y0 = [λ2]
     xspan = (0.0, t_M)
-    ODEparams = (u, p)
     
-    prob = ODEProblem(dy_dx, y0, xspan, ODEparams, reltol = 1e-6)
-    sol = solve(prob, Tsit5()) #Solve ODE problem using recommended solver
+    _, λs, _ = ode_solve(dλ_dx, λ2, xspan, reltol = 1e-10, abstol = 1e-14)
 
-    #Extract solution vector
-    y = sol.u
-    y = hcat(y...) #Concatenate into array
-
-    λ3 = y[1,end]
+    λ3 = λs[end]
 
     res = λ3 - λ3_prime #difference between the two methods
 
