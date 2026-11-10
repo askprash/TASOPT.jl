@@ -44,9 +44,9 @@ Computes Jacobian matrices for BL solution at an axial station. Called repeatedl
       `_z` denotes partial derivative with respect to `z` (`z` = `th`, `ds`, `ue`).
 
       **Outputs:**
-      - `aa::Array{Float64, 3, 3}`: Jacobian matrix (wrt current point vars).
-      - `bb::Array{Float64, 3, 3}`: Jacobian matrix (wrt previous point vars).
-      - `rr::Array{Float64, 3}`: Residual.
+      - `aa::SMatrix{3, 3, Float64}`: Jacobian matrix (wrt current point vars).
+      - `bb::SMatrix{3, 3, Float64}`: Jacobian matrix (wrt previous point vars).
+      - `rr::SVector{3, Float64}`: Residual.
 
 See Section 4 of [Simplified Viscous/Inviscid Analysis for Nearly-Axisymmetric Bodies](../assets/drela_TASOPT_2p16/axibl.pdf).
 """
@@ -65,8 +65,8 @@ See Section 4 of [Simplified Viscous/Inviscid Analysis for Nearly-Axisymmetric B
                             hsm, hsm_thm, hsm_dsm, hsm_uem,
                             cfm, cfm_thm, cfm_dsm, cfm_uem,
                             dim, dim_thm, dim_dsm, dim_uem)
-    # @inline: _axisymm_BL calls this at every Newton step of both BL marches.
-    # Inlined, aa, bb and rr stay off the heap and fuselage_drag! is ~4 % faster.
+    # @inline: _axisymm_BL calls this at every Newton step of both BL marches;
+    # inlining makes fuselage_drag! a few % faster.
 
     aa = @MMatrix zeros(3,3)
     bb = @MMatrix zeros(3,3)
@@ -284,7 +284,8 @@ See Section 4 of [Simplified Viscous/Inviscid Analysis for Nearly-Axisymmetric B
     bb[3,2] = 0.
     bb[3,3] = 0.
 
-    return aa, bb, rr
+    # immutable copies: returning the MMatrix/MVector would heap-allocate them
+    return SMatrix(aa), SMatrix(bb), SVector(rr)
 
 end # _BL_station_system
 

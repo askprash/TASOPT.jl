@@ -75,22 +75,20 @@ function _axisymm_BL(ndim, n, ite, xᵢ, bi, rni, uinv, Reyn, Mach, fexcr )
       hki  = zeros(ndim)
       ϕ  = zeros(ndim)
 
-      aa = zeros(3,3)
-      bb = zeros(3,3)
-      rr = zeros(3)
-    
-      hm,  hm_thm, hm_dsm = 1e20*ones(3)
-      hkm, hkm_thm, hkm_dsm, hkm_uem = 0*1e20*ones(4)
-      hcm, hcm_thm, hcm_dsm, hcm_uem = 1e20*ones(4)
-      hsm, hsm_thm, hsm_dsm, hsm_uem = 1e20*ones(4)
-      cfm, cfm_thm, cfm_dsm, cfm_uem = 1e20*ones(4)
-      dim, dim_thm, dim_dsm, dim_uem = 1e20*ones(4)
-      h , ∂h∂θ, ∂h∂δ,
-      hk, hk_th, hk_ds, hk_ue,
-      hc, hc_th, hc_ds, hc_ue,
-      hs, hs_th, hs_ds, hs_ue,
-      cf, cf_th, cf_ds, cf_ue,
-      di, di_th, di_ds, di_ue = 1e20*ones(23)
+      # previous-station and current-station variables, set to a large
+      # placeholder until the first station is computed
+      hm  = hm_thm  = hm_dsm            = 1e20
+      hkm = hkm_thm = hkm_dsm = hkm_uem = 0.0
+      hcm = hcm_thm = hcm_dsm = hcm_uem = 1e20
+      hsm = hsm_thm = hsm_dsm = hsm_uem = 1e20
+      cfm = cfm_thm = cfm_dsm = cfm_uem = 1e20
+      dim = dim_thm = dim_dsm = dim_uem = 1e20
+      h  = ∂h∂θ  = ∂h∂δ          = 1e20
+      hk = hk_th = hk_ds = hk_ue = 1e20
+      hc = hc_th = hc_ds = hc_ue = 1e20
+      hs = hs_th = hs_ds = hs_ue = 1e20
+      cf = cf_th = cf_ds = cf_ue = 1e20
+      di = di_th = di_ds = di_ue = 1e20
 
 
       idim = 60
@@ -354,13 +352,9 @@ end # BL march loop
       npass = 20
       for ipass = 1: npass #Newton iteration
 
-#---- clear system matrix and righthand side
-      for k = 1: nsys
-        rsys[k] = 0.
-        for l = 1: nsys
-          asys[k,l] = 0.
-        end
-      end
+#---- clear system matrix and righthand side (both are nsys = kdim long)
+      fill!(rsys, 0.0)
+      fill!(asys, 0.0)
 
 #---- first point variables are held frozen... put 1's on diagonal
       asys[1,1] = 1.0
@@ -569,7 +563,9 @@ end # BL march loop
 #---- solve Newton system
 #      call gaussn(kdim,nsys,asys,rsys,1)
 
-rsys = asys\rsys
+#     factorise asys in place (it is rebuilt on every pass) and solve into rsys;
+#     the same LAPACK getrf/getrs calls as asys\rsys, without copying asys
+      ldiv!(lu!(asys), rsys)
 
 #---- set Newton changes, set max change dmax, and set limiter rlx
         dmax = 0.
