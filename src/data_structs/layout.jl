@@ -167,14 +167,15 @@ Calculates the geometric properties of a scaled single-bubble cross section.
     - `A::Float64`: cross-sectional area (m^2)
 """
 function scaled_cross_section(cross_section::SingleBubble, R::Float64)
-    scaled_cs = deepcopy(cross_section) #Deepcopy to avoid modifying
     #Scale geometric parameters 
     R_Rprev = R / cross_section.radius
 
-    #Scale geometric parameters
-    scaled_cs.radius = R_Rprev * cross_section.radius #Change radius 
-    scaled_cs.bubble_lower_downward_shift =
-        R_Rprev * cross_section.bubble_lower_downward_shift #Change downward shift
+    #New cross section with scaled geometric parameters; the input is not modified
+    scaled_cs = SingleBubble(
+        R_Rprev * cross_section.radius, #Change radius 
+        R_Rprev * cross_section.bubble_lower_downward_shift, #Change downward shift
+        cross_section.skin_thickness,
+    )
 
     return get_perimeter(scaled_cs), area(scaled_cs)
 end
@@ -194,15 +195,18 @@ Calculates the geometric properties of a scaled multi-bubble cross section.
     - `A::Float64`: cross-sectional area (m^2)
 """
 function scaled_cross_section(cross_section::MultiBubble, R::Float64)
-    scaled_cs = deepcopy(cross_section) #Deepcopy to avoid modifying
     #Scale geometric parameters 
     R_Rprev = R / cross_section.radius #Radii ratio
 
-    #Scale geometric parameters
-    scaled_cs.radius = R_Rprev * cross_section.radius #Change radius 
-    scaled_cs.bubble_lower_downward_shift =
-        R_Rprev * cross_section.bubble_lower_downward_shift #Change downward shift
-    scaled_cs.bubble_center_y_offset = R_Rprev * cross_section.bubble_center_y_offset
+    #New cross section with scaled geometric parameters; the input is not modified
+    scaled_cs = MultiBubble(
+        R_Rprev * cross_section.radius, #Change radius 
+        R_Rprev * cross_section.bubble_lower_downward_shift, #Change downward shift
+        R_Rprev * cross_section.bubble_center_y_offset,
+        cross_section.n_webs,
+        cross_section.skin_thickness,
+        cross_section.web_thickness,
+    )
 
     return get_perimeter(scaled_cs), area(scaled_cs)
 end
