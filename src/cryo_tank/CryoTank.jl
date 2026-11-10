@@ -13,7 +13,7 @@ using NLopt
 using OrdinaryDiffEq
 using StaticArrays
 
-import ..TASOPT: __TASOPTindices__, __TASOPTroot__, compare_strings, FuelType, newton_solve
+import ..TASOPT: __TASOPTindices__, __TASOPTroot__, compare_strings, FuelType, newton_solve, ode_solve
 
 export SaturatedMixture, SaturatedPhaseProps, tanksize!,
        InnerTankGeometry, OuterTankGeometry

@@ -293,14 +293,8 @@ This function integrates the state of a cryogenic tank in time, from the derivat
 """
 function integrate_tank_state(u::tank_inputs, params::tank_params, y0::SVector{6, Float64},
                               tspan::Tuple{Float64, Float64}, tstops::Vector{Float64})
-    ODEparams = (u, params)
-    dy_dt(y, p, t) = TankDerivatives(t, y, p[1], p[2]) #State derivatives
-    #ODE problem; specify changes in mission segments for better speed
-    prob = ODEProblem(dy_dt, y0, tspan, ODEparams, tstops = tstops, reltol = 1e-8)
-    sol = solve(prob, Tsit5())::ODESolution #Solve ODE problem using recommended solver
-
-    #Extract solution vector
-    ts = Vector{Float64}(sol.t)
-    ys = sol.u::Vector{StaticArraysCore.SVector{6, Float64}}
+    dy_dt(y, t) = TankDerivatives(t, y, u, params) #State derivatives
+    #Step onto the mission points, where the inputs change segment
+    ts, ys, _ = ode_solve(dy_dt, y0, tspan; tstops = tstops, reltol = 1e-8, abstol = 1e-6)
     return ts, ys
 end
