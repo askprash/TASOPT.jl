@@ -1,6 +1,8 @@
 
 
-@testset "wing aerodynamics" verbose=true begin 
+import ForwardDiff
+
+@testset "wing aerodynamics" verbose=true begin
     include(joinpath(TASOPT.__TASOPTroot__, "../test/default_structures.jl"))
     fuselage = ac_test.fuselage
     wing = ac_test.wing
@@ -367,6 +369,103 @@ end
         wake = vars(true, θ, δs, ue)
         @test wake[20] ≈ 2di rtol = 1e-14
         @test wake[16] == 0.0   # cf = 0 in the wake
+    end
+  end
+end
+
+@testset "BL closures and station partials" begin
+  # The BL closures were ported from Fortran (tasopt2.16 blsys.f) with hand-coded
+  # partials. Check every partial against ForwardDiff of the value, which also catches
+  # slips that are in the Fortran too.
+  AE = TASOPT.aerodynamics
+  # Each closure f(p...) returns (value, ∂value/∂p[1], ∂value/∂p[2], ...).
+  function check_partials(f, p)
+    out = f(p...)
+    for k in eachindex(p)
+      ad = ForwardDiff.derivative(t -> f(Base.setindex(p, t, k)...)[1], p[k])
+      @test out[k+1] ≈ ad rtol = 1e-12
+    end
+  end
+
+  @testset "closures" begin
+    for H in (1.3, 2.0, 3.5), msq in (0.0, 0.64)
+      check_partials(AE.hkin, (H, msq))
+    end
+    for hk in (2.5, 3.9, 5.0, 7.0), rt in (300.0, 2000.0)
+      check_partials(AE.laminar_dissipation, (hk, rt))
+      check_partials(AE.DILW, (hk, rt))
+    end
+    for hk in (2.0, 4.0, 5.0, 7.0)
+      check_partials(AE.hsl, (hk, 500.0, 0.3))
+    end
+    for hk in (2.0, 5.0, 6.0, 8.0), rt in (300.0, 2000.0)
+      check_partials(AE.cfl, (hk, rt, 0.3))
+    end
+    check_partials(AE.DIT, (1.6, 0.3, 0.003, 0.02))
+    for hk in (1.3, 2.5), msq in (0.0, 0.5)
+      check_partials(AE.hct, (hk, msq))
+    end
+    for hk in (1.2, 1.5, 2.5, 4.0), rt in (300.0, 5000.0, 1.0e5), msq in (0.0, 0.5)
+      check_partials(AE.cft, (hk, rt, msq))
+    end
+    # hst: Rθ on both sides of the Rθ = 200 and Rθ = 400 switches, Hk on the attached
+    # (Hk < H₀) and separated (Hk ≥ H₀) branches.
+    @testset "hst Rθ = $rt" for rt in (150.0, 300.0, 2000.0, 1.0e5)
+      H₀ = rt > 400 ? 3 + 400 / rt : 4.0
+      for hk in (1.3, 2.5, H₀ + 0.3, H₀ + 2.0), msq in (0.0, 0.5)
+        check_partials(AE.hst, (hk, rt, msq))
+      end
+    end
+  end
+
+  # _BL_station_vars returns (h, h_θ, h_δs, then (q, q_θ, q_δs, q_ue) for
+  # q = hk, hc, hs, cf, 𝒟).
+  vidx = (1, 4, 8, 12, 16, 20)
+  Reyn, fexcr, x = 7.0e6, 1.03, 10.0
+  # (θ, δs): attached (H = 1.3, 2.5) and separated (H = 6, Hk > H₀)
+  states = ((2e-3, 2.6e-3), (2e-3, 5e-3), (2e-4, 1.2e-3))
+
+  @testset "station vars, Mach = $Mach" for Mach in (0.0,)
+    for is_laminar in (false, true), is_wake in (false, true), (θ, δs) in states
+      ue = 0.95
+      f(t, d, u) = AE._BL_station_vars(false, is_laminar, is_wake, Reyn, Mach, fexcr, x, t, d, u)
+      out = f(θ, δs, ue)
+      for vi in vidx
+        @test out[vi+1] ≈ ForwardDiff.derivative(t -> f(t, δs, ue)[vi], θ) rtol = 1e-12
+        @test out[vi+2] ≈ ForwardDiff.derivative(d -> f(θ, d, ue)[vi], δs) rtol = 1e-12
+        vi == 1 && continue   # h = δs/θ does not depend on ue
+        @test out[vi+3] ≈ ForwardDiff.derivative(u -> f(θ, δs, u)[vi], ue) rtol = 1e-12 atol = 1e-14
+      end
+    end
+  end
+
+  # _BL_station_system: aa = ∂rr/∂(θ, δs, ue) and bb = ∂rr/∂(θ, δs, ue) of the previous
+  # station, with the station variables recomputed from (θ, δs, ue). The system fills
+  # Float64 static arrays, so the reference is a central finite difference.
+  function station_residual(simi, wake, direct, Mach, s, sm)
+    v  = AE._BL_station_vars(simi, false, wake, Reyn, Mach, fexcr, x, s...)
+    vm = AE._BL_station_vars(false, false, wake, Reyn, Mach, fexcr, 0.9x, sm...)
+    AE._BL_station_system(simi, false, wake, direct, Mach, 1.0, 2.9,
+                          x, 12.0, 0.9, s..., v...,
+                          0.9x, 12.5, 0.95, sm..., vm...)
+  end
+  @testset "station system, Mach = $Mach" for Mach in (0.0,)
+    s, sm = (2.1e-3, 2.9e-3, 0.97), (2.0e-3, 2.7e-3, 0.99)
+    for simi in (false, true), wake in (false, true), direct in (true, false)
+      aa, bb, rr = station_residual(simi, wake, direct, Mach, s, sm)
+      for j in 1:3
+        step(p, δ) = Base.setindex(p, p[j] * (1 + δ), j)
+        h = 1e-6
+        fd_a = (station_residual(simi, wake, direct, Mach, step(s, h), sm)[3] -
+                station_residual(simi, wake, direct, Mach, step(s, -h), sm)[3]) / (2h * s[j])
+        fd_b = (station_residual(simi, wake, direct, Mach, s, step(sm, h))[3] -
+                station_residual(simi, wake, direct, Mach, s, step(sm, -h))[3]) / (2h * sm[j])
+        for k in 1:3
+          @test aa[k, j] ≈ fd_a[k] rtol = 1e-6 atol = 1e-9 * maximum(abs, aa[k, :])
+          # the self-similar station does not depend on the previous one
+          simi || @test bb[k, j] ≈ fd_b[k] rtol = 1e-6 atol = 1e-9 * maximum(abs, bb[k, :])
+        end
+      end
     end
   end
 end
