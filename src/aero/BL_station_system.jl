@@ -508,8 +508,10 @@ Returns `(DI, DI_HK, DI_RT)`: ``\\mathcal{D}`` and its partials with respect to
       HS, HS_HK, HS_RT, HS_MSQ = hsl( HK, RT, MSQ)
 #
 #---- Laminar wake dissipation function  ( 2 CD/H* )
+#     Departs from the Fortran DILW (blsys.f:426), which has -1.10 on the first
+#     term of RCD_HK: d/dHK (1 - 1/HK)^2 = +2(1 - 1/HK)/HK^2.
       RCD    =  1.10 * (1.0 - 1.0/HK)^2  / HK
-      RCD_HK = -1.10 * (1.0 - 1.0/HK)*2.0 / HK^3-
+      RCD_HK =  1.10 * (1.0 - 1.0/HK)*2.0 / HK^3-
 	 RCD/HK
 #
       DI    = 2.0*RCD   /(HS*RT)
