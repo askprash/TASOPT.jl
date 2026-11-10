@@ -400,7 +400,7 @@ function _BL_station_vars(is_selfsimilar,is_laminar,is_wake, Reyn,Mach, fexcr,
       end
 
       if(is_laminar) 
-       (𝒟ᵢ, 𝒟ᵢ_hk, 𝒟ᵢ_rt) = 𝒟ᵢl( hk, rt )
+       (𝒟ᵢ, 𝒟ᵢ_hk, 𝒟ᵢ_rt) = laminar_dissipation( hk, rt )
        ∂𝒟ᵢ_∂θ = 𝒟ᵢ_hk*∂hk_∂θ + 𝒟ᵢ_rt*rt_θ
        ∂𝒟ᵢ_∂δs = 𝒟ᵢ_hk*∂hk_∂δs
        𝒟ᵢ_ue = 𝒟ᵢ_hk*hk_ue + 𝒟ᵢ_rt*rt_ue
@@ -466,8 +466,25 @@ function _BL_station_vars(is_selfsimilar,is_laminar,is_wake, Reyn,Mach, fexcr,
       end
  
 
+"""
+    laminar_dissipation(HK, RT)
 
-      function dil( HK, RT )
+Laminar dissipation coefficient ``\\mathcal{D} = 2C_\\mathcal{D}/H^*`` from a
+Falkner-Skan fit, as a function of the kinematic shape parameter `HK` and the
+momentum-thickness Reynolds number `RT` (``Re_\\theta``). Port of `DIL` in
+TASOPT 2.16 `blsys.f` (formerly `dil`).
+
+```math
+\\mathcal{D} Re_\\theta = \\begin{cases}
+0.00205\\,(4 - H_k)^{5.5} + 0.207, & H_k < 4 \\\\
+0.207 - \\dfrac{0.0016\\,(H_k - 4)^2}{1 + 0.02\\,(H_k - 4)^2}, & H_k \\ge 4
+\\end{cases}
+```
+
+Returns `(DI, DI_HK, DI_RT)`: ``\\mathcal{D}`` and its partials with respect to
+`HK` and `RT`, where `DI_RT = -DI/RT`.
+"""
+      function laminar_dissipation( HK, RT )
 #
 #---- Laminar dissipation function  ( 2 CD/H* )     (from Falkner-Skan)
       if(HK<4.0) 
