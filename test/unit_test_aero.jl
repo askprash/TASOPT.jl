@@ -298,6 +298,79 @@ end
     @test ac.parg[igCMVf1] ≈ CMVf1_test
 end
 
+@testset "BL laminar dissipation" begin
+  @testset "closure (Fortran DIL)" begin
+    # Reference values evaluated from the Fortran DIL formulas (tasopt2.16 blsys.f:400)
+    # in 40-digit decimal arithmetic, independently of the Julia code.
+    # Columns: hk, Rθ, 2CD/H*, ∂/∂hk, ∂/∂Rθ. The first two rows are on the hk < 4
+    # branch, the last two on the hk ≥ 4 branch, and hk = 4 is the switch point.
+    ref = [
+        2.5  500.0  4.52131666105232505e-4 -1.39816109052519186e-4  -9.04263332210465011e-7
+        3.9 1000.0  2.07000006482669203e-4 -3.56546806183984770e-10 -2.07000006482669203e-7
+        4.0  200.0  1.03500000000000000e-3  0.0                     -5.17500000000000000e-6
+        5.0  300.0  6.84771241830065359e-4 -1.02524669998718442e-5  -2.28257080610021786e-6
+        7.0 2000.0  9.73983050847457627e-5 -3.44728526285550129e-6  -4.86991525423728814e-8
+    ]
+    ld = TASOPT.aerodynamics.laminar_dissipation
+    for (hk, rt, di_ref, di_hk_ref, di_rt_ref) in eachrow(ref)
+        di, di_hk, di_rt = ld(hk, rt)
+        @test di ≈ di_ref rtol = 1e-14
+        @test di_hk ≈ di_hk_ref rtol = 1e-12 atol = 1e-20
+        @test di_rt ≈ di_rt_ref rtol = 1e-14
+
+        # partials against central finite differences (skipped at the hk = 4 kink,
+        # where the slope is 0 but a central difference straddles both branches)
+        ε = 1e-6
+        fd_hk = (ld(hk + ε, rt)[1] - ld(hk - ε, rt)[1]) / (2ε)
+        fd_rt = (ld(hk, rt + ε * rt)[1] - ld(hk, rt - ε * rt)[1]) / (2ε * rt)
+        hk == 4.0 || @test di_hk ≈ fd_hk rtol = 1e-6 atol = 1e-13
+        @test di_rt ≈ fd_rt rtol = 1e-6
+    end
+
+    # value and slope are continuous across the hk = 4 branch switch
+    lo, hi = ld(4.0 - 1e-9, 300.0), ld(4.0 + 1e-9, 300.0)
+    @test lo[1] ≈ hi[1] rtol = 1e-12
+    @test lo[2] ≈ hi[2] atol = 1e-12
+  end
+
+  @testset "station vars, laminar branch" begin
+    # Laminar branch of the station variables (is_laminar = true). Before the fix this
+    # called an undefined function and threw UndefVarError.
+    Reyn, Mach, fexcr = 7006067.9699355923, 0.8, 1.0
+    x, θ, ue = 1.0, 0.0002, 0.95
+    # (δs, hk, 2CD/H*) from the same independent evaluation of the Fortran blvar
+    # chain; δs = 0.00052 gives hk < 4 and δs = 0.001 gives hk > 4.
+    stations = [
+        (0.00052, 2.28712293625379124, 1.81808278181889317e-4)  # Rθ = 1356.15,
+        (0.001,   4.54177819543849179, 1.52293736895109506e-4)  # Rθ = 1356.15,
+    ]
+    vars(is_wake, θ, δs, ue; M = Mach) = TASOPT.aerodynamics._BL_station_vars(false, true,
+        is_wake, Reyn, M, fexcr, x, θ, δs, ue)
+    fd(f, v) = (f(v * (1 + 1e-6)) - f(v * (1 - 1e-6))) / (2e-6 * v)
+    for (δs, hk_ref, di_ref) in stations
+        out = @inferred vars(false, θ, δs, ue)
+        hk = out[4]
+        di, di_θ, di_δs, di_ue = out[20:23]
+        @test hk ≈ hk_ref rtol = 1e-13
+        @test di ≈ di_ref rtol = 1e-13
+
+        # chain-rule partials against central finite differences of the station vars
+        @test di_θ  ≈ fd(t -> vars(false, t, δs, ue)[20], θ)  rtol = 1e-5
+        @test di_δs ≈ fd(d -> vars(false, θ, d, ue)[20], δs) rtol = 1e-5
+        # The ue partial is checked at M = 0: like the Fortran blvar, the station code
+        # uses msq_ue = 2 ue M² - (msq/trat) trat_ue, which drops a 1/trat factor on
+        # the first term and so is only exact when trat = 1.
+        di_ue0 = vars(false, θ, δs, ue; M = 0.0)[23]
+        @test di_ue0 ≈ fd(u -> vars(false, θ, δs, u; M = 0.0)[20], ue) rtol = 1e-5
+
+        # laminar wake: the Fortran blvar doubles the dissipation (wfac = 2)
+        wake = vars(true, θ, δs, ue)
+        @test wake[20] ≈ 2di rtol = 1e-14
+        @test wake[16] == 0.0   # cf = 0 in the wake
+    end
+  end
+end
+
 @testset "aeroperf sweep" begin
     #loading known results, hardcoded; can be re-generated via aeroperf_sweep run in REPL
     test_results = (
