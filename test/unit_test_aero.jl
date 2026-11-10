@@ -359,9 +359,9 @@ end
         # chain-rule partials against central finite differences of the station vars
         @test di_θ  ≈ fd(t -> vars(false, t, δs, ue)[20], θ)  rtol = 1e-5
         @test di_δs ≈ fd(d -> vars(false, θ, d, ue)[20], δs) rtol = 1e-5
-        # The ue partial is checked at M = 0: like the Fortran blvar, the station code
-        # uses msq_ue = 2 ue M² - (msq/trat) trat_ue, which drops a 1/trat factor on
-        # the first term and so is only exact when trat = 1.
+        # The ue partial at M = 0.8 needs the exact msq_ue (the Fortran blvar drops a
+        # 1/trat factor, which is exact only at M = 0), and is also checked at M = 0.
+        @test di_ue ≈ fd(u -> vars(false, θ, δs, u)[20], ue) rtol = 1e-5
         di_ue0 = vars(false, θ, δs, ue; M = 0.0)[23]
         @test di_ue0 ≈ fd(u -> vars(false, θ, δs, u; M = 0.0)[20], ue) rtol = 1e-5
 
@@ -425,7 +425,7 @@ end
   # (θ, δs): attached (H = 1.3, 2.5) and separated (H = 6, Hk > H₀)
   states = ((2e-3, 2.6e-3), (2e-3, 5e-3), (2e-4, 1.2e-3))
 
-  @testset "station vars, Mach = $Mach" for Mach in (0.0,)
+  @testset "station vars, Mach = $Mach" for Mach in (0.0, 0.8)
     for is_laminar in (false, true), is_wake in (false, true), (θ, δs) in states
       ue = 0.95
       f(t, d, u) = AE._BL_station_vars(false, is_laminar, is_wake, Reyn, Mach, fexcr, x, t, d, u)
@@ -449,7 +449,7 @@ end
                           x, 12.0, 0.9, s..., v...,
                           0.9x, 12.5, 0.95, sm..., vm...)
   end
-  @testset "station system, Mach = $Mach" for Mach in (0.0,)
+  @testset "station system, Mach = $Mach" for Mach in (0.0, 0.8)
     s, sm = (2.1e-3, 2.9e-3, 0.97), (2.0e-3, 2.7e-3, 0.99)
     for simi in (false, true), wake in (false, true), direct in (true, false)
       aa, bb, rr = station_residual(simi, wake, direct, Mach, s, sm)
