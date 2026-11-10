@@ -118,6 +118,9 @@ CryoTank.find_Q_time_interp
 ```@docs
 CryoTank.analyze_TASOPT_tank
 ```
+```@docs
+CryoTank.integrate_tank_state
+```
 
 [^1]: Lin, Chin S., Neil T. Van Dresar, and Mohammad M. Hasan. "Pressure control analysis of cryogenic storage systems." Journal of propulsion and power 20.3 (2004): 480-485.
 [^2]: Verstraete, Dries, et al. "Hydrogen fuel tanks for subsonic transport aircraft." International journal of hydrogen energy 35.20 (2010): 11085-11098.
