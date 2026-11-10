@@ -470,6 +470,108 @@ end
   end
 end
 
+@testset "BL Newton system: block elimination" begin
+  # The global viscous/inviscid Newton pass of _axisymm_BL solves a 3n×3n system with
+  # unknowns (δθᵢ, δmᵢ, δueᵢ) per station: rows 1–2 of station i couple stations i-1 and
+  # i only, row 3 (ue - uvis) is dense in the m columns, and station 1 is frozen
+  # (identity rows). _BL_block_solve! uses that structure; check it against dense LU.
+  AE = TASOPT.aerodynamics
+
+  # deterministic pseudo-random numbers in [-1, 1]
+  prand(k) = sin(12.9898 * k + 78.233 * sin(0.37 * k))
+  # A matrix with the _axisymm_BL Newton-system structure. `singular_at = s` makes the
+  # 2×2 (θ, ue) block of station s exactly singular.
+  function structured_system(n; singular_at = 0)
+    N = 3n
+    A, r = zeros(N, N), zeros(N)
+    A[1, 1] = A[2, 2] = A[3, 3] = 1.0
+    r[1:3] .= (0.1, -0.2, 0.05)       # generic: station 1 need not be zero
+    c = 0
+    for i in 2:n
+      k = 3(i - 1)
+      for row in 1:2, col in 1:3
+        A[k+row, k+col]   = prand(c += 1) + (row == col ? 3.0 : 0.0) + (row == 2 && col == 3 ? 3.0 : 0.0)
+        A[k+row, k+col-3] = 0.5 * prand(c += 1)
+      end
+      if i == singular_at                # (θ, ue) columns of rows 1–2 linearly dependent
+        A[k+2, k+1] = 2A[k+1, k+1]
+        A[k+2, k+3] = 2A[k+1, k+3]
+      end
+      for j in 1:n
+        A[k+3, 3(j-1)+2] = -0.3 * prand(c += 1) / (1 + abs(i - j))
+      end
+      A[k+3, k+3] = 1.0
+      r[k+1:k+3] .= (prand(c += 1), prand(c += 1), prand(c += 1))
+    end
+    return A, r
+  end
+
+  @testset "structured system, n = $n" for n in (2, 3, 10, 47, 60)
+    A, r = structured_system(n)
+    ws = AE._BLBlockWork(n)
+    z = copy(r)
+    @test AE._BL_block_solve!(z, copy(A), n, ws)    # true: block elimination was used
+    zd = A \ r
+    @test maximum(abs, z - zd) <= 1e-12 * maximum(abs, zd)
+    @test maximum(abs, A * z - r) <= 1e-12 * maximum(abs, r)
+  end
+
+  @testset "near-singular 2×2 block falls back to dense LU" begin
+    n = 12
+    A, r = structured_system(n; singular_at = 5)
+    z = copy(r)
+    @test !AE._BL_block_solve!(z, copy(A), n, AE._BLBlockWork(n))   # false: dense LU used
+    @test maximum(abs, A * z - r) <= 1e-10 * maximum(abs, r)
+  end
+
+  # _axisymm_BL inputs built from fuselage geometry the way fuselage_drag! builds them
+  function fuse_bl_inputs(; Mach = 0.8, nc = 30, edge = false, xend = 37.7952,
+                          xblend1 = 6.096, xblend2 = 29.5656, btail = 2.0)
+    nbldim = 60
+    xl, zl, sl, dyl, ql = (zeros(nbldim) for _ in 1:5)
+    nbl, ite = AE._axisymm_flow(0.0, xend, xblend1, xblend2, 13.507394174276255,
+                                1.65, btail, Int(edge), Mach, nc, nbldim, xl, zl, sl, dyl, ql)
+    bl = edge ? 2π .* zl .+ 4 .* dyl : 2π .* zl
+    rn = zeros(nbldim)
+    for i in 2:nbl-1
+      dxm, dzm, dsm = xl[i] - xl[i-1], zl[i] - zl[i-1], sl[i] - sl[i-1]
+      dxp, dzp, dsp = xl[i+1] - xl[i], zl[i+1] - zl[i], sl[i+1] - sl[i]
+      dxo = (dxm / dsm) * dsp + (dxp / dsp) * dsm
+      dzo = (dzm / dsm) * dsp + (dzp / dsp) * dsm
+      rn[i] = dxo / sqrt(dxo^2 + dzo^2)
+    end
+    rn[1] = max(rn[2] - (0.5(sl[3] + sl[2]) - sl[1]) * (rn[3] - rn[2]) / (sl[3] - sl[2]), 0.0)
+    rn[nbl] = max(rn[nbl-1] + (sl[nbl] - 0.5(sl[nbl-1] + sl[nbl-2])) *
+                  (rn[nbl-1] - rn[nbl-2]) / (sl[nbl-1] - sl[nbl-2]), 0.0)
+    return nbldim, nbl, ite, sl, bl, rn, ql
+  end
+
+  cases = (
+    ("default, M = 0.8",      (;)),
+    ("M = 0",                 (; Mach = 0.0)),
+    ("M = 0.6",               (; Mach = 0.6)),
+    ("M = 0.85",              (; Mach = 0.85)),
+    ("tapers to edge",        (; edge = true)),
+    ("n = 26",                (; nc = 16)),
+    ("n = 59",                (; nc = 38)),
+    ("short tail, Hk ≈ 2.4",  (; xblend2 = 34.0)),
+    ("short tail, Hk > 2.9",  (; xblend2 = 35.0)),   # inverse mode in the initial march
+  )
+  @testset "_axisymm_BL, $label" for (label, kw) in cases
+    Mach = get(kw, :Mach, 0.8)
+    nbldim, nbl, ite, sl, bl, rn, ql = fuse_bl_inputs(; kw...)
+    args = (nbldim, nbl, ite, sl, bl, rn, ql, 7006067.9699355923, Mach, 1.03)
+    blk = AE._axisymm_BL(args...)
+    dns = AE._axisymm_BL(args...; dense_solve = true)
+    # uₑ, δ*, θ, θ*, δ**, cf, c𝒟, cτ, Hk, Φ: same to rounding
+    for (b, d) in zip(blk, dns)
+      @test maximum(abs, b - d) <= 1e-11 * maximum(abs, d)
+    end
+    @test all(isfinite, blk[1])
+    nbl > ite && @test all(iszero, blk[6][ite+1:nbl])   # cf = 0 in the wake
+  end
+end
+
 @testset "aeroperf sweep" begin
     #loading known results, hardcoded; can be re-generated via aeroperf_sweep run in REPL
     test_results = (
