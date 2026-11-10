@@ -636,7 +636,7 @@ Returns `(DI, DI_HK, DI_RT)`: ``\\mathcal{D}`` and its partials with respect to
        RTMP = HK - HO + 4.0/GRT
        HTMP    = 0.007*GRT/RTMP^2 + DHSINF/HK
        HTMP_HK = -.014*GRT/RTMP^3 - DHSINF/HK^2
-       HTMP_RT = -.014*GRT/RTMP^3 * (-HO_RT - 4.0/GRT^2/RTZ * RTZ_RT) + 0.007RTMP^2 / RTZ * RTZ_RT
+       HTMP_RT = -.014*GRT/RTMP^3 * (-HO_RT - 4.0/GRT^2/RTZ * RTZ_RT) + 0.007/RTMP^2 / RTZ * RTZ_RT
        HS    = HDif^2 * HTMP + HSMIN + 4.0/RTZ
        HS_HK = HDif*2.0* HTMP + HDif^2 * HTMP_HK
        HS_RT = HDif^2 * HTMP_RT - 4.0/RTZ^2 * RTZ_RT + HDif*2.0* HTMP * (-HO_RT)
