@@ -191,7 +191,7 @@ function residuals_Q(x::Vector{Float64}, p::thermal_params, mode::String)
       #Find resistance of each insulation layer
       T_prev = T_w
       for i in 1:N
-            if lowercase(material[i].name) == "vacuum"
+            if lowercase_equals(material[i].name, "vacuum")
                   S_inner = perim_R * l_cyl * r_inner + 2*Shead[i]
                   S_outer = perim_R * l_cyl * (r_inner + t_cond[i]) + 2*Shead[i+1]
                   R_ins[i] = vacuum_resistance(T_prev, T_ins[i], S_inner, S_outer)
@@ -377,4 +377,19 @@ function vacuum_resistance(Tcold::Float64, Thot::Float64, S_inner::Float64, S_ou
       #Parallel addition of resistance
       R_eq = R_conv * R_rad / (R_conv + R_rad) 
       return R_eq
+end
+
+"""
+      lowercase_equals(s::AbstractString, lower::AbstractString)
+
+Returns `lowercase(s) == lower` without allocating the lowercase copy of `s`.
+`lowercase` on a string lowercases it one character at a time, so comparing
+`lowercase(c)` character by character gives the same answer.
+"""
+function lowercase_equals(s::AbstractString, lower::AbstractString)
+      length(s) == length(lower) || return false
+      for (c, d) in zip(s, lower)
+            lowercase(c) == d || return false
+      end
+      return true
 end
